@@ -1,0 +1,21 @@
+ <head>
+    <meta charset="UTF-8" />
+    <title>Electron + Python</title>
+  </head>
+  <body>
+    <h1>Resultado:</h1>
+    <h2 id="result">Carregando...</h2>
+
+    <script>
+      fetch('http://localhost:5000/calc')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('result').innerText = data.result
+        })
+        .catch(err => {
+          document.getElementById('result').innerText = 'Erro ao conectar'
+          console.error(err)
+        })
+    </script>
+  </body>
+</html>
