@@ -1,21 +1,17 @@
- <head>
+<html>
+  <head>
     <meta charset="UTF-8" />
-    <title>Electron + Python</title>
+    <title>Algorith.io - React App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
   </head>
   <body>
-    <h1>Resultado:</h1>
-    <h2 id="result">Carregando...</h2>
-
-    <script>
-      fetch('http://localhost:5000/calc')
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('result').innerText = data.result
-        })
-        .catch(err => {
-          document.getElementById('result').innerText = 'Erro ao conectar'
-          console.error(err)
-        })
-    </script>
+    <div id="root"></div>
+    <script src="dist/bundle.js"></script>
   </body>
 </html>
