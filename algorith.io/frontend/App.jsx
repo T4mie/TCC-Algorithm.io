@@ -28,7 +28,7 @@ function App() {
 
   return (
     <ReactFlow nodes={initialNodes} edges={initialEdges} style={{ width: '100vw', height: '100vh' }}>
-       <Background color="grey" variant="lines" />
+       <Background color="grey" variant="dots" />
     </ReactFlow>
     // <div style={{ padding: '20px' }}>
     //   <h1>Algoritmo - React App</h1>

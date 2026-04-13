@@ -8771,7 +8771,7 @@ function App() {
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Background, {
     color: "grey",
-    variant: "lines"
+    variant: "dots"
   }))
   // <div style={{ padding: '20px' }}>
   //   <h1>Algoritmo - React App</h1>
