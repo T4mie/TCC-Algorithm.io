@@ -23,7 +23,7 @@ class Storage:
 
             # Cria uma edge do nó anterior para o novo nó
             edge = Edge(self.tail, node.id, "next")
-            geself.edges.append(ed)
+            self.edges.append(edge)
 
         # Adicionar no dicionario o novo nó (com next = None por padrão)
         self.nodes[node.id] = node
