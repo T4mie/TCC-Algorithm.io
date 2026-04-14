@@ -35,6 +35,7 @@ function App() {
 
       setNodes(reactFlowNodes);
       setEdges(reactFlowEdges);
+      setNodeCount(reactFlowNodes.length);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     }
@@ -46,9 +47,14 @@ function App() {
       return;
     }
 
+    const basePosition = { x: 100, y: 139 };
+    const horizontalSpacing = 200;
+    const verticalSpacing = 90;
+    const nodesPerRow = 5;
+
     const newPosition = {
-      x: (nodeCount % 5) * 50,
-      y: Math.floor(nodeCount / 5) * 50
+      x: basePosition.x + (nodeCount % nodesPerRow) * horizontalSpacing,
+      y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
     };
 
     const newNodeData = {
