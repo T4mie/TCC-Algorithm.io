@@ -70,24 +70,8 @@ function App() {
         setNodeLabel('');
         setNodeCount(nodeCount + 1);
         
-        // Adicionar o novo nó ao estado
-        setNodes(prev => [...prev, {
-          id: createdNode.id,
-          position: createdNode.position,
-          data: { label: createdNode.label },
-          type: createdNode.type
-        }]);
-
-        // Atualizar edges se houver
-        if (nodes.length > 0) {
-          const lastNode = nodes[nodes.length - 1];
-          const newEdge = {
-            id: `${lastNode.id}-${createdNode.id}`,
-            source: lastNode.id,
-            target: createdNode.id
-          };
-          setEdges(prev => [...prev, newEdge]);
-        }
+        // Refetch data to update nodes and edges
+        fetchData();
       }
     } catch (err) {
       alert('Erro ao criar nó: ' + err.message);

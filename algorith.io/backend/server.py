@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request
-from models.storage import Storage
+from structures.linked_list import LinkedList
 
 app = Flask(__name__)
-storage = Storage()
+storage = LinkedList()
 
 # ===== ROTAS PARA GERENCIAR NÓS =====
 
