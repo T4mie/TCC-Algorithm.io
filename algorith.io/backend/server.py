@@ -13,7 +13,13 @@ def create_node_last():
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
 
-    node = storage.add_node_last(data["value"])
+    node = storage.add_node_last(
+        value=data.get("value"),
+        position=data.get("position"),
+        label=data.get("label"),
+        node_type=data.get("type"),
+        node_id=data.get("id")
+    )
     return jsonify(node.to_dict()), 201
 
 @app.route("/nodes_first", methods=["POST"])
@@ -23,7 +29,13 @@ def create_node_first():
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
 
-    node = storage.add_node_first(data["value"])
+    node = storage.add_node_first(
+        value=data.get("value"),
+        position=data.get("position"),
+        label=data.get("label"),
+        node_type=data.get("type"),
+        node_id=data.get("id")
+    )
     return jsonify(node.to_dict()), 201
 
 @app.route("/data", methods=["GET"])

@@ -13,3 +13,4 @@ Passo a passo de configuração dentro da pasta algorith.io:
 
 Testar criação de aplicativo na pasta algorith.io:
 -npm run make
+

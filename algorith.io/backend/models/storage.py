@@ -8,9 +8,9 @@ class Storage:
         self.tail = None  # node_id do último nó (tail) da lista ligada
         self.head = None  # node_id do primeiro nó (head) da lista ligada
 
-    def add_node_last(self, value):
+    def add_node_last(self, value, position=None, label=None, node_type=None, node_id=None):
     # Cria um novo nó e o adiciona à lista ligada
-        node = Node(value)
+        node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id)
 
         # Se houver um nó anterior, atualizar seu ponteiro next
         if self.tail is not None:
@@ -32,9 +32,9 @@ class Storage:
 
         return node
     
-    def add_node_first(self, value):
+    def add_node_first(self, value, position=None, label=None, node_type=None, node_id=None):
     # Cria um novo nó e o adiciona no início da lista ligada
-        node = Node(value)
+        node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id)
 
         # Se houver um nó na head, o novo nó aponta para ele
         if self.head is not None:

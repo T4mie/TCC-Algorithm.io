@@ -3,47 +3,118 @@ import { ReactFlow, Background, Panel } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 function App() {
-  const [result, setResult] = useState('Carregando...');
-  const [loading, setLoading] = useState(true);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [nodeLabel, setNodeLabel] = useState('');
+  const [nodeCount, setNodeCount] = useState(0);
 
-  const initialNodes = [
-  { id: 'n1', position: { x: 0, y: 0 }, data: { label: 'Node 1' } },
-  { id: 'n2', position: { x: 0, y: 100 }, data: { label: 'Node 2' } },
-  ];
-  const initialEdges = [{ id: 'n1-n2', source: 'n1', target: 'n2' }];
+  // Carregar dados do backend ao montar o componente
   useEffect(() => {
-    // Chama o backend Python
-    // fetch('http://localhost:5000/calc')
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     setResult(data.result);
-    //     setLoading(false);
-    //   })
-    //   .catch(err => {
-    //     setResult('Erro ao conectar com o servidor');
-    //     setLoading(false);
-    //     console.error(err);
-    //   });
+    fetchData();
   }, []);
 
+  const fetchData = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/data');
+      const data = await response.json();
+      
+      // Converter nós do backend para formato ReactFlow
+      const reactFlowNodes = data.nodes.map(node => ({
+        id: node.id,
+        position: node.position,
+        data: { label: node.label },
+        type: node.type
+      }));
+
+      // Converter edges
+      const reactFlowEdges = data.edges.map(edge => ({
+        id: `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target
+      }));
+
+      setNodes(reactFlowNodes);
+      setEdges(reactFlowEdges);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    }
+  };
+
+  const addNode = async () => {
+    if (!nodeLabel.trim()) {
+      alert('Digite um rótulo para o nó');
+      return;
+    }
+
+    const newPosition = {
+      x: (nodeCount % 5) * 50,
+      y: Math.floor(nodeCount / 5) * 50
+    };
+
+    const newNodeData = {
+      value: nodeLabel,
+      label: nodeLabel,
+      position: newPosition,
+      type: 'default'
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/nodes_last', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newNodeData)
+      });
+
+      if (response.ok) {
+        const createdNode = await response.json();
+        setNodeLabel('');
+        setNodeCount(nodeCount + 1);
+        
+        // Adicionar o novo nó ao estado
+        setNodes(prev => [...prev, {
+          id: createdNode.id,
+          position: createdNode.position,
+          data: { label: createdNode.label },
+          type: createdNode.type
+        }]);
+
+        // Atualizar edges se houver
+        if (nodes.length > 0) {
+          const lastNode = nodes[nodes.length - 1];
+          const newEdge = {
+            id: `${lastNode.id}-${createdNode.id}`,
+            source: lastNode.id,
+            target: createdNode.id
+          };
+          setEdges(prev => [...prev, newEdge]);
+        }
+      }
+    } catch (err) {
+      alert('Erro ao criar nó: ' + err.message);
+    }
+  };
+
   return (
-    <ReactFlow nodes={initialNodes} edges={initialEdges} style={{ width: '100vw', height: '100vh' }}>
-       <Background color="grey" variant="dots" />
-    </ReactFlow>
-    // <div style={{ padding: '20px' }}>
-    //   <h1>Algoritmo - React App</h1>
-    //   <div style={{ 
-    //     backgroundColor: '#f0f0f0', 
-    //     padding: '15px', 
-    //     borderRadius: '5px',
-    //     marginTop: '10px'
-    //   }}>
-    //     <h2>Resultado:</h2>
-    //     <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
-    //       {loading ? 'Carregando...' : result}
-    //     </p>
-    //   </div>
-    // </div>
+    <div style={{ width: '100%', height: '100%' }}>
+      <ReactFlow nodes={nodes} edges={edges} style={{ width: '100vw', height: '100vh' }}>
+        <Background color="grey" variant="dots" />
+        <Panel position="top-left">
+          <div style={{ padding: '10px', backgroundColor: '#fff', borderRadius: '5px', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
+            <input
+              type="text"
+              value={nodeLabel}
+              onChange={(e) => setNodeLabel(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addNode()}
+              placeholder="Rótulo do nó"
+              style={{ padding: '5px', marginRight: '5px' }}
+            />
+            <button onClick={addNode} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+              Adicionar Nó
+            </button>
+          </div>
+        </Panel>
+      </ReactFlow>
+    </div>
   );
 }
 
