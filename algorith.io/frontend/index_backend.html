@@ -12,10 +12,8 @@
         <input type="text" id="nodeValue" placeholder="Valor do nó" onkeypress="if(event.key === 'Enter') addNode()">
         <button onclick="addNode()">Adicionar</button>
       </div>
-
       <!-- Exibição da lista ligada -->
       <div id="chain" class="list-chain"></div>
-
     </div>
 
     <script>
@@ -28,7 +26,7 @@
         }
         
         try {
-          await fetch('http://localhost:5000/nodes', {
+          await fetch('http://localhost:5000/nodes_last', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ value: value })
