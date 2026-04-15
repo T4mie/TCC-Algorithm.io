@@ -8,8 +8,31 @@ class LinkedList:
         self.head = None
         self.tail = None
 
+    def _initialize_head(self, first_node):
+        """Cria nós especiais head apontando para o primeiro nó"""
+        head_node = Node(value="head", node_id="head", node_type="head", label="Head", position={"x": -200, "y": 0})
+        
+        self.nodes["head"] = head_node
+        
+        # head aponta para o primeiro nó
+        head_node.next = first_node.id
+        self.edges.append(Edge("head", first_node.id, "next"))
+        
+
+    def _initialize_tail(self, first_node):
+        """Cria nó especial tail apontando para o primeiro nó"""
+        tail_node = Node(value="tail", node_id="tail", node_type="tail", label="Tail", position={"x": 200, "y": 0})
+        
+        self.nodes["tail"] = tail_node
+
+        # tail aponta para o primeiro nó (inicialmente)
+        tail_node.next = first_node.id
+        self.edges.append(Edge("tail", first_node.id, "next"))
+
     def add_node_last(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
         node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id, metadata=metadata)
+
+        is_first_node = self.head is None
 
         if self.tail is not None:
             previous_node = self.nodes[self.tail]
@@ -22,10 +45,22 @@ class LinkedList:
         self.nodes[node.id] = node
         self.tail = node.id
 
+        if is_first_node:
+            self._initialize_head(node)
+            self._initialize_tail(node)
+        else:
+            # Atualizar o nó "tail" especial para apontar para o novo nó ao final
+            self.nodes["tail"].next = node.id
+            # Remover a edge antiga do tail e adicionar a nova
+            self.edges = [e for e in self.edges if not (e.source == "tail")]
+            self.edges.append(Edge("tail", node.id, "next"))
+
         return node
 
     def add_node_first(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
         node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id, metadata=metadata)
+
+        is_first_node = self.head is None
 
         if self.head is not None:
             first_node = self.nodes[self.head]
@@ -37,6 +72,16 @@ class LinkedList:
 
         self.nodes[node.id] = node
         self.head = node.id
+
+        if is_first_node:
+            self._initialize_head(node)
+            self._initialize_tail(node)
+        else:
+            # Atualizar o nó "head" especial para apontar para o novo nó no início
+            self.nodes["head"].next = node.id
+            # Remover a edge antiga do head e adicionar a nova
+            self.edges = [e for e in self.edges if not (e.source == "head")]
+            self.edges.append(Edge("head", node.id, "next"))
 
         return node
 

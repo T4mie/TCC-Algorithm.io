@@ -8825,7 +8825,7 @@ function App() {
         color: '#000'
       },
       style: {
-        stroke: '#000',
+        stroke: '#000000',
         strokeWidth: 2
       }
     },

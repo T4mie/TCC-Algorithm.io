@@ -100,7 +100,7 @@ function App() {
         nodesConnectable={false}
         defaultEdgeOptions={{
           markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
-          style: { stroke: '#fff', strokeWidth: 2 }
+          style: { stroke: '#000000', strokeWidth: 2 }
         }}
         style={{ width: '100vw', height: '100vh' }}
       >
