@@ -8717,13 +8717,19 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
-/* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+/* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
+/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
 
 
 
+
+const nodeTypes = {
+  LLN: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"]
+};
 function App() {
-  const [nodes, setNodes] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
-  const [edges, setEdges] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [nodes, setNodes, onNodesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useNodesState)([]);
+  const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useEdgesState)([]);
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
 
@@ -8739,11 +8745,11 @@ function App() {
       // Converter nós do backend para formato ReactFlow
       const reactFlowNodes = data.nodes.map(node => ({
         id: node.id,
+        type: 'LLN',
         position: node.position,
         data: {
           label: node.label
-        },
-        type: node.type
+        }
       }));
 
       // Converter edges
@@ -8761,7 +8767,7 @@ function App() {
   };
   const addNode = async () => {
     if (!nodeLabel.trim()) {
-      alert('Digite um rótulo para o nó');
+      console.error('Digite um rótulo para o nó');
       return;
     }
     const basePosition = {
@@ -8779,7 +8785,7 @@ function App() {
       value: nodeLabel,
       label: nodeLabel,
       position: newPosition,
-      type: 'default'
+      type: 'LLN'
     };
     try {
       const response = await fetch('http://localhost:5000/nodes_last', {
@@ -8809,6 +8815,20 @@ function App() {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.ReactFlow, {
     nodes: nodes,
     edges: edges,
+    nodeTypes: nodeTypes,
+    onNodesChange: onNodesChange,
+    onEdgesChange: onEdgesChange,
+    nodesConnectable: false,
+    defaultEdgeOptions: {
+      markerEnd: {
+        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.MarkerType.ArrowClosed,
+        color: '#000'
+      },
+      style: {
+        stroke: '#000',
+        strokeWidth: 2
+      }
+    },
     style: {
       width: '100vw',
       height: '100vh'
@@ -8844,6 +8864,52 @@ function App() {
   }, "Adicionar N\xF3")))));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (App);
+
+/***/ },
+
+/***/ "./frontend/custom_node/linkedListNode.js"
+/*!************************************************!*\
+  !*** ./frontend/custom_node/linkedListNode.js ***!
+  \************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+
+
+function LinkedListNode({
+  data
+}) {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      width: '50px',
+      height: '50px',
+      borderRadius: '50%',
+      background: '#777',
+      border: '1px solid #777',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", {
+    style: {
+      color: '#fff'
+    }
+  }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    type: "target",
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Left
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    type: "source",
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right
+  }));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (LinkedListNode);
 
 /***/ },
 

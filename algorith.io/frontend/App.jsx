@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { ReactFlow, Background, Panel } from '@xyflow/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import LinkedListNode from './custom_node/linkedListNode';
+
+const nodeTypes = {
+  LLN: LinkedListNode,
+};
 
 function App() {
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [nodeLabel, setNodeLabel] = useState('');
   const [nodeCount, setNodeCount] = useState(0);
 
@@ -21,9 +26,9 @@ function App() {
       // Converter nós do backend para formato ReactFlow
       const reactFlowNodes = data.nodes.map(node => ({
         id: node.id,
+        type: 'LLN',
         position: node.position,
         data: { label: node.label },
-        type: node.type
       }));
 
       // Converter edges
@@ -43,7 +48,7 @@ function App() {
 
   const addNode = async () => {
     if (!nodeLabel.trim()) {
-      alert('Digite um rótulo para o nó');
+      console.error('Digite um rótulo para o nó');
       return;
     }
 
@@ -61,7 +66,7 @@ function App() {
       value: nodeLabel,
       label: nodeLabel,
       position: newPosition,
-      type: 'default'
+      type: 'LLN'
     };
 
     try {
@@ -86,7 +91,19 @@ function App() {
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow nodes={nodes} edges={edges} style={{ width: '100vw', height: '100vh' }}>
+      <ReactFlow 
+        nodes={nodes} 
+        edges={edges} 
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodesConnectable={false}
+        defaultEdgeOptions={{
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+          style: { stroke: '#fff', strokeWidth: 2 }
+        }}
+        style={{ width: '100vw', height: '100vh' }}
+      >
         <Background color="grey" variant="dots" />
         <Panel position="top-left">
           <div style={{ padding: '10px', backgroundColor: '#fff', borderRadius: '5px', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
