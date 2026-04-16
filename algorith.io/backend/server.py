@@ -1,8 +1,15 @@
 from flask import Flask, jsonify, request
 from structures.linked_list import LinkedList
+from algorithms.insertion_sort import InsertionSort
 
 app = Flask(__name__)
 storage = LinkedList()
+
+def is_integer(value):
+    """Verifica se o valor é um inteiro válido"""
+    if isinstance(value, bool):  # bool é subclasse de int em Python
+        return False
+    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
 
 # ===== ROTAS PARA GERENCIAR NÓS =====
 
@@ -12,9 +19,12 @@ def create_node_last():
     data = request.json
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
+    
+    if not is_integer(data.get("value")):
+        return jsonify({"error": "O valor deve ser um número inteiro"}), 400
 
     node = storage.add_node_last(
-        value=data.get("value"),
+        value=int(data.get("value")),
         position=data.get("position"),
         label=data.get("label"),
         node_type=data.get("type"),
@@ -28,9 +38,12 @@ def create_node_first():
     data = request.json
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
+    
+    if not is_integer(data.get("value")):
+        return jsonify({"error": "O valor deve ser um número inteiro"}), 400
 
     node = storage.add_node_first(
-        value=data.get("value"),
+        value=int(data.get("value")),
         position=data.get("position"),
         label=data.get("label"),
         node_type=data.get("type"),
@@ -42,6 +55,22 @@ def create_node_first():
 def get_all_data():
     """Retorna toda a estrutura (nós + edges)"""
     return jsonify(storage.to_dict())
+
+@app.route("/insertion-sort", methods=["POST"])
+def insertion_sort():
+    """Executa insertion sort e retorna todos os passos para animação"""
+    try:
+        sorter = InsertionSort(storage)
+        steps = sorter.sort()
+        return jsonify({
+            "success": True,
+            "steps": steps
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

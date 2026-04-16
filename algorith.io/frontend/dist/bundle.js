@@ -8732,6 +8732,8 @@ function App() {
   const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useEdgesState)([]);
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
+  const [isAnimating, setIsAnimating] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(500);
 
   // Carregar dados do backend ao montar o componente
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
@@ -8748,7 +8750,9 @@ function App() {
         type: 'LLN',
         position: node.position,
         data: {
-          label: node.label
+          label: node.label,
+          type: node.type,
+          state: null
         }
       }));
 
@@ -8760,7 +8764,8 @@ function App() {
       }));
       setNodes(reactFlowNodes);
       setEdges(reactFlowEdges);
-      setNodeCount(reactFlowNodes.length);
+      const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
+      setNodeCount(dataNodesCount);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     }
@@ -8807,6 +8812,94 @@ function App() {
       alert('Erro ao criar nó: ' + err.message);
     }
   };
+  const startInsertionSort = async () => {
+    if (isAnimating) {
+      alert('Algoritmo já em execução!');
+      return;
+    }
+    setIsAnimating(true);
+    console.log('=== INICIANDO INSERTION SORT ===');
+    console.log('Nós atuais:', nodes);
+    try {
+      const response = await fetch('http://localhost:5000/insertion-sort', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao executar insertion sort');
+      }
+      const data = await response.json();
+      const steps = data.steps;
+      console.log('Número de steps recebidos:', steps.length);
+      console.log('Primeiro step:', steps[0]);
+      console.log('Último step:', steps[steps.length - 1]);
+
+      // Animar através de cada passo
+      for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
+        const step = steps[stepIndex];
+        console.log(`\n--- Step ${stepIndex} ---`);
+        console.log('Comparando:', step.comparing);
+        console.log('Trocados:', step.swapped);
+
+        // Atualizar nós com estado
+        const updatedNodes = nodes.map(node => {
+          const backendNode = step.nodes.find(n => n.id === node.id);
+          if (backendNode) {
+            let state = null;
+            const nodeIndexInData = step.nodes.findIndex(n => n.id === node.id && n.type !== 'head' && n.type !== 'tail');
+            console.log(`  Nó ${node.id}: índice=${nodeIndexInData}, valor=${backendNode.label}`);
+            if (step.comparing.includes(nodeIndexInData)) {
+              state = 'comparing';
+              console.log(`    -> COMPARANDO`);
+            } else if (step.swapped.includes(nodeIndexInData)) {
+              state = 'swapped';
+              console.log(`    -> TROCADO`);
+            }
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                label: backendNode.label,
+                state: state
+              }
+            };
+          }
+          return node;
+        });
+
+        // Atualizar edges
+        const updatedEdges = step.edges.map(edge => ({
+          id: `${edge.source}-${edge.target}`,
+          source: edge.source,
+          target: edge.target
+        }));
+        setNodes(updatedNodes);
+        setEdges(updatedEdges);
+
+        // Aguardar antes do próximo frame
+        if (stepIndex < steps.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, animationSpeed));
+        }
+      }
+      console.log('=== INSERTION SORT CONCLUÍDO ===');
+      alert('Insertion Sort concluído!');
+    } catch (err) {
+      console.error('Erro:', err);
+      alert('Erro ao executar algoritmo: ' + err.message);
+    } finally {
+      setIsAnimating(false);
+      // Limpar estados dos nós
+      setNodes(nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          state: null
+        }
+      })));
+    }
+  };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       width: '100%',
@@ -8845,6 +8938,10 @@ function App() {
       borderRadius: '5px',
       boxShadow: '0 0 10px rgba(0,0,0,0.1)'
     }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '10px'
+    }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     type: "text",
     value: nodeLabel,
@@ -8854,14 +8951,51 @@ function App() {
     style: {
       padding: '5px',
       marginRight: '5px'
-    }
+    },
+    disabled: isAnimating
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: addNode,
     style: {
       padding: '5px 10px',
-      cursor: 'pointer'
+      cursor: isAnimating ? 'not-allowed' : 'pointer',
+      opacity: isAnimating ? 0.6 : 1
+    },
+    disabled: isAnimating
+  }, "Adicionar N\xF3")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      borderTop: '1px solid #ccc',
+      paddingTop: '10px'
     }
-  }, "Adicionar N\xF3")))));
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: startInsertionSort,
+    style: {
+      padding: '8px 15px',
+      backgroundColor: isAnimating ? '#ccc' : '#4CAF50',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: isAnimating ? 'not-allowed' : 'pointer',
+      marginRight: '10px',
+      fontWeight: 'bold'
+    },
+    disabled: isAnimating
+  }, isAnimating ? 'Ordenando...' : 'Iniciar Insertion Sort'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    style: {
+      marginLeft: '10px',
+      fontSize: '12px'
+    }
+  }, "Velocidade:", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "range",
+    min: "100",
+    max: "2000",
+    value: animationSpeed,
+    onChange: e => setAnimationSpeed(parseInt(e.target.value)),
+    disabled: isAnimating,
+    style: {
+      marginLeft: '5px',
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
+    }
+  }), animationSpeed, "ms"))))));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (App);
 
@@ -8884,18 +9018,37 @@ __webpack_require__.r(__webpack_exports__);
 
 
 function LinkedListNode({
-  data
+  data,
+  isConnected
 }) {
+  // Determinar cor baseado no estado
+  let backgroundColor = '#777'; // cor padrão
+  let borderColor = '#777';
+  let borderWidth = '1px';
+  if (data.type === 'head' || data.type === 'tail') {
+    backgroundColor = '#555';
+  } else if (data.state === 'comparing') {
+    backgroundColor = '#ffb700'; // amarelo para comparação
+    borderWidth = '3px';
+  } else if (data.state === 'swapped') {
+    backgroundColor = '#00d084'; // verde para trocado
+    borderWidth = '3px';
+  } else if (data.state === 'sorted') {
+    backgroundColor = '#4CAF50'; // verde para ordenado
+    borderWidth = '2px';
+  }
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       width: '50px',
       height: '50px',
       borderRadius: '50%',
-      background: '#777',
-      border: '1px solid #777',
+      background: backgroundColor,
+      border: `${borderWidth} solid ${borderColor}`,
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center'
+      alignItems: 'center',
+      transition: 'all 0.3s ease',
+      boxShadow: data.state ? '0 0 10px rgba(0,0,0,0.3)' : 'none'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", {
     style: {
