@@ -12,7 +12,7 @@ class InsertionSort:
         """Retorna apenas os nós de dados (exclui head e tail)"""
         nodes = []
         
-        current_id = self.linked_list.head
+        nodes = self.linked_list.get_all_nodes()
         print("ID inicial do head:", current_id)
         visited = set()
         
@@ -30,7 +30,6 @@ class InsertionSort:
                 
             else:
                 break
-
         print("Capturando nós de dados para ordenação..." + str(nodes))
         return nodes
 

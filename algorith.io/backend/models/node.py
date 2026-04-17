@@ -1,8 +1,7 @@
-import uuid
 
 class Node:
     def __init__(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
-        self.id = node_id if node_id else str(uuid.uuid4())
+        self.id = node_id
         self.value = value
         self.position = position
         self.label = label if label is not None else str(value)

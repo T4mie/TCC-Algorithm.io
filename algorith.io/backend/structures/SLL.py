@@ -1,7 +1,8 @@
 from models.node import Node
 from models.edge import Edge
+import uuid
 
-class LinkedList:
+class SLL:
     def __init__(self):
         self.nodes = {}
         self.edges = []
@@ -30,7 +31,7 @@ class LinkedList:
         self.edges.append(Edge("tail", first_node.id, "next"))
 
     def add_node_last(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
-        node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id, metadata=metadata)
+        node = Node(value, position=position, label=label, node_type=node_type, node_id=str(uuid.uuid4()), metadata=metadata)
 
         is_first_node = self.head is None
 
@@ -58,7 +59,7 @@ class LinkedList:
         return node
 
     def add_node_first(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
-        node = Node(value, position=position, label=label, node_type=node_type, node_id=node_id, metadata=metadata)
+        node = Node(value, position=position, label=label, node_type=node_type, node_id=str(uuid.uuid4()), metadata=metadata)
 
         is_first_node = self.head is None
 

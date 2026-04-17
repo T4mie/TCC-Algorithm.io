@@ -8720,185 +8720,37 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
 /* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
 /* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./api */ "./frontend/api.js");
+
 
 
 
 
 const nodeTypes = {
-  LLN: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"]
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"]
 };
 function App() {
   const [nodes, setNodes, onNodesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useNodesState)([]);
   const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useEdgesState)([]);
+  const [nodeType, setNodeType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('SLL');
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
   const [isAnimating, setIsAnimating] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(500);
+  const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
 
   // Carregar dados do backend ao montar o componente
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    fetchData();
+    (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchData)(setNodes, setEdges, setNodeCount);
   }, []);
-  const fetchData = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/data');
-      const data = await response.json();
-
-      // Converter nós do backend para formato ReactFlow
-      const reactFlowNodes = data.nodes.map(node => ({
-        id: node.id,
-        type: 'LLN',
-        position: node.position,
-        data: {
-          label: node.label,
-          type: node.type,
-          state: null
-        }
-      }));
-
-      // Converter edges
-      const reactFlowEdges = data.edges.map(edge => ({
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target
-      }));
-      setNodes(reactFlowNodes);
-      setEdges(reactFlowEdges);
-      const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
-      setNodeCount(dataNodesCount);
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-    }
+  const addNodeHandler = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_5__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchData)(setNodes, setEdges, setNodeCount));
   };
-  const addNode = async () => {
-    if (!nodeLabel.trim()) {
-      console.error('Digite um rótulo para o nó');
-      return;
-    }
-    const basePosition = {
-      x: 100,
-      y: 139
-    };
-    const horizontalSpacing = 200;
-    const verticalSpacing = 90;
-    const nodesPerRow = 5;
-    const newPosition = {
-      x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
-      y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-    };
-    const newNodeData = {
-      value: nodeLabel,
-      label: nodeLabel,
-      position: newPosition,
-      type: 'LLN'
-    };
-    try {
-      const response = await fetch('http://localhost:5000/nodes_last', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newNodeData)
-      });
-      if (response.ok) {
-        const createdNode = await response.json();
-        setNodeLabel('');
-        setNodeCount(nodeCount + 1);
-
-        // Refetch data to update nodes and edges
-        fetchData();
-      }
-    } catch (err) {
-      alert('Erro ao criar nó: ' + err.message);
-    }
+  const createVectorHandler = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_5__.createVector)(vectorSize, setNodes, setEdges, setNodeCount, () => (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
-  const startInsertionSort = async () => {
-    if (isAnimating) {
-      alert('Algoritmo já em execução!');
-      return;
-    }
-    setIsAnimating(true);
-    console.log('=== INICIANDO INSERTION SORT ===');
-    console.log('Nós atuais:', nodes);
-    try {
-      const response = await fetch('http://localhost:5000/insertion-sort', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Erro ao executar insertion sort');
-      }
-      const data = await response.json();
-      const steps = data.steps;
-      console.log('Número de steps recebidos:', steps.length);
-      console.log('Primeiro step:', steps[0]);
-      console.log('Último step:', steps[steps.length - 1]);
-
-      // Animar através de cada passo
-      for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
-        const step = steps[stepIndex];
-        console.log(`\n--- Step ${stepIndex} ---`);
-        console.log('Comparando:', step.comparing);
-        console.log('Trocados:', step.swapped);
-
-        // Atualizar nós com estado
-        const updatedNodes = nodes.map(node => {
-          const backendNode = step.nodes.find(n => n.id === node.id);
-          if (backendNode) {
-            let state = null;
-            const nodeIndexInData = step.nodes.findIndex(n => n.id === node.id && n.type !== 'head' && n.type !== 'tail');
-            console.log(`  Nó ${node.id}: índice=${nodeIndexInData}, valor=${backendNode.label}`);
-            if (step.comparing.includes(nodeIndexInData)) {
-              state = 'comparing';
-              console.log(`    -> COMPARANDO`);
-            } else if (step.swapped.includes(nodeIndexInData)) {
-              state = 'swapped';
-              console.log(`    -> TROCADO`);
-            }
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                label: backendNode.label,
-                state: state
-              }
-            };
-          }
-          return node;
-        });
-
-        // Atualizar edges
-        const updatedEdges = step.edges.map(edge => ({
-          id: `${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target
-        }));
-        setNodes(updatedNodes);
-        setEdges(updatedEdges);
-
-        // Aguardar antes do próximo frame
-        if (stepIndex < steps.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, animationSpeed));
-        }
-      }
-      console.log('=== INSERTION SORT CONCLUÍDO ===');
-      alert('Insertion Sort concluído!');
-    } catch (err) {
-      console.error('Erro:', err);
-      alert('Erro ao executar algoritmo: ' + err.message);
-    } finally {
-      setIsAnimating(false);
-      // Limpar estados dos nós
-      setNodes(nodes.map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          state: null
-        }
-      })));
-    }
+  const startInsertionSortHandler = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_5__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
   };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
@@ -8946,7 +8798,7 @@ function App() {
     type: "text",
     value: nodeLabel,
     onChange: e => setNodeLabel(e.target.value),
-    onKeyPress: e => e.key === 'Enter' && addNode(),
+    onKeyPress: e => e.key === 'Enter' && addNodeHandler(),
     placeholder: "R\xF3tulo do n\xF3",
     style: {
       padding: '5px',
@@ -8954,7 +8806,7 @@ function App() {
     },
     disabled: isAnimating
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: addNode,
+    onClick: addNodeHandler,
     style: {
       padding: '5px 10px',
       cursor: isAnimating ? 'not-allowed' : 'pointer',
@@ -8963,11 +8815,33 @@ function App() {
     disabled: isAnimating
   }, "Adicionar N\xF3")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "number",
+    value: vectorSize,
+    onChange: e => setVectorSize(e.target.value),
+    placeholder: "Tamanho do vetor",
+    style: {
+      padding: '5px',
+      marginRight: '5px'
+    },
+    disabled: isAnimating
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: createVectorHandler,
+    style: {
+      padding: '5px 10px',
+      cursor: isAnimating ? 'not-allowed' : 'pointer',
+      opacity: isAnimating ? 0.6 : 1
+    },
+    disabled: isAnimating
+  }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
       borderTop: '1px solid #ccc',
       paddingTop: '10px'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: startInsertionSort,
+    onClick: startInsertionSortHandler,
     style: {
       padding: '8px 15px',
       backgroundColor: isAnimating ? '#ccc' : '#4CAF50',
@@ -8998,6 +8872,150 @@ function App() {
   }), animationSpeed, "ms"))))));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (App);
+
+/***/ },
+
+/***/ "./frontend/api.js"
+/*!*************************!*\
+  !*** ./frontend/api.js ***!
+  \*************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   addNode: () => (/* binding */ addNode),
+/* harmony export */   createVector: () => (/* binding */ createVector),
+/* harmony export */   fetchData: () => (/* binding */ fetchData),
+/* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData)
+/* harmony export */ });
+const fetchData = async (setNodes, setEdges, setNodeCount) => {
+  try {
+    const response = await fetch('http://localhost:5000/data');
+    const data = await response.json();
+
+    // Converter nós do backend para formato ReactFlow
+    const reactFlowNodes = data.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: {
+        label: node.label,
+        type: node.type,
+        state: null
+      }
+    }));
+
+    // Converter edges
+    const reactFlowEdges = data.edges.map(edge => ({
+      id: `${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target
+    }));
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err);
+  }
+};
+const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
+  try {
+    const response = await fetch('http://localhost:5000/vector_data');
+    const data = await response.json();
+
+    // Converter nós do backend para formato ReactFlow
+    const reactFlowNodes = data.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: {
+        label: node.label,
+        type: node.type,
+        state: null
+      }
+    }));
+
+    // Converter edges
+    const reactFlowEdges = data.edges.map(edge => ({
+      id: `${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target
+    }));
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados do vetor:', err);
+  }
+};
+const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
+  if (!nodeLabel.trim()) {
+    console.error('Digite um rótulo para o nó');
+    return;
+  }
+  const basePosition = {
+    x: 100,
+    y: 139
+  };
+  const horizontalSpacing = 200;
+  const verticalSpacing = 90;
+  const nodesPerRow = 5;
+  const newPosition = {
+    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
+    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
+  };
+  const newNodeData = {
+    value: nodeLabel,
+    label: nodeLabel,
+    position: newPosition,
+    type: 'SLL'
+  };
+  try {
+    const response = await fetch('http://localhost:5000/nodes_last', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newNodeData)
+    });
+    if (response.ok) {
+      const createdNode = await response.json();
+      setNodeLabel('');
+      setNodeCount(nodeCount + 1);
+
+      // Refetch data to update nodes and edges
+      fetchDataCallback();
+    }
+  } catch (err) {
+    alert('Erro ao criar nó: ' + err.message);
+  }
+};
+const createVector = async (size, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
+  const newVectorData = {
+    value: size,
+    position: {
+      x: 100,
+      y: 139
+    }
+  };
+  try {
+    const response = await fetch('http://localhost:5000/create_vector', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newVectorData)
+    });
+    if (response.ok) {
+      const createdNodes = await response.json();
+      fetchDataCallback();
+    }
+  } catch (err) {
+    alert('Erro ao criar vetor: ' + err.message);
+  }
+};
 
 /***/ },
 

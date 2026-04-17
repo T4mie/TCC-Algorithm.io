@@ -2,176 +2,37 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import LinkedListNode from './custom_node/linkedListNode';
+import { fetchData, addNode, startInsertionSort, createVector, fetchVectorData } from './api';
 
 const nodeTypes = {
-  LLN: LinkedListNode,
+  SLL: LinkedListNode,
 };
 
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodeType, setNodeType] = useState('SLL');
   const [nodeLabel, setNodeLabel] = useState('');
   const [nodeCount, setNodeCount] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationSpeed, setAnimationSpeed] = useState(500);
+  const [vectorSize, setVectorSize] = useState('');
 
   // Carregar dados do backend ao montar o componente
   useEffect(() => {
-    fetchData();
+    fetchData(setNodes, setEdges, setNodeCount);
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/data');
-      const data = await response.json();
-      
-      // Converter nós do backend para formato ReactFlow
-      const reactFlowNodes = data.nodes.map(node => ({
-        id: node.id,
-        type: 'LLN',
-        position: node.position,
-        data: { label: node.label, type: node.type, state: null },
-      }));
-
-      // Converter edges
-      const reactFlowEdges = data.edges.map(edge => ({
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target
-      }));
-
-      setNodes(reactFlowNodes);
-      setEdges(reactFlowEdges);
-      const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
-      setNodeCount(dataNodesCount);
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-    }
+  const addNodeHandler = () => {
+    addNode(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => fetchData(setNodes, setEdges, setNodeCount));
   };
 
-  const addNode = async () => {
-    if (!nodeLabel.trim()) {
-      console.error('Digite um rótulo para o nó');
-      return;
-    }
-
-    const basePosition = { x: 100, y: 139 };
-    const horizontalSpacing = 200;
-    const verticalSpacing = 90;
-    const nodesPerRow = 5;
-
-    const newPosition = {
-      x: basePosition.x + (nodeCount % nodesPerRow) * horizontalSpacing,
-      y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-    };
-
-    const newNodeData = {
-      value: nodeLabel,
-      label: nodeLabel,
-      position: newPosition,
-      type: 'LLN'
-    };
-
-    try {
-      const response = await fetch('http://localhost:5000/nodes_last', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newNodeData)
-      });
-
-      if (response.ok) {
-        const createdNode = await response.json();
-        setNodeLabel('');
-        setNodeCount(nodeCount + 1);
-        
-        // Refetch data to update nodes and edges
-        fetchData();
-      }
-    } catch (err) {
-      alert('Erro ao criar nó: ' + err.message);
-    }
+  const createVectorHandler = () => {
+    createVector(vectorSize, setNodes, setEdges, setNodeCount, () => fetchVectorData(setNodes, setEdges, setNodeCount));
   };
 
-  const startInsertionSort = async () => {
-    if (isAnimating) {
-      alert('Algoritmo já em execução!');
-      return;
-    }
-
-    setIsAnimating(true);
-
-    try {
-      const response = await fetch('http://localhost:5000/insertion-sort', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao executar insertion sort');
-      }
-
-      const data = await response.json();
-      const steps = data.steps;
-
-      // Animar através de cada passo
-      for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
-        const step = steps[stepIndex];
-        
-        // Atualizar nós com estado
-        const updatedNodes = nodes.map(node => {
-          const backendNode = step.nodes.find(n => n.id === node.id);
-          if (backendNode) {
-            let state = null;
-            const nodeIndexInData = step.nodes.findIndex(
-              n => n.id === node.id && n.type !== 'head' && n.type !== 'tail'
-            );
-            
-            if (step.comparing.includes(nodeIndexInData)) {
-              state = 'comparing';
-            } else if (step.swapped.includes(nodeIndexInData)) {
-              state = 'swapped';
-            }
-
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                label: backendNode.label,
-                state: state
-              }
-            };
-          }
-          return node;
-        });
-
-        // Atualizar edges
-        const updatedEdges = step.edges.map(edge => ({
-          id: `${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target
-        }));
-
-        setNodes(updatedNodes);
-        setEdges(updatedEdges);
-
-        // Aguardar antes do próximo frame
-        if (stepIndex < steps.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, animationSpeed));
-        }
-      }
-
-      alert('Insertion Sort concluído!');
-    } catch (err) {
-      console.error('Erro:', err);
-      alert('Erro ao executar algoritmo: ' + err.message);
-    } finally {
-      setIsAnimating(false);
-      // Limpar estados dos nós
-      setNodes(nodes.map(node => ({
-        ...node,
-        data: { ...node.data, state: null }
-      })));
-    }
+  const startInsertionSortHandler = () => {
+    startInsertionSort(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
   };
 
   return (
@@ -197,13 +58,13 @@ function App() {
                 type="text"
                 value={nodeLabel}
                 onChange={(e) => setNodeLabel(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addNode()}
+                onKeyPress={(e) => e.key === 'Enter' && addNodeHandler()}
                 placeholder="Rótulo do nó"
                 style={{ padding: '5px', marginRight: '5px' }}
                 disabled={isAnimating}
               />
               <button 
-                onClick={addNode} 
+                onClick={addNodeHandler} 
                 style={{ padding: '5px 10px', cursor: isAnimating ? 'not-allowed' : 'pointer', opacity: isAnimating ? 0.6 : 1 }}
                 disabled={isAnimating}
               >
@@ -211,9 +72,27 @@ function App() {
               </button>
             </div>
             
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="number"
+                value={vectorSize}
+                onChange={(e) => setVectorSize(e.target.value)}
+                placeholder="Tamanho do vetor"
+                style={{ padding: '5px', marginRight: '5px' }}
+                disabled={isAnimating}
+              />
+              <button 
+                onClick={createVectorHandler} 
+                style={{ padding: '5px 10px', cursor: isAnimating ? 'not-allowed' : 'pointer', opacity: isAnimating ? 0.6 : 1 }}
+                disabled={isAnimating}
+              >
+                Criar Vetor
+              </button>
+            </div>
+            
             <div style={{ borderTop: '1px solid #ccc', paddingTop: '10px' }}>
               <button 
-                onClick={startInsertionSort}
+                onClick={startInsertionSortHandler}
                 style={{
                   padding: '8px 15px',
                   backgroundColor: isAnimating ? '#ccc' : '#4CAF50',
