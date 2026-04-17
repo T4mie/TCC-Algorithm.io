@@ -9,15 +9,13 @@ class InsertionSort:
         self.steps = []  # Cada step contém o estado da lista
 
     def get_data_nodes_only(self):
-        """Retorna apenas os nós de dados (exclui head e tail)"""
+        """Retorna apenas os nós de dados (exclui o objeto lista)"""
         nodes = []
-        
-        nodes = self.linked_list.get_all_nodes()
-        print("ID inicial do head:", current_id)
+        current_id = self.linked_list.head
         visited = set()
         
         while current_id and current_id not in visited:
-            if current_id not in ["head", "tail"]:
+            if current_id not in ["list"]:
                 nodes.append(current_id)
                 print(f"Nó de dados encontrado: {current_id} com valor {self.linked_list.nodes[current_id].value}")
             
@@ -27,7 +25,6 @@ class InsertionSort:
             if current_id in self.linked_list.nodes:
                 current_id = self.linked_list.nodes[current_id].next
                 print(f"Próximo ID atualizado para: {current_id}")
-                
             else:
                 break
         print("Capturando nós de dados para ordenação..." + str(nodes))

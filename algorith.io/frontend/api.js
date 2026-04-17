@@ -1,60 +1,50 @@
-export const fetchData = async (setNodes, setEdges, setNodeCount) => {
+// ===== UTILITÁRIOS DE TRANSFORMAÇÃO =====
+const transformBackendData = (data) => {
+  // Converter nós do backend para formato ReactFlow
+  const reactFlowNodes = data.nodes.map(node => ({
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    data: { 
+      label: node.label, 
+      type: node.type, 
+      state: null,
+      metadata: node.metadata 
+    },
+  }));
+
+  // Converter edges
+  const reactFlowEdges = data.edges.map(edge => ({
+    id: `${edge.source}-${edge.target}-${edge.type}`,
+    source: edge.source,
+    target: edge.target
+  }));
+
+  const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'list').length;
+  return { reactFlowNodes, reactFlowEdges, dataNodesCount };
+};
+
+// ===== FUNÇÃO GENÉRICA =====
+const fetchStructureData = async (endpoint, setNodes, setEdges, setNodeCount) => {
   try {
-    const response = await fetch('http://localhost:5000/data');
+    const response = await fetch(`http://localhost:5000${endpoint}`);
     const data = await response.json();
+    const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformBackendData(data);
     
-    // Converter nós do backend para formato ReactFlow
-    const reactFlowNodes = data.nodes.map(node => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: { label: node.label, type: node.type, state: null },
-    }));
-
-    // Converter edges
-    const reactFlowEdges = data.edges.map(edge => ({
-      id: `${edge.source}-${edge.target}`,
-      source: edge.source,
-      target: edge.target
-    }));
-
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
-    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
     setNodeCount(dataNodesCount);
   } catch (err) {
-    console.error('Erro ao carregar dados:', err);
+    console.error(`Erro ao carregar dados de ${endpoint}:`, err);
   }
 };
 
-export const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
-  try {
-    const response = await fetch('http://localhost:5000/vector_data');
-    const data = await response.json();
-    
-    // Converter nós do backend para formato ReactFlow
-    const reactFlowNodes = data.nodes.map(node => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: { label: node.label, type: node.type, state: null },
-    }));
+// ===== FUNÇÕES PÚBLICAS =====
+export const fetchSLLData = (setNodes, setEdges, setNodeCount) => 
+  fetchStructureData('/SLL_data', setNodes, setEdges, setNodeCount);
 
-    // Converter edges
-    const reactFlowEdges = data.edges.map(edge => ({
-      id: `${edge.source}-${edge.target}`,
-      source: edge.source,
-      target: edge.target
-    }));
-
-    setNodes(reactFlowNodes);
-    setEdges(reactFlowEdges);
-    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
-    setNodeCount(dataNodesCount);
-  } catch (err) {
-    console.error('Erro ao carregar dados do vetor:', err);
-  }
-};
+export const fetchVectorData = (setNodes, setEdges, setNodeCount) => 
+  fetchStructureData('/vector_data', setNodes, setEdges, setNodeCount);
 
 export const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
   if (!nodeLabel.trim()) {
@@ -118,6 +108,63 @@ export const createVector = async (size, setNodes, setEdges, setNodeCount, fetch
     }
   } catch (err) {
     alert('Erro ao criar vetor: ' + err.message);
+  }
+};
+
+export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
+  if (isAnimating) return;
+
+  setIsAnimating(true);
+
+  try {
+    const response = await fetch('http://localhost:5000/insertion-sort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao executar insertion sort');
+    }
+
+    const result = await response.json();
+    const steps = result.steps;
+
+    // Animar cada passo
+    for (const step of steps) {
+      // Atualizar nós com estados
+      const updatedNodes = nodes.map(node => {
+        const stepNode = step.nodes.find(n => n.id === node.id);
+        if (stepNode) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: stepNode.label,
+              state: null
+            }
+          };
+        }
+        return node;
+      });
+
+      // Atualizar edges
+      const updatedEdges = step.edges.map(edge => ({
+        id: `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target
+      }));
+
+      setNodes(updatedNodes);
+      setEdges(updatedEdges);
+
+      // Aguardar antes do próximo passo
+      await new Promise(resolve => setTimeout(resolve, animationSpeed));
+    }
+  } catch (err) {
+    console.error('Erro ao executar insertion sort:', err);
+    alert('Erro ao executar insertion sort: ' + err.message);
+  } finally {
+    setIsAnimating(false);
   }
 };
 

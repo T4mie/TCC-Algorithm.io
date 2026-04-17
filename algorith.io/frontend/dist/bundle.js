@@ -8720,38 +8720,101 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
 /* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
 /* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./api */ "./frontend/api.js");
+/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./custom_node/listNode */ "./frontend/custom_node/listNode.js");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./api */ "./frontend/api.js");
 
 
 
 
 
-const nodeTypes = {
-  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"]
+
+
+// ===== CONFIGURAÇÕES =====
+const NODE_TYPES = {
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"],
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_5__["default"]
 };
+const DEFAULT_EDGE_OPTIONS = {
+  markerEnd: {
+    type: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.MarkerType.ArrowClosed,
+    color: '#000'
+  },
+  style: {
+    stroke: '#000000',
+    strokeWidth: 2
+  }
+};
+const PANEL_STYLE = {
+  padding: '10px',
+  backgroundColor: '#fff',
+  borderRadius: '5px',
+  boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+};
+const INPUT_STYLE = {
+  padding: '5px',
+  marginRight: '5px'
+};
+const BUTTON_BASE_STYLE = {
+  padding: '5px 10px',
+  marginRight: '5px'
+};
+
+// ===== COMPONENTE PRINCIPAL =====
 function App() {
+  // Estados do ReactFlow
   const [nodes, setNodes, onNodesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useNodesState)([]);
   const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.useEdgesState)([]);
-  const [nodeType, setNodeType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('SLL');
+
+  // Estados da UI - Entrada de dados
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+
+  // Estados da UI - Status
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
   const [isAnimating, setIsAnimating] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(500);
-  const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
 
-  // Carregar dados do backend ao montar o componente
+  // Inicializar dados ao montar
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchData)(setNodes, setEdges, setNodeCount);
+    (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchSLLData)(setNodes, setEdges, setNodeCount);
   }, []);
-  const addNodeHandler = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_5__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchData)(setNodes, setEdges, setNodeCount));
+
+  // ===== HANDLERS =====
+  const handleAddNode = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_6__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchSLLData)(setNodes, setEdges, setNodeCount));
   };
-  const createVectorHandler = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_5__.createVector)(vectorSize, setNodes, setEdges, setNodeCount, () => (0,_api__WEBPACK_IMPORTED_MODULE_5__.fetchVectorData)(setNodes, setEdges, setNodeCount));
+  const handleCreateVector = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_6__.createVector)(vectorSize, setNodes, setEdges, setNodeCount, () => (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
-  const startInsertionSortHandler = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_5__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+  const handleInsertionSort = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_6__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
   };
+  const handleKeyPress = (e, callback) => {
+    if (e.key === 'Enter') callback();
+  };
+
+  // ===== ESTADOS COMPUTADOS =====
+  const isUIDisabled = isAnimating;
+
+  // ===== ESTILOS DINÂMICOS =====
+  const getButtonStyle = (disabled = false, isGreen = false) => ({
+    ...BUTTON_BASE_STYLE,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    ...(isGreen && {
+      padding: '8px 15px',
+      backgroundColor: disabled ? '#ccc' : '#4CAF50',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '4px',
+      fontWeight: 'bold'
+    })
+  });
+  const getInputStyle = (disabled = false) => ({
+    ...INPUT_STYLE,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1
+  });
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       width: '100%',
@@ -8760,20 +8823,11 @@ function App() {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.ReactFlow, {
     nodes: nodes,
     edges: edges,
-    nodeTypes: nodeTypes,
+    nodeTypes: NODE_TYPES,
     onNodesChange: onNodesChange,
     onEdgesChange: onEdgesChange,
     nodesConnectable: false,
-    defaultEdgeOptions: {
-      markerEnd: {
-        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.MarkerType.ArrowClosed,
-        color: '#000'
-      },
-      style: {
-        stroke: '#000000',
-        strokeWidth: 2
-      }
-    },
+    defaultEdgeOptions: DEFAULT_EDGE_OPTIONS,
     style: {
       width: '100vw',
       height: '100vh'
@@ -8784,12 +8838,7 @@ function App() {
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Panel, {
     position: "top-left"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      padding: '10px',
-      backgroundColor: '#fff',
-      borderRadius: '5px',
-      boxShadow: '0 0 10px rgba(0,0,0,0.1)'
-    }
+    style: PANEL_STYLE
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginBottom: '10px'
@@ -8798,21 +8847,14 @@ function App() {
     type: "text",
     value: nodeLabel,
     onChange: e => setNodeLabel(e.target.value),
-    onKeyPress: e => e.key === 'Enter' && addNodeHandler(),
+    onKeyPress: e => handleKeyPress(e, handleAddNode),
     placeholder: "R\xF3tulo do n\xF3",
-    style: {
-      padding: '5px',
-      marginRight: '5px'
-    },
-    disabled: isAnimating
+    style: getInputStyle(isUIDisabled),
+    disabled: isUIDisabled
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: addNodeHandler,
-    style: {
-      padding: '5px 10px',
-      cursor: isAnimating ? 'not-allowed' : 'pointer',
-      opacity: isAnimating ? 0.6 : 1
-    },
-    disabled: isAnimating
+    onClick: handleAddNode,
+    style: getButtonStyle(isUIDisabled),
+    disabled: isUIDisabled
   }, "Adicionar N\xF3")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginBottom: '10px'
@@ -8822,37 +8864,21 @@ function App() {
     value: vectorSize,
     onChange: e => setVectorSize(e.target.value),
     placeholder: "Tamanho do vetor",
-    style: {
-      padding: '5px',
-      marginRight: '5px'
-    },
-    disabled: isAnimating
+    style: getInputStyle(isUIDisabled),
+    disabled: isUIDisabled
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: createVectorHandler,
-    style: {
-      padding: '5px 10px',
-      cursor: isAnimating ? 'not-allowed' : 'pointer',
-      opacity: isAnimating ? 0.6 : 1
-    },
-    disabled: isAnimating
+    onClick: handleCreateVector,
+    style: getButtonStyle(isUIDisabled),
+    disabled: isUIDisabled
   }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       borderTop: '1px solid #ccc',
       paddingTop: '10px'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: startInsertionSortHandler,
-    style: {
-      padding: '8px 15px',
-      backgroundColor: isAnimating ? '#ccc' : '#4CAF50',
-      color: '#fff',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: isAnimating ? 'not-allowed' : 'pointer',
-      marginRight: '10px',
-      fontWeight: 'bold'
-    },
-    disabled: isAnimating
+    onClick: handleInsertionSort,
+    style: getButtonStyle(isUIDisabled, true),
+    disabled: isUIDisabled
   }, isAnimating ? 'Ordenando...' : 'Iniciar Insertion Sort'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     style: {
       marginLeft: '10px',
@@ -8864,10 +8890,10 @@ function App() {
     max: "2000",
     value: animationSpeed,
     onChange: e => setAnimationSpeed(parseInt(e.target.value)),
-    disabled: isAnimating,
+    disabled: isUIDisabled,
     style: {
       marginLeft: '5px',
-      cursor: isAnimating ? 'not-allowed' : 'pointer'
+      cursor: isUIDisabled ? 'not-allowed' : 'pointer'
     }
   }), animationSpeed, "ms"))))));
 }
@@ -8885,71 +8911,60 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   addNode: () => (/* binding */ addNode),
 /* harmony export */   createVector: () => (/* binding */ createVector),
-/* harmony export */   fetchData: () => (/* binding */ fetchData),
-/* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData)
+/* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
+/* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
+/* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort)
 /* harmony export */ });
-const fetchData = async (setNodes, setEdges, setNodeCount) => {
-  try {
-    const response = await fetch('http://localhost:5000/data');
-    const data = await response.json();
-
-    // Converter nós do backend para formato ReactFlow
-    const reactFlowNodes = data.nodes.map(node => ({
-      id: node.id,
+// ===== UTILITÁRIOS DE TRANSFORMAÇÃO =====
+const transformBackendData = data => {
+  // Converter nós do backend para formato ReactFlow
+  const reactFlowNodes = data.nodes.map(node => ({
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    data: {
+      label: node.label,
       type: node.type,
-      position: node.position,
-      data: {
-        label: node.label,
-        type: node.type,
-        state: null
-      }
-    }));
+      state: null,
+      metadata: node.metadata
+    }
+  }));
 
-    // Converter edges
-    const reactFlowEdges = data.edges.map(edge => ({
-      id: `${edge.source}-${edge.target}`,
-      source: edge.source,
-      target: edge.target
-    }));
+  // Converter edges
+  const reactFlowEdges = data.edges.map(edge => ({
+    id: `${edge.source}-${edge.target}-${edge.type}`,
+    source: edge.source,
+    target: edge.target
+  }));
+  const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'list').length;
+  return {
+    reactFlowNodes,
+    reactFlowEdges,
+    dataNodesCount
+  };
+};
+
+// ===== FUNÇÃO GENÉRICA =====
+const fetchStructureData = async (endpoint, setNodes, setEdges, setNodeCount) => {
+  try {
+    const response = await fetch(`http://localhost:5000${endpoint}`);
+    const data = await response.json();
+    const {
+      reactFlowNodes,
+      reactFlowEdges,
+      dataNodesCount
+    } = transformBackendData(data);
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
-    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
     setNodeCount(dataNodesCount);
   } catch (err) {
-    console.error('Erro ao carregar dados:', err);
+    console.error(`Erro ao carregar dados de ${endpoint}:`, err);
   }
 };
-const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
-  try {
-    const response = await fetch('http://localhost:5000/vector_data');
-    const data = await response.json();
 
-    // Converter nós do backend para formato ReactFlow
-    const reactFlowNodes = data.nodes.map(node => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: {
-        label: node.label,
-        type: node.type,
-        state: null
-      }
-    }));
-
-    // Converter edges
-    const reactFlowEdges = data.edges.map(edge => ({
-      id: `${edge.source}-${edge.target}`,
-      source: edge.source,
-      target: edge.target
-    }));
-    setNodes(reactFlowNodes);
-    setEdges(reactFlowEdges);
-    const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'head' && n.data.type !== 'tail').length;
-    setNodeCount(dataNodesCount);
-  } catch (err) {
-    console.error('Erro ao carregar dados do vetor:', err);
-  }
-};
+// ===== FUNÇÕES PÚBLICAS =====
+const fetchSLLData = (setNodes, setEdges, setNodeCount) => fetchStructureData('/SLL_data', setNodes, setEdges, setNodeCount);
+const fetchVectorData = (setNodes, setEdges, setNodeCount) => fetchStructureData('/vector_data', setNodes, setEdges, setNodeCount);
 const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
@@ -9014,6 +9029,59 @@ const createVector = async (size, setNodes, setEdges, setNodeCount, fetchDataCal
     }
   } catch (err) {
     alert('Erro ao criar vetor: ' + err.message);
+  }
+};
+const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
+  if (isAnimating) return;
+  setIsAnimating(true);
+  try {
+    const response = await fetch('http://localhost:5000/insertion-sort', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Erro ao executar insertion sort');
+    }
+    const result = await response.json();
+    const steps = result.steps;
+
+    // Animar cada passo
+    for (const step of steps) {
+      // Atualizar nós com estados
+      const updatedNodes = nodes.map(node => {
+        const stepNode = step.nodes.find(n => n.id === node.id);
+        if (stepNode) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: stepNode.label,
+              state: null
+            }
+          };
+        }
+        return node;
+      });
+
+      // Atualizar edges
+      const updatedEdges = step.edges.map(edge => ({
+        id: `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target
+      }));
+      setNodes(updatedNodes);
+      setEdges(updatedEdges);
+
+      // Aguardar antes do próximo passo
+      await new Promise(resolve => setTimeout(resolve, animationSpeed));
+    }
+  } catch (err) {
+    console.error('Erro ao executar insertion sort:', err);
+    alert('Erro ao executar insertion sort: ' + err.message);
+  } finally {
+    setIsAnimating(false);
   }
 };
 
@@ -9081,6 +9149,76 @@ function LinkedListNode({
   }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (LinkedListNode);
+
+/***/ },
+
+/***/ "./frontend/custom_node/listNode.js"
+/*!******************************************!*\
+  !*** ./frontend/custom_node/listNode.js ***!
+  \******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+
+
+function ListNode({
+  data
+}) {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      width: '120px',
+      height: 'auto',
+      borderRadius: '8px',
+      background: '#2c3e50',
+      border: '2px solid #34495e',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '10px',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", {
+    style: {
+      color: '#fff',
+      fontSize: '12px',
+      marginBottom: '5px'
+    }
+  }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: '#ecf0f1',
+      fontSize: '11px',
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, "Head: ", data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, "Tail: ", data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '3px',
+      fontWeight: 'bold',
+      color: '#3498db'
+    }
+  }, "Size: ", data.metadata?.size || 0)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    type: "source",
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
+    style: {
+      background: '#3498db'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    type: "source",
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Bottom,
+    style: {
+      background: '#3498db'
+    }
+  }));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ListNode);
 
 /***/ },
 
