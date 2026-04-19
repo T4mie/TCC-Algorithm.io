@@ -12,20 +12,28 @@ class Vector:
             self.edges.clear()
 
         for i in range(size):
-            node = Node(value=None, position=position, label=None, node_type=None, node_id=str(i))
+            node = Node(value=None, position=position, label=str(i), node_type='list', node_id=str(i))
             self.nodes.append(node)
         
         for j in range(len(self.nodes) - 1):
-            self.nodes[j].next = self.nodes[j+1].id
             self.edges.append(Edge(self.nodes[j].id, self.nodes[j+1].id, "next"))
             
         return self.nodes
             
-    def insert_value(self,node_id,value):
-        self.nodes[int(node_id)].value = value
+    def insert_value(self, node_id, value):
+        index = int(node_id)
+        if 0 <= index < len(self.nodes):
+            self.nodes[index].value = value
+            self.nodes[index].label = f"{index}: {value}" if value is not None else str(index)
+        else:
+            raise ValueError("Índice fora do alcance")
         
-    def read_value(self,node_id):
-        return self.nodes[int(node_id)].value
+    def read_value(self, node_id):
+        index = int(node_id)
+        if 0 <= index < len(self.nodes):
+            return self.nodes[index].value
+        else:
+            raise ValueError("Índice fora do alcance")
 
     def to_dict(self):
         return {

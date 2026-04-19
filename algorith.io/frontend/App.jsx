@@ -3,12 +3,14 @@ import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType 
 import '@xyflow/react/dist/style.css';
 import LinkedListNode from './custom_node/linkedListNode';
 import ListNode from './custom_node/listNode';
-import { fetchSLLData, addNode, startInsertionSort, createVector, fetchVectorData } from './api';
+import VectorNode from './custom_node/vectorNode';
+import { fetchSLLData, addNode, startInsertionSort, createVector, fetchVectorData, insertVectorValue } from './api';
 
 // ===== CONFIGURAÇÕES =====
 const NODE_TYPES = {
   SLL: LinkedListNode,
   list: ListNode,
+  vector: VectorNode,
 };
 
 const DEFAULT_EDGE_OPTIONS = {
@@ -42,6 +44,8 @@ function App() {
   // Estados da UI - Entrada de dados
   const [nodeLabel, setNodeLabel] = useState('');
   const [vectorSize, setVectorSize] = useState('');
+  const [vectorId, setVectorId] = useState('');
+  const [vectorValue, setVectorValue] = useState('');
 
   // Estados da UI - Status
   const [nodeCount, setNodeCount] = useState(0);
@@ -69,9 +73,20 @@ function App() {
   const handleCreateVector = () => {
     createVector(
       vectorSize, 
+      setVectorSize,
       setNodes, 
       setEdges, 
       setNodeCount, 
+      () => fetchVectorData(setNodes, setEdges, setNodeCount)
+    );
+  };
+
+  const handleInsertVectorValue = () => {
+    insertVectorValue(
+      vectorId,
+      vectorValue,
+      setVectorId,
+      setVectorValue,
       () => fetchVectorData(setNodes, setEdges, setNodeCount)
     );
   };
@@ -167,6 +182,33 @@ function App() {
                 disabled={isUIDisabled}
               >
                 Criar Vetor
+              </button>
+            </div>
+            
+            {/* SEÇÃO 3: Inserir Valor no Vetor */}
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="number"
+                value={vectorId}
+                onChange={(e) => setVectorId(e.target.value)}
+                placeholder="ID do vetor"
+                style={getInputStyle(isUIDisabled)}
+                disabled={isUIDisabled}
+              />
+              <input
+                type="text"
+                value={vectorValue}
+                onChange={(e) => setVectorValue(e.target.value)}
+                placeholder="Valor"
+                style={getInputStyle(isUIDisabled)}
+                disabled={isUIDisabled}
+              />
+              <button 
+                onClick={handleInsertVectorValue}
+                style={getButtonStyle(isUIDisabled)}
+                disabled={isUIDisabled}
+              >
+                Inserir Valor
               </button>
             </div>
             

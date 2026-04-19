@@ -8721,7 +8721,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
 /* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
 /* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./custom_node/listNode */ "./frontend/custom_node/listNode.js");
-/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./api */ "./frontend/api.js");
+/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./api */ "./frontend/api.js");
+
 
 
 
@@ -8732,7 +8734,8 @@ __webpack_require__.r(__webpack_exports__);
 // ===== CONFIGURAÇÕES =====
 const NODE_TYPES = {
   SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_4__["default"],
-  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_5__["default"]
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_5__["default"],
+  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_6__["default"]
 };
 const DEFAULT_EDGE_OPTIONS = {
   markerEnd: {
@@ -8768,6 +8771,8 @@ function App() {
   // Estados da UI - Entrada de dados
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [vectorId, setVectorId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [vectorValue, setVectorValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
 
   // Estados da UI - Status
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
@@ -8776,18 +8781,21 @@ function App() {
 
   // Inicializar dados ao montar
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchSLLData)(setNodes, setEdges, setNodeCount);
+    (0,_api__WEBPACK_IMPORTED_MODULE_7__.fetchSLLData)(setNodes, setEdges, setNodeCount);
   }, []);
 
   // ===== HANDLERS =====
   const handleAddNode = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_6__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchSLLData)(setNodes, setEdges, setNodeCount));
+    (0,_api__WEBPACK_IMPORTED_MODULE_7__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api__WEBPACK_IMPORTED_MODULE_7__.fetchSLLData)(setNodes, setEdges, setNodeCount));
   };
   const handleCreateVector = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_6__.createVector)(vectorSize, setNodes, setEdges, setNodeCount, () => (0,_api__WEBPACK_IMPORTED_MODULE_6__.fetchVectorData)(setNodes, setEdges, setNodeCount));
+    (0,_api__WEBPACK_IMPORTED_MODULE_7__.createVector)(vectorSize, setVectorSize, setNodes, setEdges, setNodeCount, () => (0,_api__WEBPACK_IMPORTED_MODULE_7__.fetchVectorData)(setNodes, setEdges, setNodeCount));
+  };
+  const handleInsertVectorValue = () => {
+    (0,_api__WEBPACK_IMPORTED_MODULE_7__.insertVectorValue)(vectorId, vectorValue, setVectorId, setVectorValue, () => (0,_api__WEBPACK_IMPORTED_MODULE_7__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
   const handleInsertionSort = () => {
-    (0,_api__WEBPACK_IMPORTED_MODULE_6__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+    (0,_api__WEBPACK_IMPORTED_MODULE_7__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
   };
   const handleKeyPress = (e, callback) => {
     if (e.key === 'Enter') callback();
@@ -8872,6 +8880,28 @@ function App() {
     disabled: isUIDisabled
   }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "number",
+    value: vectorId,
+    onChange: e => setVectorId(e.target.value),
+    placeholder: "ID do vetor",
+    style: getInputStyle(isUIDisabled),
+    disabled: isUIDisabled
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "text",
+    value: vectorValue,
+    onChange: e => setVectorValue(e.target.value),
+    placeholder: "Valor",
+    style: getInputStyle(isUIDisabled),
+    disabled: isUIDisabled
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleInsertVectorValue,
+    style: getButtonStyle(isUIDisabled),
+    disabled: isUIDisabled
+  }, "Inserir Valor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
       borderTop: '1px solid #ccc',
       paddingTop: '10px'
     }
@@ -8913,6 +8943,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   createVector: () => (/* binding */ createVector),
 /* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
 /* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
+/* harmony export */   insertVectorValue: () => (/* binding */ insertVectorValue),
 /* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort)
 /* harmony export */ });
 // ===== UTILITÁRIOS DE TRANSFORMAÇÃO =====
@@ -8943,6 +8974,30 @@ const transformBackendData = data => {
     dataNodesCount
   };
 };
+const transformVectorData = data => {
+  // Para vetores, criar um único nó representando a barra
+  const values = data.nodes.map(node => node.value);
+  const position = data.nodes[0]?.position || {
+    x: 100,
+    y: 100
+  };
+  const vectorNode = {
+    id: 'vector',
+    type: 'vector',
+    position: position,
+    data: {
+      values: values,
+      type: 'vector'
+    }
+  };
+
+  // Edges podem ser ignorados para vetores, pois é uma representação visual única
+  return {
+    reactFlowNodes: [vectorNode],
+    reactFlowEdges: [],
+    dataNodesCount: 1
+  };
+};
 
 // ===== FUNÇÃO GENÉRICA =====
 const fetchStructureData = async (endpoint, setNodes, setEdges, setNodeCount) => {
@@ -8961,10 +9016,55 @@ const fetchStructureData = async (endpoint, setNodes, setEdges, setNodeCount) =>
     console.error(`Erro ao carregar dados de ${endpoint}:`, err);
   }
 };
-
-// ===== FUNÇÕES PÚBLICAS =====
 const fetchSLLData = (setNodes, setEdges, setNodeCount) => fetchStructureData('/SLL_data', setNodes, setEdges, setNodeCount);
-const fetchVectorData = (setNodes, setEdges, setNodeCount) => fetchStructureData('/vector_data', setNodes, setEdges, setNodeCount);
+const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
+  try {
+    const response = await fetch('http://localhost:5000/vector_data');
+    const data = await response.json();
+    const {
+      reactFlowNodes,
+      reactFlowEdges,
+      dataNodesCount
+    } = transformVectorData(data);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados do vetor:', err);
+  }
+};
+const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
+  if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
+    alert('Digite um tamanho de vetor válido (um inteiro positivo).');
+    return;
+  }
+  const createData = {
+    value: Number(size),
+    position: {
+      x: 100,
+      y: 100
+    }
+  };
+  try {
+    const response = await fetch('http://localhost:5000/create_vector', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(createData)
+    });
+    if (response.ok) {
+      setVectorSize('');
+      fetchDataCallback();
+      setNodeCount(Number(size));
+    } else {
+      const error = await response.json();
+      alert('Erro ao criar vetor: ' + error.error);
+    }
+  } catch (err) {
+    alert('Erro ao criar vetor: ' + err.message);
+  }
+};
 const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
@@ -9007,28 +9107,30 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
     alert('Erro ao criar nó: ' + err.message);
   }
 };
-const createVector = async (size, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
-  const newVectorData = {
-    value: size,
-    position: {
-      x: 100,
-      y: 139
-    }
+const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
+  if (!nodeId.trim() || !value.trim()) {
+    console.error('Digite um ID e um valor');
+    return;
+  }
+  const insertData = {
+    node_id: nodeId,
+    value: value
   };
   try {
-    const response = await fetch('http://localhost:5000/create_vector', {
+    const response = await fetch('http://localhost:5000/insert_vector', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(newVectorData)
+      body: JSON.stringify(insertData)
     });
     if (response.ok) {
-      const createdNodes = await response.json();
+      setVectorId('');
+      setVectorValue('');
       fetchDataCallback();
     }
   } catch (err) {
-    alert('Erro ao criar vetor: ' + err.message);
+    alert('Erro ao inserir valor: ' + err.message);
   }
 };
 const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
@@ -9219,6 +9321,57 @@ function ListNode({
   }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ListNode);
+
+/***/ },
+
+/***/ "./frontend/custom_node/vectorNode.js"
+/*!********************************************!*\
+  !*** ./frontend/custom_node/vectorNode.js ***!
+  \********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+function VectorNode({
+  data
+}) {
+  const values = data.values || [];
+  const size = values.length;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      border: '2px solid #34495e',
+      borderRadius: '8px',
+      background: '#2c3e50',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+      overflow: 'hidden',
+      minWidth: `${size * 60}px`,
+      // Largura baseada no tamanho
+      height: '60px'
+    }
+  }, values.map((value, index) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    key: index,
+    style: {
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
+      background: value ? '#3498db' : '#ecf0f1',
+      color: value ? '#fff' : '#2c3e50',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      transition: 'background 0.3s ease'
+    }
+  }, value || '')));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (VectorNode);
 
 /***/ },
 

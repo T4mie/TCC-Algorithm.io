@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from structures.SLL import SLL
-from structures.VECTOR import Vector
+from structures.Vector import Vector
 from algorithms.insertion_sort import InsertionSort
 
 app = Flask(__name__)
@@ -14,7 +14,8 @@ def is_single_char(value):
     """Verifica se o valor é um único caractere válido (a-z, A-Z, 0-9)"""
     if not isinstance(value, str):
         return False
-    return len(value) == 1 and value.isalnum()
+    # aceitar apenas letras (a-z, A-Z)
+    return len(value) == 1 and value.isalpha()
 
 def is_integer(value):
     """Verifica se o valor é um inteiro válido"""
@@ -30,9 +31,8 @@ def create_node_last():
     data = request.json
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
-    
     if not is_single_char(data.get("value")):
-        return jsonify({"error": "O valor deve ser um único caractere (a-z, A-Z, 0-9)"}), 400
+        return jsonify({"error": "O valor deve ser uma única letra (a-z, A-Z)"}), 400
 
     node = storageSLL.add_node_last(
         value=data.get("value"),
@@ -49,9 +49,8 @@ def create_node_first():
     data = request.json
     if not data or "value" not in data:
         return jsonify({"error": "Campo 'value' é obrigatório"}), 400
-    
     if not is_single_char(data.get("value")):
-        return jsonify({"error": "O valor deve ser um único caractere (a-z, A-Z, 0-9)"}), 400
+        return jsonify({"error": "O valor deve ser uma única letra (a-z, A-Z)"}), 400
 
     node = storageSLL.add_node_first(
         value=data.get("value"),
@@ -84,10 +83,24 @@ def create_vector():
     )
     return jsonify([node.to_dict() for node in node]), 201
 
-# @app.route("/insert_vector", methods=["POST"])
-# def insert_value():
-#     data = request.json
-#     if not data or "node_id" not in data or "value" not in data:
+@app.route("/insert_vector", methods=["POST"])
+def insert_value():
+    data = request.json
+    if not data or "node_id" not in data or "value" not in data:
+        return jsonify({"error": "Campos 'node_id' e 'value' são obrigatórios"}), 400
+    
+    if not is_integer(data.get("node_id")):
+        return jsonify({"error": "O node_id deve ser um inteiro válido"}), 400
+    # permitir letras únicas ou inteiros (inclui múltiplos dígitos, ex: "22")
+    value = data.get("value")
+    if not (is_single_char(value) or is_integer(value)):
+        return jsonify({"error": "O valor deve ser uma única letra (a-z, A-Z) ou um inteiro (ex: 22)"}), 400
+
+    try:
+        storageVector.insert_value(data["node_id"], data["value"])
+        return jsonify({"message": "Valor inserido com sucesso"}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/vector_data", methods=["GET"])
 def get_vector_data():
