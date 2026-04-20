@@ -189,7 +189,8 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao executar insertion sort');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao executar insertion sort');
     }
 
     const result = await response.json();
@@ -199,14 +200,14 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
     for (const step of steps) {
       // Atualizar nós com estados
       const updatedNodes = nodes.map(node => {
-        const stepNode = step.nodes.find(n => n.id === node.id);
-        if (stepNode) {
+        if (node.type === 'vector') {
           return {
             ...node,
             data: {
               ...node.data,
-              label: stepNode.label,
-              state: null
+              values: step.nodes.map(n => n.value),
+              comparing: step.comparing || [],
+              swapped: step.swapped || []
             }
           };
         }
@@ -226,6 +227,7 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
       // Aguardar antes do próximo passo
       await new Promise(resolve => setTimeout(resolve, animationSpeed));
     }
+
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     alert('Erro ao executar insertion sort: ' + err.message);

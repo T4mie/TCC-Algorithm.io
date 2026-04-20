@@ -4,13 +4,18 @@ from models.edge import Edge
 
 class SLL:
     def __init__(self):
+        
         self.nodes = {}
         self.edges = []
+        if len(self.nodes) != 0:
+            self.nodes.clear()
+            self.edges.clear()
         self.head = None
         self.tail = None
         self.size = 0
         self.node_counter = 0
         self.list_node = ListNode(head=None, tail=None, size=0)
+        
 
     def add_node_last(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
         new_id = f"n{self.node_counter}"

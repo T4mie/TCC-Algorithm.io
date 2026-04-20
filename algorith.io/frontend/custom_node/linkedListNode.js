@@ -40,13 +40,13 @@ function LinkedListNode({ data, isConnected }) {
       {/* Entrada */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
       />
 
       {/* Saída */}
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
       />
     </div>
   );

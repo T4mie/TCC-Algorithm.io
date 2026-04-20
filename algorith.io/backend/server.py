@@ -112,17 +112,49 @@ def get_vector_data():
 def insertion_sort():
     """Executa insertion sort e retorna todos os passos para animação"""
     try:
-        sorter = InsertionSort(storageSLL)
+        # Validação pré-requisitos
+        if not storageVector.nodes:
+            return jsonify({
+                "success": False,
+                "error": "Nenhum vetor foi criado. Chame /create_vector primeiro."
+            }), 400
+        
+        # Verificar se há dados para ordenar
+        data_indices = [i for i, node in enumerate(storageVector.nodes) 
+                        if node.value is not None]
+        if not data_indices:
+            return jsonify({
+                "success": False,
+                "error": "O vetor está vazio. Insira valores com /insert_vector."
+            }), 400
+        
+        sorter = InsertionSort(storageVector)
         steps = sorter.sort()
+        
+        # Retornar steps e estado atualizado do vetor
         return jsonify({
             "success": True,
-            "steps": steps
+            "steps": steps,
+            "data": storageVector.to_dict()  # Estado atualizado após sort
         }), 200
-    except Exception as e:
+        
+    except AttributeError as e:
+        app.logger.error(f"Erro de estrutura de dados: {e}")
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": "Estrutura de dados inválida no servidor"
+        }), 500
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": f"Dados inválidos: {str(e)}"
         }), 400
+    except Exception as e:
+        app.logger.error(f"Erro inesperado em insertion-sort: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Erro inesperado no servidor"
+        }), 500
 
 
 if __name__ == "__main__":

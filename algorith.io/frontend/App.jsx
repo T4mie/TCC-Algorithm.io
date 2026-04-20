@@ -15,6 +15,7 @@ const NODE_TYPES = {
 
 const DEFAULT_EDGE_OPTIONS = {
   markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+  type: 'step',
   style: { stroke: '#000000', strokeWidth: 2 }
 };
 

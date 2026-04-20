@@ -8742,6 +8742,7 @@ const DEFAULT_EDGE_OPTIONS = {
     type: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.MarkerType.ArrowClosed,
     color: '#000'
   },
+  type: 'step',
   style: {
     stroke: '#000000',
     strokeWidth: 2
@@ -9144,7 +9145,8 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
       }
     });
     if (!response.ok) {
-      throw new Error('Erro ao executar insertion sort');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao executar insertion sort');
     }
     const result = await response.json();
     const steps = result.steps;
@@ -9153,14 +9155,14 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     for (const step of steps) {
       // Atualizar nós com estados
       const updatedNodes = nodes.map(node => {
-        const stepNode = step.nodes.find(n => n.id === node.id);
-        if (stepNode) {
+        if (node.type === 'vector') {
           return {
             ...node,
             data: {
               ...node.data,
-              label: stepNode.label,
-              state: null
+              values: step.nodes.map(n => n.value),
+              comparing: step.comparing || [],
+              swapped: step.swapped || []
             }
           };
         }
@@ -9244,10 +9246,10 @@ function LinkedListNode({
     }
   }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
     type: "target",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Left
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Top
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
     type: "source",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Bottom
   }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (LinkedListNode);
@@ -9355,21 +9357,31 @@ function VectorNode({
       // Largura baseada no tamanho
       height: '60px'
     }
-  }, values.map((value, index) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    key: index,
-    style: {
-      flex: 1,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
-      background: value ? '#3498db' : '#ecf0f1',
-      color: value ? '#fff' : '#2c3e50',
-      fontSize: '14px',
-      fontWeight: 'bold',
-      transition: 'background 0.3s ease'
+  }, values.map((value, index) => {
+    const isComparing = data.comparing?.includes(index);
+    const isSwapped = data.swapped?.includes(index);
+    let backgroundColor = value ? '#3498db' : '#ecf0f1';
+    if (isSwapped) {
+      backgroundColor = '#4CAF50';
+    } else if (isComparing) {
+      backgroundColor = '#FF9800';
     }
-  }, value || '')));
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
+        background: backgroundColor,
+        color: value ? '#fff' : '#2c3e50',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        transition: 'background 0.3s ease'
+      }
+    }, value || '');
+  }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (VectorNode);
 
