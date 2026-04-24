@@ -8781,6 +8781,7 @@ const transformBackendData = data => {
 const transformVectorData = data => {
   // Para vetores, criar um único nó representando a barra
   const values = data.nodes.map(node => node.value);
+  const labels = data.nodes.map(node => node.label);
   const position = data.nodes[0]?.position || {
     x: 100,
     y: 100
@@ -8791,6 +8792,7 @@ const transformVectorData = data => {
     position: position,
     data: {
       values: values,
+      labels: labels,
       type: 'vector'
     }
   };
@@ -9071,8 +9073,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
-/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
 
 
 function ListNode({
@@ -9111,23 +9111,7 @@ function ListNode({
       fontWeight: 'bold',
       color: '#3498db'
     }
-  }, "Size: ", data.metadata?.size || 0)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
-    type: "source",
-    id: head,
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
-    style: {
-      background: '#3498db',
-      marginBottom: '12px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
-    type: "source",
-    id: tail,
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
-    style: {
-      background: '#3498db',
-      marginTop: '12px'
-    }
-  }));
+  }, "Size: ", data.metadata?.size || 0)));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ListNode);
 
@@ -9150,8 +9134,32 @@ function VectorNode({
   data
 }) {
   const values = data.values || [];
+  const labels = data.labels || values.map((_, i) => String(i));
   const size = values.length;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      marginBottom: '6px',
+      minWidth: `${size * 60}px`
+    }
+  }, labels.map((lab, idx) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    key: `label-${idx}`,
+    style: {
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: '#000000',
+      fontSize: '12px',
+      fontWeight: '600'
+    }
+  }, lab))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'row',
@@ -9188,7 +9196,7 @@ function VectorNode({
         transition: 'background 0.3s ease'
       }
     }, value || '');
-  }));
+  })));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (VectorNode);
 
@@ -9352,7 +9360,10 @@ function View() {
     defaultEdgeOptions: DEFAULT_EDGE_OPTIONS,
     style: {
       width: '100vw',
-      height: '100vh'
+      height: '100vh',
+      '--xy-handle-border-color-default': '#1a192b',
+      '--xy-handle-background-color-default': '#1a192b',
+      '--xy-node-boxshadow-selected-default': '0 0 0 0.5px #1a192b'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Background, {
     color: "grey",

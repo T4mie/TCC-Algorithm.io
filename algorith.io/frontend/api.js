@@ -27,14 +27,16 @@ const transformBackendData = (data) => {
 const transformVectorData = (data) => {
   // Para vetores, criar um único nó representando a barra
   const values = data.nodes.map(node => node.value);
+  const labels = data.nodes.map(node => node.label);
   const position = data.nodes[0]?.position || { x: 100, y: 100 };
-  
+
   const vectorNode = {
     id: 'vector',
     type: 'vector',
     position: position,
     data: {
       values: values,
+      labels: labels,
       type: 'vector'
     }
   };
