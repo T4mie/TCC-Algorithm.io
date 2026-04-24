@@ -1,0 +1,15 @@
+.sideBarClosed {
+  position: relative; /* Anchor point for the tab */
+  width: 250px;
+  height: 500px;
+  background: #f4f4f4;
+}
+
+.sideBarTab {
+  position: absolute;
+  right: -10px; /* Moves tab outside the right edge */
+  top: 20px;    /* Vertical position */
+  width: 40px;
+  height: 20px;
+  background: #007bff;
+}

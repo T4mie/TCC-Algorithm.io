@@ -33,13 +33,15 @@ function ListNode({ data }) {
       {/* Handles para conexões */}
       <Handle
         type="source"
+        id={head}
         position={Position.Right}
-        style={{ background: '#3498db' }}
+        style={{ background: '#3498db',marginBottom: '12px' }}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
-        style={{ background: '#3498db' }}
+        id={tail}
+        position={Position.Right}
+        style={{ background: '#3498db', marginTop: '12px' }}
       />
     </div>
   );

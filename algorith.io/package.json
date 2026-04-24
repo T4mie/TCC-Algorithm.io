@@ -33,9 +33,12 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
+    "electron-router-dom": "^2.1.1",
     "electron-squirrel-startup": "^1.0.1",
+    "motion": "^12.38.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.2"
   },
   "config": {
     "forge": {
@@ -51,7 +54,9 @@
         },
         {
           "name": "@electron-forge/maker-zip",
-          "platforms": ["win32"]
+          "platforms": [
+            "win32"
+          ]
         },
         {
           "name": "@electron-forge/maker-deb",

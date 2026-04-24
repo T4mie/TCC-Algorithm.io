@@ -103,6 +103,8 @@ class SLL:
             "edges": [edge.to_dict() for edge in self.edges]
         }
 
+## NAO USAR POR ENQUANTO
+
     def get_node(self, node_id):
         return self.nodes.get(node_id)
 
