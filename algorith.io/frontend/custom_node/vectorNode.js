@@ -2,7 +2,8 @@ import React from 'react';
 
 function VectorNode({ data }) {
   const values = data.values || [];
-  const labels = data.labels || values.map((_, i) => String(i));
+  const rawLabels = data.labels || values.map((_, i) => String(i));
+  const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const size = values.length;
 
   return (

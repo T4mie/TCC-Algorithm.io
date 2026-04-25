@@ -29,6 +29,18 @@ function ListNode({ data }) {
           Size: {data.metadata?.size || 0}
         </div>
       </div>
+     
+      {/* Handles para conexões */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: '#3498db',marginBottom: '12px' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: '#3498db', marginTop: '12px' }}
+      />
     </div>
   );
 }
