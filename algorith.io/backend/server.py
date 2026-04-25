@@ -8,14 +8,14 @@ storageSLL = SLL()
 storageVector = Vector()
 
 
-#  ===== UTILS  ===== 
+#  ===== UTILS (mudar de lugar)  ===== 
 
 def is_single_char(value):
     """Verifica se o valor é um único caractere válido (a-z, A-Z, 0-9)"""
     if not isinstance(value, str):
         return False
     # aceitar apenas letras (a-z, A-Z)
-    return len(value) == 1 and value.isalpha()
+    return len(value) == 1 and value.isalnum()
 
 def is_integer(value):
     """Verifica se o valor é um inteiro válido"""

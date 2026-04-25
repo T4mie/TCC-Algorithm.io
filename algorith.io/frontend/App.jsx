@@ -10,7 +10,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Selector />} />
-        <Route path="/view" element={<View />} />
+        <Route path="/view/:type" element={<View />} />
       </Routes>
     </Router>
   );
