@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
-import { fetchSLLData, addNode, startInsertionSort, createVector, fetchVectorData, insertVectorValue } from '../api';
+import { fetchSLLData, addNode, startInsertionSort, createVector, fetchVectorData, insertVectorValue } from '../api_antigo';
 
 // ===== CONFIGURAÇÕES =====
 const NODE_TYPES = {

@@ -1,6 +1,12 @@
 // ===== API PARA VETOR =====
 
 export const transformVectorData = (data) => {
+
+   // Se não há nós, retornar arrays vazios
+  if (!data.nodes || data.nodes.length === 0) {
+    return { reactFlowNodes: [], reactFlowEdges: [], dataNodesCount: 0 };
+  }
+
   // Para vetores, criar um único nó representando a barra
   const values = data.nodes.map(node => node.value);
   const labels = data.nodes.map(node => node.label);

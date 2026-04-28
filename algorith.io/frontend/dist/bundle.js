@@ -8747,12 +8747,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
 /* harmony export */   transformBackendData: () => (/* binding */ transformBackendData)
 /* harmony export */ });
-const transformBackendData = data => {
-  // Converter nós do backend para formato ReactFlow
+const transformBackendData = (data, currentNodes = []) => {
+  // Criar mapa das posições atuais
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+
+  // Converter nós do backend, mas preservar posições
   const reactFlowNodes = data.nodes.map(node => ({
     id: node.id,
     type: node.type,
-    position: node.position,
+    position: positionMap.get(node.id) || node.position,
     data: {
       label: node.label,
       type: node.type,
@@ -8761,12 +8764,20 @@ const transformBackendData = data => {
     }
   }));
 
-  // Converter edges
-  const reactFlowEdges = data.edges.map(edge => ({
-    id: `${edge.source}-${edge.target}-${edge.type}`,
-    source: edge.source,
-    target: edge.target
-  }));
+  // Converter edges E usar o type como sourceHandle quando necessário
+  const reactFlowEdges = data.edges.map(edge => {
+    const baseEdge = {
+      id: `${edge.source}-${edge.target}-${edge.type}`,
+      source: edge.source,
+      target: edge.target
+    };
+
+    // Se a edge for do tipo "head" ou "tail", usar como handle
+    if (edge.type === "head" || edge.type === "tail") {
+      baseEdge.sourceHandle = edge.type;
+    }
+    return baseEdge;
+  });
   const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'list').length;
   return {
     reactFlowNodes,
@@ -8774,7 +8785,7 @@ const transformBackendData = data => {
     dataNodesCount
   };
 };
-const fetchSLLData = async (setNodes, setEdges, setNodeCount) => {
+const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
   try {
     const response = await fetch(`http://localhost:5000/SLL_data`);
     const data = await response.json();
@@ -8782,7 +8793,8 @@ const fetchSLLData = async (setNodes, setEdges, setNodeCount) => {
       reactFlowNodes,
       reactFlowEdges,
       dataNodesCount
-    } = transformBackendData(data);
+    } = transformBackendData(data, currentNodes // ← Passa os nós atuais
+    );
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
     setNodeCount(dataNodesCount);
@@ -8790,21 +8802,23 @@ const fetchSLLData = async (setNodes, setEdges, setNodeCount) => {
     console.error(`Erro ao carregar dados de SLL_data:`, err);
   }
 };
-const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
+const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
+) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
     return;
   }
   const basePosition = {
-    x: 100,
-    y: 139
+    x: 600,
+    y: 0
   };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
+  const horizontalSpacing = 0;
+  const verticalSpacing = 80;
+  // const nodesPerColumn = 5; // Quantos nós por coluna antes de começar uma nova linha
+
   const newPosition = {
-    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
+    x: basePosition.x + nodeCount * horizontalSpacing,
+    y: basePosition.y + Math.floor(nodeCount) * verticalSpacing
   };
   const newNodeData = {
     value: nodeLabel,
@@ -8821,12 +8835,11 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
       body: JSON.stringify(newNodeData)
     });
     if (response.ok) {
-      const createdNode = await response.json();
       setNodeLabel('');
       setNodeCount(nodeCount + 1);
 
-      // Refetch data to update nodes and edges
-      fetchDataCallback();
+      // Passa os nós atuais para preservar posições
+      fetchDataCallback(currentNodes);
     }
   } catch (err) {
     alert('Erro ao criar nó: ' + err.message);
@@ -8852,6 +8865,15 @@ __webpack_require__.r(__webpack_exports__);
 // ===== API PARA VETOR =====
 
 const transformVectorData = data => {
+  // Se não há nós, retornar arrays vazios
+  if (!data.nodes || data.nodes.length === 0) {
+    return {
+      reactFlowNodes: [],
+      reactFlowEdges: [],
+      dataNodesCount: 0
+    };
+  }
+
   // Para vetores, criar um único nó representando a barra
   const values = data.nodes.map(node => node.value);
   const labels = data.nodes.map(node => node.label);
@@ -9126,6 +9148,7 @@ function ListNode({
       color: '#3498db'
     }
   }, "Size: ", data.metadata?.size || 0)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    id: "head",
     type: "source",
     position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
     style: {
@@ -9133,6 +9156,7 @@ function ListNode({
       marginBottom: '12px'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    id: "tail",
     type: "source",
     position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
     style: {
@@ -9250,14 +9274,16 @@ const useSLLHandlers = states => {
     nodeCount,
     setNodeCount,
     setNodes,
-    setEdges
+    setEdges,
+    nodes // ← Adiciona nodes do estado
   } = states;
   const handleAddNode = () => {
-    (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, () => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount));
+    (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes // ← Passa os nós atuais
+    );
   };
   return {
     handleAddNode,
-    fetchData: () => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount)
+    fetchData: currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes)
   };
 };
 
@@ -9351,12 +9377,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs");
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
-/* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
-/* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
-/* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
-/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
-/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
-/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+/* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
+/* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
+/* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
+/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
+/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
+/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
 
 
 
@@ -9368,9 +9395,20 @@ __webpack_require__.r(__webpack_exports__);
 
 
 const NODE_TYPES = {
-  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_6__["default"],
-  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_7__["default"],
-  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_8__["default"]
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_7__["default"],
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_8__["default"],
+  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_9__["default"]
+};
+const DEFAULT_EDGE_OPTIONS = {
+  markerEnd: {
+    type: _xyflow_react__WEBPACK_IMPORTED_MODULE_3__.MarkerType.ArrowClosed,
+    color: '#000'
+  },
+  type: 'step',
+  style: {
+    stroke: '#000000',
+    strokeWidth: 2
+  }
 };
 const PANEL_STYLE = {
   padding: '10px',
@@ -9418,15 +9456,14 @@ function View() {
   };
 
   // Inicializando Handlers baseados no Tipo
-  const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_4__.useSLLHandlers)(sharedStates);
-  const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_5__.useVectorHandlers)(sharedStates);
+  const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_5__.useSLLHandlers)(sharedStates);
+  const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_6__.useVectorHandlers)(sharedStates);
 
   // Define qual handler usar
   const handlers = type === 'sll' ? sll : vector;
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (handlers.fetchData) handlers.fetchData();
-  }, [type]); // Recarrega se mudar o tipo na URL
-
+    if (handlers.fetchData) handlers.fetchData(nodes); // ← Passa nodes atuais
+  }, [type]);
   const handleKeyPress = (e, callback) => {
     if (e.key === 'Enter') callback();
   };
@@ -9439,6 +9476,7 @@ function View() {
     nodes: nodes,
     edges: edges,
     nodeTypes: NODE_TYPES,
+    defaultEdgeOptions: DEFAULT_EDGE_OPTIONS,
     onNodesChange: onNodesChange,
     onEdgesChange: onEdgesChange
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Background, null), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {

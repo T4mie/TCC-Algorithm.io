@@ -1,9 +1,14 @@
-export const transformBackendData = (data) => {
-  // Converter nós do backend para formato ReactFlow
+export const transformBackendData = (data, currentNodes = []) => {
+  // Criar mapa das posições atuais
+  const positionMap = new Map(
+    currentNodes.map(node => [node.id, node.position])
+  );
+
+  // Converter nós do backend, mas preservar posições
   const reactFlowNodes = data.nodes.map(node => ({
     id: node.id,
     type: node.type,
-    position: node.position,
+    position: positionMap.get(node.id) || node.position,
     data: { 
       label: node.label, 
       type: node.type, 
@@ -12,22 +17,34 @@ export const transformBackendData = (data) => {
     },
   }));
 
-  // Converter edges
-  const reactFlowEdges = data.edges.map(edge => ({
-    id: `${edge.source}-${edge.target}-${edge.type}`,
-    source: edge.source,
-    target: edge.target
-  }));
+  // Converter edges E usar o type como sourceHandle quando necessário
+  const reactFlowEdges = data.edges.map(edge => {
+    const baseEdge = {
+      id: `${edge.source}-${edge.target}-${edge.type}`,
+      source: edge.source,
+      target: edge.target
+    };
+    
+    // Se a edge for do tipo "head" ou "tail", usar como handle
+    if (edge.type === "head" || edge.type === "tail") {
+      baseEdge.sourceHandle = edge.type;
+    }
+    
+    return baseEdge;
+  });
 
   const dataNodesCount = reactFlowNodes.filter(n => n.data.type !== 'list').length;
   return { reactFlowNodes, reactFlowEdges, dataNodesCount };
 };
 
-export const fetchSLLData = async (setNodes, setEdges, setNodeCount) => {
+export const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
   try {
     const response = await fetch(`http://localhost:5000/SLL_data`);
     const data = await response.json();
-    const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformBackendData(data);
+    const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformBackendData(
+      data, 
+      currentNodes // ← Passa os nós atuais
+    );
     
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
@@ -37,20 +54,30 @@ export const fetchSLLData = async (setNodes, setEdges, setNodeCount) => {
   }
 };
 
-export const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback) => {
+
+export const addNode = async (
+  nodeLabel, 
+  setNodeLabel, 
+  nodeCount, 
+  setNodeCount, 
+  setNodes, 
+  setEdges, 
+  fetchDataCallback,
+  currentNodes // ← Novo parâmetro
+) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
     return;
   }
 
-  const basePosition = { x: 100, y: 139 };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
+  const basePosition = { x: 600, y: 0 };
+  const horizontalSpacing = 0;
+  const verticalSpacing = 80;
+  // const nodesPerColumn = 5; // Quantos nós por coluna antes de começar uma nova linha
 
   const newPosition = {
-    x: basePosition.x + (nodeCount % nodesPerRow) * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
+    x: basePosition.x + (nodeCount) * horizontalSpacing,
+    y: basePosition.y + Math.floor(nodeCount) * verticalSpacing
   };
 
   const newNodeData = {
@@ -68,12 +95,11 @@ export const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, 
     });
 
     if (response.ok) {
-      const createdNode = await response.json();
       setNodeLabel('');
       setNodeCount(nodeCount + 1);
       
-      // Refetch data to update nodes and edges
-      fetchDataCallback();
+      // Passa os nós atuais para preservar posições
+      fetchDataCallback(currentNodes);
     }
   } catch (err) {
     alert('Erro ao criar nó: ' + err.message);

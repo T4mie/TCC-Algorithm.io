@@ -3,7 +3,7 @@ class ListNode:
     def __init__(self, head=None, tail=None, size=0):
         self.id = "list"
         self.value = f"N={size}"
-        self.position = {"x": 0, "y": -150}
+        self.position = {"x": 200, "y": 250}
         self.label = f"Lista Ligada Simples"
         self.type = "list"
         self.head = head

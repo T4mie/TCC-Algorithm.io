@@ -3,7 +3,7 @@ import { fetchSLLData, addNode } from '../api/api_sll';
 export const useSLLHandlers = (states) => {
   const { 
     nodeLabel, setNodeLabel, nodeCount, setNodeCount, 
-    setNodes, setEdges 
+    setNodes, setEdges, nodes // ← Adiciona nodes do estado
   } = states;
 
   const handleAddNode = () => {
@@ -14,9 +14,13 @@ export const useSLLHandlers = (states) => {
       setNodeCount, 
       setNodes, 
       setEdges, 
-      () => fetchSLLData(setNodes, setEdges, setNodeCount)
+      (currentNodes) => fetchSLLData(setNodes, setEdges, setNodeCount, currentNodes),
+      nodes // ← Passa os nós atuais
     );
   };
 
-  return { handleAddNode, fetchData: () => fetchSLLData(setNodes, setEdges, setNodeCount) };
+  return { 
+    handleAddNode, 
+    fetchData: (currentNodes) => fetchSLLData(setNodes, setEdges, setNodeCount, currentNodes) 
+  };
 };

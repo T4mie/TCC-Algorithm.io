@@ -17,6 +17,12 @@ const NODE_TYPES = {
   vector: VectorNode,
 };
 
+const DEFAULT_EDGE_OPTIONS = {
+  markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+  // type: 'step',
+  style: { stroke: '#000000', strokeWidth: 2 }
+};
+
 const PANEL_STYLE = {
   padding: '10px',
   backgroundColor: '#fff',
@@ -56,8 +62,8 @@ export default function View() {
   const handlers = type === 'sll' ? sll : vector;
 
   useEffect(() => {
-    if (handlers.fetchData) handlers.fetchData();
-  }, [type]); // Recarrega se mudar o tipo na URL
+  if (handlers.fetchData) handlers.fetchData(nodes); // ← Passa nodes atuais
+  }, [type]);
 
   const handleKeyPress = (e, callback) => {
     if (e.key === 'Enter') callback();
@@ -68,6 +74,7 @@ export default function View() {
       <ReactFlow 
         nodes={nodes} edges={edges} 
         nodeTypes={NODE_TYPES}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
       >
