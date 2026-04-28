@@ -1,12 +1,16 @@
 import React from 'react';
+import SelectorBox from '../components/SelectorBox';
 import { Link } from 'react-router-dom';
+
 
 export default function Selector(){
     return(
-    <div>
-        <h1>Selector</h1>
-        <Link to="/view/sll">Ir para Lista Ligada</Link>
-        <Link to="/view/vector">Ir para Vetor</Link>
-        <Link to="/view/outro-tipo">Outro Tipo</Link>
-    </div>);
+    <div style={{width: '100%',height:'100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+        <div style={{width: '90%',height:'90%', padding:'12px', display: 'grid', gridTemplateColumns: 'repeat(8, 0.5fr)', gap: '1px', borderColor: 'gray',borderRadius: '8px', borderWidth: '2px', borderStyle: 'solid'}}>
+            <SelectorBox props={{ path: "/view/sll", label: "Ir para Lista Ligada" }} />
+            <SelectorBox props={{ path: "/view/vector", label: "Ir para Vetor" }} />
+            <SelectorBox props={{ path: "/view/outro-tipo", label: "Outro Tipo" }} />
+        </div>
+    </div>
+    );
 }

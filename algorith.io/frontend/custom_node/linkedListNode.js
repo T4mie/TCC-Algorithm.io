@@ -1,5 +1,6 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { motion } from 'framer-motion';
 
 function LinkedListNode({ data, isConnected }) {
   // Determinar cor baseado no estado
@@ -21,7 +22,10 @@ function LinkedListNode({ data, isConnected }) {
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ scale: 0.5, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1,transition: { duration: 0.2} }}
+      whileHover={{scale:1.1,transition:{duration:0.05}}}
       style={{
         width: '50px',
         height: '50px',
@@ -48,7 +52,7 @@ function LinkedListNode({ data, isConnected }) {
         type="source"
         position={Position.Bottom}
       />
-    </div>
+    </motion.div>
   );
 }
 
