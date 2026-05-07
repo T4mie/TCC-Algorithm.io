@@ -1,5 +1,7 @@
 // ===== API PARA VETOR =====
 
+import { act } from "react";
+
 export const transformVectorData = (data) => {
 
    // Se não há nós, retornar arrays vazios
@@ -131,7 +133,8 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
               ...node.data,
               values: step.nodes.map(n => n.value),
               comparing: step.comparing || [],
-              swapped: step.swapped || []
+              swapped: step.swapped || [],
+              activeKey: step.activeKey
             }
           };
         }
@@ -166,3 +169,33 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
   }
 };
 
+// Busca os passos no servidor e retorna a lista
+export const fetchSortSteps = async () => {
+  const response = await fetch('http://localhost:5000/insertion-sort', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!response.ok) throw new Error('Erro ao buscar passos');
+  const result = await response.json();
+  return result.steps;
+};
+
+// Atualiza o estado visual para um passo específico
+export const applyStepToNodes = (step, nodes, setNodes) => {
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'vector') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: step.nodes.map(n => n.value),
+          comparing: step.comparing || [],
+          swapped: step.swapped || [],
+          activeKey: step.activeKey
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+};

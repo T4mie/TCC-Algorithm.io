@@ -8856,13 +8856,18 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
 /* harmony export */   createVector: () => (/* binding */ createVector),
+/* harmony export */   fetchSortSteps: () => (/* binding */ fetchSortSteps),
 /* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
 /* harmony export */   insertVectorValue: () => (/* binding */ insertVectorValue),
 /* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort),
 /* harmony export */   transformVectorData: () => (/* binding */ transformVectorData)
 /* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 // ===== API PARA VETOR =====
+
 
 const transformVectorData = data => {
   // Se não há nós, retornar arrays vazios
@@ -9001,7 +9006,8 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
               ...node.data,
               values: step.nodes.map(n => n.value),
               comparing: step.comparing || [],
-              swapped: step.swapped || []
+              swapped: step.swapped || [],
+              activeKey: step.activeKey
             }
           };
         }
@@ -9034,6 +9040,39 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
   } finally {
     setIsAnimating(false);
   }
+};
+
+// Busca os passos no servidor e retorna a lista
+const fetchSortSteps = async () => {
+  const response = await fetch('http://localhost:5000/insertion-sort', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!response.ok) throw new Error('Erro ao buscar passos');
+  const result = await response.json();
+  return result.steps;
+};
+
+// Atualiza o estado visual para um passo específico
+const applyStepToNodes = (step, nodes, setNodes) => {
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'vector') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: step.nodes.map(n => n.value),
+          comparing: step.comparing || [],
+          swapped: step.swapped || [],
+          activeKey: step.activeKey
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
 };
 
 /***/ },
@@ -9260,7 +9299,13 @@ __webpack_require__.r(__webpack_exports__);
 function VectorNode({
   data
 }) {
-  const values = data.values || [];
+  // const values = data.values || [];
+  const {
+    values = [],
+    activeKey,
+    comparing,
+    swapped
+  } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const size = values.length;
@@ -9270,6 +9315,45 @@ function VectorNode({
       flexDirection: 'column'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '80px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }
+  }, activeKey !== undefined && activeKey !== null ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+    style: {
+      fontSize: '10px',
+      fontWeight: 'bold',
+      color: '#7f8c8d'
+    }
+  }, "CHAVE (KEY)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      width: '40px',
+      height: '40px',
+      backgroundColor: '#e74c3c',
+      // Cor de destaque (vermelho/laranja)
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: '4px',
+      fontWeight: 'bold',
+      boxShadow: '0 4px 10px rgba(231, 76, 60, 0.4)',
+      border: '2px solid #c0392b',
+      marginBottom: '5px'
+    }
+  }, activeKey), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      fontSize: '12px',
+      color: '#e74c3c'
+    }
+  }, "\u2193 Comparando...")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '60px'
+    }
+  }) // Espaçador para não pular o layout
+  ), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'row',
@@ -9390,7 +9474,11 @@ const useVectorHandlers = states => {
     nodes,
     isAnimating,
     setIsAnimating,
-    animationSpeed
+    animationSpeed,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep
   } = states;
   const handleCreateVector = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.createVector)(vectorSize, setVectorSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
@@ -9401,10 +9489,52 @@ const useVectorHandlers = states => {
   const handleInsertionSort = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
   };
+
+  // Inicia o modo manual buscando os passos
+  const handlePrepareStepByStep = async () => {
+    try {
+      const allSteps = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchSortSteps)();
+      setSteps(allSteps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(allSteps[0], nodes, setNodes);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // Avança para o próximo passo
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[nextIndex], nodes, setNodes);
+
+      // Se for o ÚLTIMO passo da lista, podemos encerrar o modo de animação
+      if (nextIndex === steps.length - 1) {
+        // Opcional: Pequeno delay para o usuário ver o vetor limpo antes de sumir o botão
+        setTimeout(() => {
+          setIsAnimating(false);
+          // Não resetamos o currentStep para -1 imediatamente para o usuário 
+          // poder ver que chegou no 10/10, por exemplo.
+        }, 500);
+      }
+    }
+  };
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[prevIndex], nodes, setNodes);
+    }
+  };
   return {
     handleCreateVector,
     handleInsertVectorValue,
     handleInsertionSort,
+    handlePrepareStepByStep,
+    handleNextStep,
+    handlePrevStep,
     fetchData: () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount)
   };
 };
@@ -9532,7 +9662,9 @@ function View() {
   const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.useEdgesState)([]);
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
   const [isAnimating, setIsAnimating] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
-  const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(500);
+  const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(1000);
+  const [steps, setSteps] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [currentStep, setCurrentStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(-1);
 
   // Estados Específicos
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
@@ -9558,7 +9690,11 @@ function View() {
     vectorId,
     setVectorId,
     vectorValue,
-    setVectorValue
+    setVectorValue,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep
   };
 
   // Inicializando Handlers baseados no Tipo
@@ -9604,30 +9740,159 @@ function View() {
     placeholder: "R\xF3tulo do n\xF3"
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: sll.handleAddNode
-  }, "Adicionar N\xF3")), type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+  }, "Adicionar N\xF3")), type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
+    style: {
+      display: 'flex',
+      gap: '5px',
+      marginBottom: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     value: vectorSize,
     onChange: e => setVectorSize(e.target.value),
-    placeholder: "Tamanho"
+    placeholder: "Tamanho",
+    style: {
+      width: '60px'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleCreateVector
-  }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
+  }, "Criar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
     style: {
-      marginTop: '10px'
+      display: 'flex',
+      gap: '5px'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     value: vectorId,
     onChange: e => setVectorId(e.target.value),
-    placeholder: "ID"
+    placeholder: "ID",
+    style: {
+      width: '40px'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     value: vectorValue,
     onChange: e => setVectorValue(e.target.value),
-    placeholder: "Valor"
+    placeholder: "Valor",
+    style: {
+      width: '60px'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertVectorValue
-  }, "Inserir")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", null), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+  }, "Inserir"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o (Sort)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertionSort,
-    disabled: isAnimating
-  }, isAnimating ? 'Ordenando...' : 'Iniciar Sort'))))));
+    disabled: isAnimating,
+    style: {
+      width: '100%',
+      backgroundColor: '#3498db',
+      color: 'white',
+      border: 'none',
+      padding: '8px',
+      borderRadius: '4px'
+    }
+  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    style: {
+      fontSize: '11px'
+    }
+  }, "Velocidade: ", animationSpeed, "ms"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "range",
+    min: "100",
+    max: "2000",
+    step: "100",
+    value: animationSpeed,
+    onChange: e => setAnimationSpeed(Number(e.target.value)),
+    style: {
+      width: '100%'
+    }
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      textAlign: 'center',
+      margin: '10px 0',
+      fontSize: '12px',
+      color: '#666'
+    }
+  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handlePrepareStepByStep,
+    style: {
+      width: '100%',
+      backgroundColor: '#2ecc71',
+      color: 'white',
+      padding: '10px'
+    }
+  }, "Simular Passo a Passo") : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handlePrevStep,
+    disabled: currentStep === 0,
+    style: {
+      flex: 1,
+      padding: '10px',
+      backgroundColor: currentStep === 0 ? '#ccc' : '#95a5a6',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    style: {
+      flex: 2,
+      padding: '10px',
+      backgroundColor: currentStep === steps.length - 1 ? '#ccc' : '#e67e22',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      vector.fetchData();
+    },
+    style: {
+      width: '100%',
+      padding: '5px',
+      fontSize: '11px',
+      background: 'none',
+      border: '1px solid #ccc',
+      cursor: 'pointer'
+    }
+  }, "Encerrar Simula\xE7\xE3o"))))))));
 }
 
 /***/ },

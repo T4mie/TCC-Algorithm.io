@@ -15,13 +15,14 @@ class InsertionSort:
     #     node1.value, node2.value = node2.value, node1.value
     #     node1.label, node2.label = node2.label, node1.label
     
-    def capture_state(self, comparing_indices=None, swapped_indices=None):
+    def capture_state(self, comparing_indices=None, swapped_indices=None, key_value=None):
         """Captura o estado atual do vetor para animação"""
         state = {
             "nodes": [node.to_dict() for node in self.nodes],
             "edges": [edge.to_dict() for edge in self.vector.edges],
             "comparing": comparing_indices or [],
-            "swapped": swapped_indices or []
+            "swapped": swapped_indices or [],
+            "activeKey": key_value
         }
         return state
         
@@ -41,6 +42,8 @@ class InsertionSort:
             key_index = data_indices[i]  # Indice do elemento a ser inserido
             key_value = self.nodes[key_index].value
             
+            self.steps.append(self.capture_state(comparing_indices=[i], key_value=key_value))
+
             j = i - 1
             # Comparar com elementos anteriores e deslocá-los
             while j >= 0:
@@ -49,7 +52,8 @@ class InsertionSort:
                 
                 # Capturar estado durante comparação
                 self.steps.append(self.capture_state(
-                    comparing_indices=[j, i]
+                    comparing_indices=[j],
+                    key_value=key_value
                 ))
                 
                 if current_value > key_value:
@@ -59,7 +63,8 @@ class InsertionSort:
                     
                     # Capturar estado após deslocamento
                     self.steps.append(self.capture_state(
-                        swapped_indices=[j, j + 1]
+                        swapped_indices=[j + 1],
+                        key_value=key_value
                     ))
                     
                     j -= 1
@@ -71,6 +76,10 @@ class InsertionSort:
             self.nodes[insert_target].value = key_value
 
         # Capturar estado final
-        self.steps.append(self.capture_state())
+        self.steps.append(self.capture_state(
+            comparing_indices=[], 
+            swapped_indices=[], 
+            key_value=None
+        ))
         
         return self.steps

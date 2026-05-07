@@ -1,13 +1,43 @@
 import React from 'react';
 
 function VectorNode({ data }) {
-  const values = data.values || [];
+  // const values = data.values || [];
+  const { values = [], activeKey, comparing, swapped } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const size = values.length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+      {/* EXIBIÇÃO DA CHAVE (Área Educativa) */}
+      <div style={{ height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {activeKey !== undefined && activeKey !== null ? (
+          <>
+            <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#7f8c8d' }}>CHAVE (KEY)</span>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              backgroundColor: '#e74c3c', // Cor de destaque (vermelho/laranja)
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: '4px',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 10px rgba(231, 76, 60, 0.4)',
+              border: '2px solid #c0392b',
+              marginBottom: '5px'
+            }}>
+              {activeKey}
+            </div>
+            <div style={{ fontSize: '12px', color: '#e74c3c' }}>↓ Comparando...</div>
+          </>
+        ) : (
+          <div style={{ height: '60px' }} /> // Espaçador para não pular o layout
+        )}
+      </div>
+
       {/* Row de índices (labels) */}
       <div style={{ display: 'flex', flexDirection: 'row', marginBottom: '6px', minWidth: `${size * 60}px` }}>
         {labels.map((lab, idx) => (
