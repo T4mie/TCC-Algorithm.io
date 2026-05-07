@@ -9020,6 +9020,14 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
       // Aguardar antes do próximo passo
       await new Promise(resolve => setTimeout(resolve, animationSpeed));
     }
+    const finalResponse = await fetch('http://localhost:5000/vector_data');
+    const finalData = await finalResponse.json();
+    const {
+      reactFlowNodes,
+      reactFlowEdges
+    } = transformVectorData(finalData);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     alert('Erro ao executar insertion sort: ' + err.message);

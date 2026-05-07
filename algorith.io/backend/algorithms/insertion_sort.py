@@ -40,7 +40,6 @@ class InsertionSort:
         for i in range(1, len(data_indices)):
             key_index = data_indices[i]  # Indice do elemento a ser inserido
             key_value = self.nodes[key_index].value
-            key_label = self.nodes[key_index].label
             
             j = i - 1
             # Comparar com elementos anteriores e deslocá-los
@@ -57,7 +56,6 @@ class InsertionSort:
                     # Deslocar: copiar valor de posição j para posição j+1
                     shift_target = data_indices[j + 1]
                     self.nodes[shift_target].value = current_value
-                    self.nodes[shift_target].label = self.nodes[current_index].label
                     
                     # Capturar estado após deslocamento
                     self.steps.append(self.capture_state(
@@ -71,7 +69,6 @@ class InsertionSort:
             # Inserir a chave na posição correta
             insert_target = data_indices[j + 1]
             self.nodes[insert_target].value = key_value
-            self.nodes[insert_target].label = key_label
 
         # Capturar estado final
         self.steps.append(self.capture_state())
