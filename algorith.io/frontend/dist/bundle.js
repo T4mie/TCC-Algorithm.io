@@ -9125,6 +9125,205 @@ function SelectorBox({
 
 /***/ },
 
+/***/ "./frontend/components/controls/SLLControls.js"
+/*!*****************************************************!*\
+  !*** ./frontend/components/controls/SLLControls.js ***!
+  \*****************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ SLLControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// components/SLLControls.js
+
+function SLLControls({
+  nodeLabel,
+  setNodeLabel,
+  handleAddNode
+}) {
+  const handleKeyPress = e => {
+    if (e.key === 'Enter') handleAddNode();
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: nodeLabel,
+    onChange: e => setNodeLabel(e.target.value),
+    onKeyPress: handleKeyPress,
+    placeholder: "R\xF3tulo do n\xF3"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleAddNode
+  }, "Adicionar N\xF3"));
+}
+
+/***/ },
+
+/***/ "./frontend/components/controls/VectorControls.js"
+/*!********************************************************!*\
+  !*** ./frontend/components/controls/VectorControls.js ***!
+  \********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ VectorControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// components/VectorControls.js
+
+function VectorControls({
+  states,
+  handlers
+}) {
+  const {
+    vectorSize,
+    setVectorSize,
+    vectorId,
+    setVectorId,
+    vectorValue,
+    setVectorValue,
+    isAnimating,
+    animationSpeed,
+    setAnimationSpeed,
+    currentStep,
+    steps,
+    setIsAnimating,
+    setCurrentStep
+  } = states;
+  const vector = handlers;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
+    style: {
+      display: 'flex',
+      gap: '5px',
+      marginBottom: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: vectorSize,
+    onChange: e => setVectorSize(e.target.value),
+    placeholder: "Tamanho",
+    style: {
+      width: '60px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handleCreateVector
+  }, "Criar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
+    style: {
+      display: 'flex',
+      gap: '5px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: vectorId,
+    onChange: e => setVectorId(e.target.value),
+    placeholder: "ID",
+    style: {
+      width: '40px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: vectorValue,
+    onChange: e => setVectorValue(e.target.value),
+    placeholder: "Valor",
+    style: {
+      width: '60px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handleInsertVectorValue
+  }, "Inserir"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o (Sort)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handleInsertionSort,
+    disabled: isAnimating,
+    style: {
+      width: '100%',
+      backgroundColor: '#3498db',
+      color: 'white',
+      border: 'none',
+      padding: '8px',
+      borderRadius: '4px'
+    }
+  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    style: {
+      fontSize: '11px'
+    }
+  }, "Velocidade: ", animationSpeed, "ms"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    type: "range",
+    min: "100",
+    max: "2000",
+    step: "100",
+    value: animationSpeed,
+    onChange: e => setAnimationSpeed(Number(e.target.value)),
+    style: {
+      width: '100%'
+    }
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      textAlign: 'center',
+      margin: '10px 0',
+      fontSize: '12px',
+      color: '#666'
+    }
+  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handlePrepareStepByStep,
+    style: {
+      width: '100%',
+      backgroundColor: '#2ecc71',
+      color: 'white',
+      padding: '10px'
+    }
+  }, "Simular Passo a Passo") : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handlePrevStep,
+    disabled: currentStep === 0
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handleNextStep,
+    disabled: currentStep === steps.length - 1
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      vector.fetchData();
+    }
+  }, "Encerrar Simula\xE7\xE3o"))));
+}
+
+/***/ },
+
 /***/ "./frontend/custom_node/linkedListNode.js"
 /*!************************************************!*\
   !*** ./frontend/custom_node/linkedListNode.js ***!
@@ -9620,14 +9819,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
 /* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
 /* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../components/controls/SLLControls */ "./frontend/components/controls/SLLControls.js");
+/* harmony import */ var _components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../components/controls/VectorControls */ "./frontend/components/controls/VectorControls.js");
+// views/View.js
+
+
+
+
+
+// Importando Handlers e Custom Nodes
 
 
 
 
 
 
-
-
+// Importando os novos painéis modularizados
 
 
 const NODE_TYPES = {
@@ -9640,7 +9847,6 @@ const DEFAULT_EDGE_OPTIONS = {
     type: _xyflow_react__WEBPACK_IMPORTED_MODULE_3__.MarkerType.ArrowClosed,
     color: '#000'
   },
-  // type: 'step',
   style: {
     stroke: '#000000',
     strokeWidth: 2
@@ -9671,8 +9877,6 @@ function View() {
   const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorId, setVectorId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorValue, setVectorValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
-
-  // Agrupando estados para passar aos handlers
   const sharedStates = {
     nodes,
     setNodes,
@@ -9683,6 +9887,8 @@ function View() {
     isAnimating,
     setIsAnimating,
     animationSpeed,
+    setAnimationSpeed,
+    // <- adicionei setAnimationSpeed
     nodeLabel,
     setNodeLabel,
     vectorSize,
@@ -9696,19 +9902,12 @@ function View() {
     currentStep,
     setCurrentStep
   };
-
-  // Inicializando Handlers baseados no Tipo
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_5__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_6__.useVectorHandlers)(sharedStates);
-
-  // Define qual handler usar
   const handlers = type === 'sll' ? sll : vector;
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (handlers.fetchData) handlers.fetchData(nodes); // ← Passa nodes atuais
+    if (handlers.fetchData) handlers.fetchData(nodes);
   }, [type]);
-  const handleKeyPress = (e, callback) => {
-    if (e.key === 'Enter') callback();
-  };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       width: '100vw',
@@ -9733,166 +9932,14 @@ function View() {
     position: "center-right"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: PANEL_STYLE
-  }, type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    value: nodeLabel,
-    onChange: e => setNodeLabel(e.target.value),
-    onKeyPress: e => handleKeyPress(e, sll.handleAddNode),
-    placeholder: "R\xF3tulo do n\xF3"
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: sll.handleAddNode
-  }, "Adicionar N\xF3")), type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginBottom: '15px',
-      borderBottom: '1px solid #eee',
-      paddingBottom: '10px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
-    style: {
-      display: 'flex',
-      gap: '5px',
-      marginBottom: '8px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    value: vectorSize,
-    onChange: e => setVectorSize(e.target.value),
-    placeholder: "Tamanho",
-    style: {
-      width: '60px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleCreateVector
-  }, "Criar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("section", {
-    style: {
-      display: 'flex',
-      gap: '5px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    value: vectorId,
-    onChange: e => setVectorId(e.target.value),
-    placeholder: "ID",
-    style: {
-      width: '40px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    value: vectorValue,
-    onChange: e => setVectorValue(e.target.value),
-    placeholder: "Valor",
-    style: {
-      width: '60px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleInsertVectorValue
-  }, "Inserir"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
-    style: {
-      margin: '0 0 10px 0',
-      fontSize: '14px'
-    }
-  }, "Simula\xE7\xE3o (Sort)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginBottom: '10px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleInsertionSort,
-    disabled: isAnimating,
-    style: {
-      width: '100%',
-      backgroundColor: '#3498db',
-      color: 'white',
-      border: 'none',
-      padding: '8px',
-      borderRadius: '4px'
-    }
-  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginTop: '8px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    style: {
-      fontSize: '11px'
-    }
-  }, "Velocidade: ", animationSpeed, "ms"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    type: "range",
-    min: "100",
-    max: "2000",
-    step: "100",
-    value: animationSpeed,
-    onChange: e => setAnimationSpeed(Number(e.target.value)),
-    style: {
-      width: '100%'
-    }
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      textAlign: 'center',
-      margin: '10px 0',
-      fontSize: '12px',
-      color: '#666'
-    }
-  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handlePrepareStepByStep,
-    style: {
-      width: '100%',
-      backgroundColor: '#2ecc71',
-      color: 'white',
-      padding: '10px'
-    }
-  }, "Simular Passo a Passo") : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      backgroundColor: '#f9f9f9',
-      padding: '15px',
-      borderRadius: '8px',
-      border: '1px solid #ddd'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
-    style: {
-      fontSize: '12px',
-      textAlign: 'center',
-      marginBottom: '10px'
-    }
-  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '10px',
-      marginBottom: '10px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handlePrevStep,
-    disabled: currentStep === 0,
-    style: {
-      flex: 1,
-      padding: '10px',
-      backgroundColor: currentStep === 0 ? '#ccc' : '#95a5a6',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
-    }
-  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleNextStep,
-    disabled: currentStep === steps.length - 1,
-    style: {
-      flex: 2,
-      padding: '10px',
-      backgroundColor: currentStep === steps.length - 1 ? '#ccc' : '#e67e22',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
-    }
-  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: () => {
-      setCurrentStep(-1);
-      setIsAnimating(false);
-      vector.fetchData();
-    },
-    style: {
-      width: '100%',
-      padding: '5px',
-      fontSize: '11px',
-      background: 'none',
-      border: '1px solid #ccc',
-      cursor: 'pointer'
-    }
-  }, "Encerrar Simula\xE7\xE3o"))))))));
+  }, type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_10__["default"], {
+    nodeLabel: nodeLabel,
+    setNodeLabel: setNodeLabel,
+    handleAddNode: sll.handleAddNode
+  }), type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_11__["default"], {
+    states: sharedStates,
+    handlers: vector
+  })))));
 }
 
 /***/ },
