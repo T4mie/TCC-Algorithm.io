@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import sidebar from '../css/sidebar.css';
 
 // Importando Handlers e Custom Nodes
 import { useSLLHandlers } from '../handlers/sll_handle';
@@ -53,6 +54,12 @@ export default function View() {
     if (handlers.fetchData) handlers.fetchData(nodes);
   }, [type]);
 
+  function openWindow() {
+
+    window.electronAPI.openChildWindow();
+
+  }
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow 
@@ -63,11 +70,15 @@ export default function View() {
         <Background />
         <Panel position="top-left">
            <Link to="/" style={{textDecoration: 'none', color: 'blue'}}>← Voltar</Link>
-           <h3>Modo: {type?.toUpperCase()}</h3>
         </Panel>
-
+        <Panel position="bottom-left">
+          <a onClick={openWindow}>
+            <div style={{width:'100px',height:'100px',backgroundColor:'#000'}}>
+            </div>
+          </a>
+        </Panel>
         <Panel position="center-right">
-          <div style={PANEL_STYLE}>
+          <div className='sideBar' style={PANEL_STYLE}>
             {/* RENDERIZAÇÃO MODULARIZADA */}
             {type === 'sll' && (
               <SLLControls 

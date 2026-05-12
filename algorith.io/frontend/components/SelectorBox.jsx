@@ -1,28 +1,37 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from "framer-motion";
+import '../css/selector.css';
 
-export default function SelectorBox({ props }) {
-    return(
-    <Link to={props.path}
-    >
-        <motion.div 
-            whileHover={{scale:1.1,transition:{duration:0.1}}}
-            whileTap={{scale:0.9}}
-            style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '8px',
-                background: '#C5C5C5',
-                color: 'black',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                textAlign: 'center',
-            }}
-        >
-            {props.label}
-        </motion.div>
-    </Link>
+export default function SelectorBox({props}) {
+    // Variantes para controlar o movimento de subida
+    const slideVariants = {
+        initial: { y: 0 },
+        hover: { y: "-100%" } // Sobe 100% da altura para mostrar o texto
+    };
+
+    return (
+        <Link to={props.path} style={{ textDecoration: "none" }}>
+            <motion.div 
+                className='selectorBox'
+                initial="initial"
+                whileHover="hover"
+                whileTap={{ scale: 0.95 }}
+            >   
+                <motion.div 
+                    className="content-wrapper"
+                    variants={slideVariants}
+                    transition={{ type: "tween", ease: "easeInOut", duration: 0.2 }}
+                >
+                    <div className="box-section icon-section">
+                        <img src={props.icon} alt={props.label} />
+                    </div>
+
+                    <div className="box-section text-section">
+                        {props.label}
+                    </div>
+                </motion.div>
+            </motion.div>
+        </Link>
     );
 }
