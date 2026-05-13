@@ -11,17 +11,20 @@ storageVector = Vector()
 #  ===== UTILS (mudar de lugar)  ===== 
 
 def is_single_char(value):
-    """Verifica se o valor é um único caractere válido (a-z, A-Z, 0-9)"""
+    """Verifica se o valor é uma única letra"""
     if not isinstance(value, str):
         return False
-    # aceitar apenas letras (a-z, A-Z)
     return len(value) == 1 and value.isalnum()
 
 def is_integer(value):
-    """Verifica se o valor é um inteiro válido"""
-    if isinstance(value, bool):  # bool é subclasse de int em Python
+    """Verifica se o valor é um inteiro ou uma string que representa um inteiro"""
+    if isinstance(value, bool): 
         return False
-    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+    if isinstance(value, int):
+        return True
+    if isinstance(value, str):
+        return value.lstrip('-').isdigit() # Lida com números negativos em string
+    return False
 
 # ===== ROTAS PARA GERENCIAR NÓS  SLL =====
 
@@ -89,17 +92,28 @@ def insert_value():
     if not data or "node_id" not in data or "value" not in data:
         return jsonify({"error": "Campos 'node_id' e 'value' são obrigatórios"}), 400
     
-    if not is_integer(data.get("node_id")):
+    # Converter node_id para int (índice do vetor)
+    try:
+        node_id = int(data.get("node_id"))
+    except:
         return jsonify({"error": "O node_id deve ser um inteiro válido"}), 400
-    # permitir letras únicas ou inteiros (inclui múltiplos dígitos, ex: "22")
+
     value = data.get("value")
-    if not (is_single_char(value) or is_integer(value)):
-        return jsonify({"error": "O valor deve ser uma única letra (a-z, A-Z) ou um inteiro (ex: 22)"}), 400
+    
+    # Validação lógica:
+    if is_integer(value):
+        # Se for um inteiro (ou string numérica), converte para int real
+        value = int(value)
+    elif is_single_char(value):
+        # Se for uma letra, mantém como string
+        value = str(value)
+    else:
+        return jsonify({"error": "O valor deve ser uma única letra ou um inteiro"}), 400
 
     try:
-        storageVector.insert_value(data["node_id"], data["value"])
+        storageVector.insert_value(node_id, value)
         return jsonify({"message": "Valor inserido com sucesso"}), 200
-    except ValueError as e:
+    except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 @app.route("/vector_data", methods=["GET"])

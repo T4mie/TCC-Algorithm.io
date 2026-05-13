@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import sidebar from '../css/sidebar.css';
+import '../css/sideBar.css';
 
 // Importando Handlers e Custom Nodes
 import { useSLLHandlers } from '../handlers/sll_handle';
@@ -37,13 +37,15 @@ export default function View() {
   const [vectorSize, setVectorSize] = useState('');
   const [vectorId, setVectorId] = useState('');
   const [vectorValue, setVectorValue] = useState('');
+  const [vectorType, setVectorType] = useState('int');
 
   const sharedStates = { 
     nodes, setNodes, edges, setEdges, nodeCount, setNodeCount, 
     isAnimating, setIsAnimating, animationSpeed, setAnimationSpeed, // <- adicionei setAnimationSpeed
     nodeLabel, setNodeLabel, vectorSize, setVectorSize, 
     vectorId, setVectorId, vectorValue, setVectorValue,
-    steps, setSteps, currentStep, setCurrentStep
+    steps, setSteps, currentStep, setCurrentStep,
+    vectorType, setVectorType
   };
 
   const sll = useSLLHandlers(sharedStates);

@@ -5,7 +5,8 @@ export const useVectorHandlers = (states) => {
     vectorSize, setVectorSize, vectorId, setVectorId,
     vectorValue, setVectorValue, setNodes, setEdges,
     setNodeCount, nodes, isAnimating, setIsAnimating,
-    animationSpeed, steps, setSteps, currentStep, setCurrentStep
+    animationSpeed, steps, setSteps, currentStep, setCurrentStep,
+    vectorType
   } = states;
 
   const handleCreateVector = () => {
@@ -16,8 +17,23 @@ export const useVectorHandlers = (states) => {
   };
 
   const handleInsertVectorValue = () => {
+    let finalValue = vectorValue;
+
+    if (vectorType === 'int') {
+      if (!/^-?\d+$/.test(vectorValue)) {
+        alert('Apenas números inteiros são permitidos neste vetor.');
+        return;
+      }
+      finalValue = Number(vectorValue);
+    } else if (vectorType === 'string') {
+      if (/\d/.test(vectorValue)) {
+        alert('Números não são permitidos em vetores de string.');
+        return;
+      }
+    }
+
     insertVectorValue(
-      vectorId, vectorValue, setVectorId, setVectorValue,
+      vectorId, finalValue, setVectorId, setVectorValue,
       () => fetchVectorData(setNodes, setEdges, setNodeCount)
     );
   };

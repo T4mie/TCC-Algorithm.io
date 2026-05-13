@@ -4,17 +4,6 @@ class InsertionSort:
         self.nodes = vector.nodes
         self.steps = []
 
-    def get_data_nodes_only(self):
-        """Retorna indices de nós que possuem valores"""
-        return [i for i, node in enumerate(self.nodes) if node.value is not None]
-    
-    # def swap_nodes(self, index1, index2):
-    #     """Troca os valores entre dois nós (útil para outras estruturas de dados)"""
-    #     node1 = self.nodes[index1]
-    #     node2 = self.nodes[index2]
-    #     node1.value, node2.value = node2.value, node1.value
-    #     node1.label, node2.label = node2.label, node1.label
-    
     def capture_state(self, comparing_indices=None, swapped_indices=None, key_value=None):
         """Captura o estado atual do vetor para animação"""
         state = {
@@ -27,41 +16,49 @@ class InsertionSort:
         return state
         
     def sort(self):
-        """Insertion sort clássico: compara e desloca elementos"""
-        data_indices = self.get_data_nodes_only()
+        """Insertion sort atualizado: inclui espaços vazios na ordenação"""
         
-        if len(data_indices) <= 1:
+        # Pegamos TODOS os índices
+        all_indices = list(range(len(self.nodes)))
+        
+        if len(all_indices) <= 1:
             self.steps.append(self.capture_state())
             return self.steps
 
-        # Capture estado inicial
         self.steps.append(self.capture_state())
 
-        # Insertion sort - elementos ordenados estão em data_indices[0..i]
-        for i in range(1, len(data_indices)):
-            key_index = data_indices[i]  # Indice do elemento a ser inserido
+        for i in range(1, len(all_indices)):
+            key_index = all_indices[i]
             key_value = self.nodes[key_index].value
             
             self.steps.append(self.capture_state(comparing_indices=[i], key_value=key_value))
 
             j = i - 1
-            # Comparar com elementos anteriores e deslocá-los
             while j >= 0:
-                current_index = data_indices[j]
+                current_index = all_indices[j]
                 current_value = self.nodes[current_index].value
                 
-                # Capturar estado durante comparação
                 self.steps.append(self.capture_state(
                     comparing_indices=[j],
                     key_value=key_value
                 ))
                 
-                if current_value > key_value:
-                    # Deslocar: copiar valor de posição j para posição j+1
-                    shift_target = data_indices[j + 1]
+                # Lógica de comparação segura contra 'None' (vazio)
+                # Considerando o 'vazio' como o MAIOR valor para enviá-lo ao final.
+                is_current_greater = False
+                
+                if current_value is None and key_value is not None:
+                    # Se o valor atual é vazio e a chave é um número, o vazio é "maior" e deve ser empurrado para a direita
+                    is_current_greater = True 
+                elif current_value is not None and key_value is not None:
+                    # Se ambos são números, compara normalmente
+                    is_current_greater = current_value > key_value
+                # Se key_value é None, is_current_greater continua False, pois a chave já é o "maior" possível
+                
+                if is_current_greater:
+                    shift_target = all_indices[j + 1]
                     self.nodes[shift_target].value = current_value
                     
-                    # Capturar estado após deslocamento
                     self.steps.append(self.capture_state(
                         swapped_indices=[j + 1],
                         key_value=key_value
@@ -71,11 +68,9 @@ class InsertionSort:
                 else:
                     break
         
-            # Inserir a chave na posição correta
-            insert_target = data_indices[j + 1]
+            insert_target = all_indices[j + 1]
             self.nodes[insert_target].value = key_value
 
-        # Capturar estado final
         self.steps.append(self.capture_state(
             comparing_indices=[], 
             swapped_indices=[], 

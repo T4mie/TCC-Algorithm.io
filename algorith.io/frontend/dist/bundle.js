@@ -8958,7 +8958,9 @@ const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCoun
   }
 };
 const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
-  if (!nodeId.trim() || !value.trim()) {
+  const idStr = String(nodeId).trim();
+  const valStr = String(value).trim();
+  if (!idStr || valStr === '') {
     console.error('Digite um ID e um valor');
     return;
   }
@@ -8978,6 +8980,9 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
       setVectorId('');
       setVectorValue('');
       fetchDataCallback();
+    } else {
+      const error = await response.json();
+      alert('Erro do servidor: ' + error.error);
     }
   } catch (err) {
     alert('Erro ao inserir valor: ' + err.message);
@@ -9255,7 +9260,14 @@ function VectorControls({
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertVectorValue
-  }, "Inserir"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+  }, "Inserir")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    value: states.vectorType,
+    onChange: e => states.setVectorType(e.target.value)
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "int"
+  }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "string"
+  }, "Texto"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
     style: {
       margin: '0 0 10px 0',
       fontSize: '14px'
@@ -9697,13 +9709,27 @@ const useVectorHandlers = states => {
     steps,
     setSteps,
     currentStep,
-    setCurrentStep
+    setCurrentStep,
+    vectorType
   } = states;
   const handleCreateVector = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.createVector)(vectorSize, setVectorSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
   const handleInsertVectorValue = () => {
-    (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.insertVectorValue)(vectorId, vectorValue, setVectorId, setVectorValue, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
+    let finalValue = vectorValue;
+    if (vectorType === 'int') {
+      if (!/^-?\d+$/.test(vectorValue)) {
+        alert('Apenas números inteiros são permitidos neste vetor.');
+        return;
+      }
+      finalValue = Number(vectorValue);
+    } else if (vectorType === 'string') {
+      if (/\d/.test(vectorValue)) {
+        alert('Números não são permitidos em vetores de string.');
+        return;
+      }
+    }
+    (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.insertVectorValue)(vectorId, finalValue, setVectorId, setVectorValue, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
   const handleInsertionSort = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
@@ -9843,7 +9869,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/react/dist/esm/index.js");
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
 /* harmony import */ var _xyflow_react_dist_style_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @xyflow/react/dist/style.css */ "./node_modules/@xyflow/react/dist/style.css");
-/* harmony import */ var _css_sidebar_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../css/sidebar.css */ "./frontend/css/sidebar.css");
+/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
 /* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
 /* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
 /* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
@@ -9908,6 +9934,7 @@ function View() {
   const [vectorSize, setVectorSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorId, setVectorId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorValue, setVectorValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [vectorType, setVectorType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
   const sharedStates = {
     nodes,
     setNodes,
@@ -9931,7 +9958,9 @@ function View() {
     steps,
     setSteps,
     currentStep,
-    setCurrentStep
+    setCurrentStep,
+    vectorType,
+    setVectorType
   };
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_6__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_7__.useVectorHandlers)(sharedStates);
@@ -10072,16 +10101,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
         rgba(0, 0, 0, 0)
         ) 1 100%;
 
-}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;IACtB,qBAAqB;IACrB,0BAA0B;IAC1B,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,qCAAqC;IACrC,gBAAgB;IAChB,kBAAkB;AACtB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,cAAc;IACd,eAAe;IACf,mBAAmB;AACvB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,UAAU;IACV,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,YAAY;IACZ,iBAAiB;IACjB,mBAAmB;IACnB;;;;;gBAKY;;AAEhB","sourcesContent":[".selectorBox {\r\n    border: 2px solid #222;\r\n    border-radius: 0.5rem;\r\n    box-shadow: 4px 4px 0 #000;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    /* Essencial para o efeito de slide */\r\n    overflow: hidden; \r\n    position: relative;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\r\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 80%;\r\n    max-height: 80%;\r\n    object-fit: contain;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color: #000;\r\n    text-align: center;\r\n    background-color: #f0f0f0; /* Opcional: cor diferente no hover */\r\n}\r\n\r\n.selectorContainer{\r\n    width: 70%;\r\n    height: 90%;\r\n    display: flex;\r\n    flex-direction: row;\r\n    row-gap: 1rem;\r\n    gap: 2rem;\r\n    flex-wrap:wrap ;\r\n    justify-content: last baseline;\r\n    padding: 6px;\r\n    border-width: 3px;\r\n    border-style: solid;\r\n    border-image: \r\n        linear-gradient(\r\n        to bottom, \r\n        black, \r\n        rgba(0, 0, 0, 0)\r\n        ) 1 100%;\r\n\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;IACtB,qBAAqB;IACrB,0BAA0B;IAC1B,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,qCAAqC;IACrC,gBAAgB;IAChB,kBAAkB;AACtB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,cAAc;IACd,eAAe;IACf,mBAAmB;AACvB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,UAAU;IACV,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,YAAY;IACZ,iBAAiB;IACjB,mBAAmB;IACnB;;;;;gBAKY;;AAEhB","sourcesContent":[".selectorBox {\n    border: 2px solid #222;\n    border-radius: 0.5rem;\n    box-shadow: 4px 4px 0 #000;\n    width: 6rem;\n    height: 6rem;\n    background-color: #fff;\n    cursor: pointer;\n    /* Essencial para o efeito de slide */\n    overflow: hidden; \n    position: relative;\n}\n\n.content-wrapper {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\n}\n\n.box-section {\n    width: 100%;\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 10px;\n    box-sizing: border-box;\n}\n\n.icon-section img {\n    max-width: 80%;\n    max-height: 80%;\n    object-fit: contain;\n}\n\n.text-section {\n    font-size: 0.8rem;\n    font-weight: bold;\n    color: #000;\n    text-align: center;\n    background-color: #f0f0f0; /* Opcional: cor diferente no hover */\n}\n\n.selectorContainer{\n    width: 70%;\n    height: 90%;\n    display: flex;\n    flex-direction: row;\n    row-gap: 1rem;\n    gap: 2rem;\n    flex-wrap:wrap ;\n    justify-content: last baseline;\n    padding: 6px;\n    border-width: 3px;\n    border-style: solid;\n    border-image: \n        linear-gradient(\n        to bottom, \n        black, \n        rgba(0, 0, 0, 0)\n        ) 1 100%;\n\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
 
 /***/ },
 
-/***/ "./node_modules/css-loader/dist/cjs.js!./frontend/css/sidebar.css"
+/***/ "./node_modules/css-loader/dist/cjs.js!./frontend/css/sideBar.css"
 /*!************************************************************************!*\
-  !*** ./node_modules/css-loader/dist/cjs.js!./frontend/css/sidebar.css ***!
+  !*** ./node_modules/css-loader/dist/cjs.js!./frontend/css/sideBar.css ***!
   \************************************************************************/
 (module, __webpack_exports__, __webpack_require__) {
 
@@ -41645,9 +41674,9 @@ var update = _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js
 
 /***/ },
 
-/***/ "./frontend/css/sidebar.css"
+/***/ "./frontend/css/sideBar.css"
 /*!**********************************!*\
-  !*** ./frontend/css/sidebar.css ***!
+  !*** ./frontend/css/sideBar.css ***!
   \**********************************/
 (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
@@ -41667,7 +41696,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! !../../node_modules/style-loader/dist/runtime/styleTagTransform.js */ "./node_modules/style-loader/dist/runtime/styleTagTransform.js");
 /* harmony import */ var _node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _node_modules_css_loader_dist_cjs_js_sidebar_css__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! !!../../node_modules/css-loader/dist/cjs.js!./sidebar.css */ "./node_modules/css-loader/dist/cjs.js!./frontend/css/sidebar.css");
+/* harmony import */ var _node_modules_css_loader_dist_cjs_js_sideBar_css__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! !!../../node_modules/css-loader/dist/cjs.js!./sideBar.css */ "./node_modules/css-loader/dist/cjs.js!./frontend/css/sideBar.css");
 
       
       
@@ -41687,12 +41716,12 @@ options.insert = _node_modules_style_loader_dist_runtime_insertBySelector_js__WE
 options.domAPI = (_node_modules_style_loader_dist_runtime_styleDomAPI_js__WEBPACK_IMPORTED_MODULE_1___default());
 options.insertStyleElement = (_node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4___default());
 
-var update = _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0___default()(_node_modules_css_loader_dist_cjs_js_sidebar_css__WEBPACK_IMPORTED_MODULE_6__["default"], options);
+var update = _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0___default()(_node_modules_css_loader_dist_cjs_js_sideBar_css__WEBPACK_IMPORTED_MODULE_6__["default"], options);
 
 
 
 
-       /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_node_modules_css_loader_dist_cjs_js_sidebar_css__WEBPACK_IMPORTED_MODULE_6__["default"] && _node_modules_css_loader_dist_cjs_js_sidebar_css__WEBPACK_IMPORTED_MODULE_6__["default"].locals ? _node_modules_css_loader_dist_cjs_js_sidebar_css__WEBPACK_IMPORTED_MODULE_6__["default"].locals : undefined);
+       /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_node_modules_css_loader_dist_cjs_js_sideBar_css__WEBPACK_IMPORTED_MODULE_6__["default"] && _node_modules_css_loader_dist_cjs_js_sideBar_css__WEBPACK_IMPORTED_MODULE_6__["default"].locals ? _node_modules_css_loader_dist_cjs_js_sideBar_css__WEBPACK_IMPORTED_MODULE_6__["default"].locals : undefined);
 
 
 /***/ },

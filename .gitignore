@@ -3,3 +3,4 @@ node_modules
 out
 forge.config.js
 __pycache__
+venv

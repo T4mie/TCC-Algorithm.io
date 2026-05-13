@@ -75,7 +75,10 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
 };
 
 export const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
-  if (!nodeId.trim() || !value.trim()) {
+  const idStr = String(nodeId).trim();
+  const valStr = String(value).trim();
+
+  if (!idStr || valStr === '') {
     console.error('Digite um ID e um valor');
     return;
   }
@@ -96,7 +99,10 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
       setVectorId('');
       setVectorValue('');
       fetchDataCallback();
-    } 
+    } else {
+      const error = await response.json();
+      alert('Erro do servidor: ' + error.error);
+    }
   } catch (err) {
     alert('Erro ao inserir valor: ' + err.message);
   }

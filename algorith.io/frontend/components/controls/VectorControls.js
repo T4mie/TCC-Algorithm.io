@@ -23,6 +23,14 @@ export default function VectorControls({ states, handlers }) {
           <input value={vectorValue} onChange={(e) => setVectorValue(e.target.value)} placeholder="Valor" style={{ width: '60px' }} />
           <button onClick={vector.handleInsertVectorValue}>Inserir</button>
         </section>
+
+        <select 
+          value={states.vectorType} 
+          onChange={(e) => states.setVectorType(e.target.value)}>
+          <option value="int">Inteiros</option>
+          <option value="string">Texto</option>
+        </select>
+
       </div>
 
       {/* Seção Educativa: Controles de Ordenação */}
