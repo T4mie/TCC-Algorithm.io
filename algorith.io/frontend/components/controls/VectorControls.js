@@ -1,7 +1,7 @@
 // components/VectorControls.js
 import React from 'react';
 
-export default function VectorControls({ states, handlers }) {
+export default function VectorControls({ states, handlers, centerView }) {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId, vectorValue, setVectorValue,
     isAnimating, animationSpeed, setAnimationSpeed, currentStep, steps, setIsAnimating, setCurrentStep
@@ -30,6 +30,10 @@ export default function VectorControls({ states, handlers }) {
           <option value="int">Inteiros</option>
           <option value="string">Texto</option>
         </select>
+
+        <div style={{ marginTop: '8px' }}>
+          <button onClick={() => centerView && centerView()} style={{ width: '100%' }}>Centralizar</button>
+        </div>
 
       </div>
 

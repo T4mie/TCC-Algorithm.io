@@ -9167,19 +9167,38 @@ __webpack_require__.r(__webpack_exports__);
 function SLLControls({
   nodeLabel,
   setNodeLabel,
-  handleAddNode
+  handleAddNode,
+  centerView
 }) {
   const handleKeyPress = e => {
     if (e.key === 'Enter') handleAddNode();
   };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '6px',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     value: nodeLabel,
     onChange: e => setNodeLabel(e.target.value),
     onKeyPress: handleKeyPress,
-    placeholder: "R\xF3tulo do n\xF3"
+    placeholder: "R\xF3tulo do n\xF3",
+    style: {
+      flex: 1
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: handleAddNode
-  }, "Adicionar N\xF3"));
+  }, "Adicionar N\xF3")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    style: {
+      width: '100%'
+    }
+  }, "Centralizar")));
 }
 
 /***/ },
@@ -9200,7 +9219,8 @@ __webpack_require__.r(__webpack_exports__);
 
 function VectorControls({
   states,
-  handlers
+  handlers,
+  centerView
 }) {
   const {
     vectorSize,
@@ -9267,7 +9287,16 @@ function VectorControls({
     value: "int"
   }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
     value: "string"
-  }, "Texto"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+  }, "Texto")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '8px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    style: {
+      width: '100%'
+    }
+  }, "Centralizar"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
     style: {
       margin: '0 0 10px 0',
       fontSize: '14px'
@@ -9928,6 +9957,7 @@ function View() {
   const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(1000);
   const [steps, setSteps] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
   const [currentStep, setCurrentStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(-1);
+  const [rfInstance, setRfInstance] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
 
   // Estados Específicos
   const [nodeLabel, setNodeLabel] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
@@ -9971,6 +10001,103 @@ function View() {
   function openWindow() {
     window.electronAPI.openChildWindow();
   }
+  const centerView = async () => {
+    if (!rfInstance) return;
+    if (!nodes || nodes.length === 0) return;
+
+    // get current viewport (pan + zoom)
+    let currentZoom = 1;
+    let currentPanX = 0;
+    let currentPanY = 0;
+    try {
+      const vp = typeof rfInstance.getViewport === 'function' ? await rfInstance.getViewport() : null;
+      if (vp) {
+        if (typeof vp.zoom === 'number') currentZoom = vp.zoom;
+        if (typeof vp.x === 'number') currentPanX = vp.x;
+        if (typeof vp.y === 'number') currentPanY = vp.y;
+      }
+    } catch (e) {/* ignore */}
+
+    // container rect to convert screen coords
+    const container = document.querySelector('.react-flow') || document.querySelector('.reactflow-wrapper') || document.querySelector('.react-flow__renderer') || document.body;
+    const containerRect = container.getBoundingClientRect ? container.getBoundingClientRect() : {
+      left: 0,
+      top: 0,
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+    let minWorldX = Infinity,
+      minWorldY = Infinity,
+      maxWorldX = -Infinity,
+      maxWorldY = -Infinity;
+    for (const n of nodes) {
+      const pos = n.position || {
+        x: 0,
+        y: 0
+      };
+      const domNode = document.querySelector(`.react-flow__node[data-id="${n.id}"]`);
+      if (domNode && domNode.getBoundingClientRect) {
+        const rect = domNode.getBoundingClientRect();
+        // compute world coords for dom rect edges
+        const leftScreen = rect.left;
+        const rightScreen = rect.right;
+        const topScreen = rect.top;
+        const bottomScreen = rect.bottom;
+        const worldLeft = (leftScreen - containerRect.left - currentPanX) / Math.max(currentZoom, 0.0001);
+        const worldRight = (rightScreen - containerRect.left - currentPanX) / Math.max(currentZoom, 0.0001);
+        const worldTop = (topScreen - containerRect.top - currentPanY) / Math.max(currentZoom, 0.0001);
+        const worldBottom = (bottomScreen - containerRect.top - currentPanY) / Math.max(currentZoom, 0.0001);
+        if (worldLeft < minWorldX) minWorldX = worldLeft;
+        if (worldTop < minWorldY) minWorldY = worldTop;
+        if (worldRight > maxWorldX) maxWorldX = worldRight;
+        if (worldBottom > maxWorldY) maxWorldY = worldBottom;
+      } else {
+        // fallback to position-only (assume small node)
+        if (pos.x < minWorldX) minWorldX = pos.x;
+        if (pos.y < minWorldY) minWorldY = pos.y;
+        if (pos.x > maxWorldX) maxWorldX = pos.x;
+        if (pos.y > maxWorldY) maxWorldY = pos.y;
+      }
+    }
+    if (minWorldX === Infinity) return;
+    const centerWorldX = (minWorldX + maxWorldX) / 2;
+    const centerWorldY = (minWorldY + maxWorldY) / 2;
+    const width = containerRect.width || window.innerWidth;
+    const height = containerRect.height || window.innerHeight;
+
+    // compute viewport pan so that world center maps to screen center, preserving zoom
+    const x = width / 2 - centerWorldX * currentZoom;
+    let y = height / 2 - centerWorldY * currentZoom;
+
+    // If viewing the vector, shift slightly upward so it appears above center
+    if (type === 'vector') {
+      const shiftPx = 80; // adjust this value to move more/less
+      y -= shiftPx;
+    }
+    try {
+      if (typeof rfInstance.setViewport === 'function') {
+        await rfInstance.setViewport({
+          x,
+          y,
+          zoom: currentZoom
+        });
+      } else if (typeof rfInstance.fitView === 'function') {
+        // fallback: call fitView then restore zoom
+        await rfInstance.fitView({
+          padding: 0.1
+        });
+        if (typeof rfInstance.setViewport === 'function') {
+          await rfInstance.setViewport({
+            x,
+            y,
+            zoom: currentZoom
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao centralizar view:', e);
+    }
+  };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       width: '100vw',
@@ -9982,7 +10109,8 @@ function View() {
     nodeTypes: NODE_TYPES,
     defaultEdgeOptions: DEFAULT_EDGE_OPTIONS,
     onNodesChange: onNodesChange,
-    onEdgesChange: onEdgesChange
+    onEdgesChange: onEdgesChange,
+    onInit: setRfInstance
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Background, null), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {
     position: "top-left"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Link, {
@@ -10009,10 +10137,12 @@ function View() {
   }, type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_11__["default"], {
     nodeLabel: nodeLabel,
     setNodeLabel: setNodeLabel,
-    handleAddNode: sll.handleAddNode
+    handleAddNode: sll.handleAddNode,
+    centerView: centerView
   }), type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_12__["default"], {
     states: sharedStates,
-    handlers: vector
+    handlers: vector,
+    centerView: centerView
   })))));
 }
 
@@ -10101,7 +10231,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
         rgba(0, 0, 0, 0)
         ) 1 100%;
 
-}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;IACtB,qBAAqB;IACrB,0BAA0B;IAC1B,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,qCAAqC;IACrC,gBAAgB;IAChB,kBAAkB;AACtB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,cAAc;IACd,eAAe;IACf,mBAAmB;AACvB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,UAAU;IACV,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,YAAY;IACZ,iBAAiB;IACjB,mBAAmB;IACnB;;;;;gBAKY;;AAEhB","sourcesContent":[".selectorBox {\n    border: 2px solid #222;\n    border-radius: 0.5rem;\n    box-shadow: 4px 4px 0 #000;\n    width: 6rem;\n    height: 6rem;\n    background-color: #fff;\n    cursor: pointer;\n    /* Essencial para o efeito de slide */\n    overflow: hidden; \n    position: relative;\n}\n\n.content-wrapper {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\n}\n\n.box-section {\n    width: 100%;\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 10px;\n    box-sizing: border-box;\n}\n\n.icon-section img {\n    max-width: 80%;\n    max-height: 80%;\n    object-fit: contain;\n}\n\n.text-section {\n    font-size: 0.8rem;\n    font-weight: bold;\n    color: #000;\n    text-align: center;\n    background-color: #f0f0f0; /* Opcional: cor diferente no hover */\n}\n\n.selectorContainer{\n    width: 70%;\n    height: 90%;\n    display: flex;\n    flex-direction: row;\n    row-gap: 1rem;\n    gap: 2rem;\n    flex-wrap:wrap ;\n    justify-content: last baseline;\n    padding: 6px;\n    border-width: 3px;\n    border-style: solid;\n    border-image: \n        linear-gradient(\n        to bottom, \n        black, \n        rgba(0, 0, 0, 0)\n        ) 1 100%;\n\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;IACtB,qBAAqB;IACrB,0BAA0B;IAC1B,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,qCAAqC;IACrC,gBAAgB;IAChB,kBAAkB;AACtB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,cAAc;IACd,eAAe;IACf,mBAAmB;AACvB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,UAAU;IACV,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,YAAY;IACZ,iBAAiB;IACjB,mBAAmB;IACnB;;;;;gBAKY;;AAEhB","sourcesContent":[".selectorBox {\r\n    border: 2px solid #222;\r\n    border-radius: 0.5rem;\r\n    box-shadow: 4px 4px 0 #000;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    /* Essencial para o efeito de slide */\r\n    overflow: hidden; \r\n    position: relative;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\r\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 80%;\r\n    max-height: 80%;\r\n    object-fit: contain;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color: #000;\r\n    text-align: center;\r\n    background-color: #f0f0f0; /* Opcional: cor diferente no hover */\r\n}\r\n\r\n.selectorContainer{\r\n    width: 70%;\r\n    height: 90%;\r\n    display: flex;\r\n    flex-direction: row;\r\n    row-gap: 1rem;\r\n    gap: 2rem;\r\n    flex-wrap:wrap ;\r\n    justify-content: last baseline;\r\n    padding: 6px;\r\n    border-width: 3px;\r\n    border-style: solid;\r\n    border-image: \r\n        linear-gradient(\r\n        to bottom, \r\n        black, \r\n        rgba(0, 0, 0, 0)\r\n        ) 1 100%;\r\n\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
