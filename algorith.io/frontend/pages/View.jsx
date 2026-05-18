@@ -57,8 +57,7 @@ export default function View() {
   }, [type]);
 
   function openWindow() {
-
-    window.electronAPI.openChildWindow();
+    window.electronAPI.openChildWindow(type);
 
   }
 

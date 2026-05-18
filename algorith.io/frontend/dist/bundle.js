@@ -10102,13 +10102,109 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs");
+
 
 function CodeView() {
+  const location = (0,react_router_dom__WEBPACK_IMPORTED_MODULE_1__.useLocation)();
+  const params = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => new URLSearchParams(location.search), [location.search]);
+  const viewType = params.get('type'); // 'vector' when opened from the vector view
+
+  const [lang, setLang] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('pseudocódigo');
+  const pseudocódigo = `INSERTION-SORT(A, n)
+for j = 2 to n
+    chave = A[j]
+    // Insere A[j] na sequencia ordenada A[1..j-1]
+    i = j - 1
+    while i > 0 and A[i] > chave
+        A[i + 1] = A[i]
+        i = i - 1
+    A[i + 1] = chave`;
+  const javaCode = `public static void insertionSort(int[] A) {
+    int n = A.length;
+    for (int j = 1; j < n; j++) {
+        int chave = A[j];
+        int i = j - 1;
+        while (i >= 0 && A[i] > chave) {
+            A[i + 1] = A[i];
+            i = i - 1;
+        }
+        A[i + 1] = chave;
+    }
+}`;
+  const pythonCode = `def insertion_sort(A):
+    n = len(A)
+    for j in range(1, n):
+        chave = A[j]
+        i = j - 1
+        while i >= 0 and A[i] > chave:
+            A[i + 1] = A[i]
+            i = i - 1
+        A[i + 1] = chave`;
+  let codeToShow = '';
+  if (viewType === 'vector') {
+    if (lang === 'pseudocódigo') codeToShow = pseudocódigo;else if (lang === 'java') codeToShow = javaCode;else if (lang === 'python') codeToShow = pythonCode;
+  }
+  const buttonStyle = active => ({
+    background: active ? '#0f766e' : '#111',
+    color: active ? '#fff' : '#cfcfcf',
+    border: '1px solid #222',
+    padding: '6px 10px',
+    borderRadius: 4,
+    cursor: 'pointer'
+  });
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      padding: '20px'
+      padding: '16px',
+      height: '100vh',
+      boxSizing: 'border-box',
+      backgroundColor: '#0b0b0b',
+      color: '#e6e6e6',
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace'
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h1", null, "Code View"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", null, "This is the code view page."));
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h1", {
+    style: {
+      margin: 0,
+      paddingBottom: 12,
+      color: '#ffffff'
+    }
+  }, "Code View"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: 8,
+      backgroundColor: '#000000',
+      color: '#00ff88',
+      borderRadius: 6,
+      padding: 12,
+      minHeight: 'calc(100vh - 84px)',
+      overflow: 'auto',
+      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.6)'
+    }
+  }, viewType === 'vector' ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("pre", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      color: '#00ff88',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeToShow)) :
+  // not vector: keep console blank for now
+  null));
 }
 
 /***/ },
@@ -10287,7 +10383,7 @@ function View() {
     if (handlers.fetchData) handlers.fetchData(nodes);
   }, [type]);
   function openWindow() {
-    window.electronAPI.openChildWindow();
+    window.electronAPI.openChildWindow(type);
   }
   const centerView = async () => {
     if (!rfInstance) return;

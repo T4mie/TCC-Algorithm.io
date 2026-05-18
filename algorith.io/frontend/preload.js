@@ -2,8 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
 
-    openChildWindow: () => {
-        ipcRenderer.send('open-child-window');
+    openChildWindow: (type) => {
+        ipcRenderer.send('open-child-window', type);
     }
 
 });

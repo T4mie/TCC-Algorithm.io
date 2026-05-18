@@ -16,7 +16,7 @@ const createWindow = () => {
   win.loadFile('frontend/index.html')
 }
 
-function createChildWindow() {
+function createChildWindow(type) {
 
     if (childWindow) {
         childWindow.focus();
@@ -30,8 +30,10 @@ function createChildWindow() {
         parent: win, // define como filha
     });
 
+    const hash = type ? `/codeview?type=${type}` : '/codeview';
+
     childWindow.loadFile('frontend/index.html', {
-        hash: '/codeview'
+        hash
     });
 
     childWindow.on('closed', () => {
@@ -39,9 +41,10 @@ function createChildWindow() {
     });
 }
 
-ipcMain.on('open-child-window', () => {
+ipcMain.on('open-child-window', (event, type) => {
 
-    createChildWindow();
+    // support an optional type (e.g. 'vector' or 'sll') to pre-select behavior in the child
+    createChildWindow(type);
 
 });
 
