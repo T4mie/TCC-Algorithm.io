@@ -1,0 +1,96 @@
+.input-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .input-container input[type="text"] {
+    font-size: 12px;
+    font-family: inherit;
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid #ccc;
+    padding: 5px 0;
+    background-color: transparent;
+    outline: none;
+  }
+
+  .input-container .label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #ccc;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .input-container input[type="text"]:focus ~ .label,
+  .input-container input[type="text"]:valid ~ .label {
+    top: -10px;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .input-container .underline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background-color: #333;
+    transform: scaleX(0);
+    transition: all 0.3s ease;
+  }
+
+  .input-container input[type="text"]:focus ~ .underline,
+  .input-container input[type="text"]:valid ~ .underline {
+    transform: scaleX(1);}
+
+.control-button {
+ width: 100%;
+ height: 2em;
+ border-radius: 15em;
+ font-size: 12px;
+ font-family: inherit;
+ border: none;
+ position: relative;
+ overflow: hidden;
+ z-index: 1;
+}
+
+.control-button {
+ width: 100%;
+ height: 2em;
+ border-radius: 15em;
+ font-size: 12px;
+ font-family: inherit;
+ border: none;
+ position: relative;
+ overflow: hidden;
+ z-index: 1;
+ color: #1e427C;
+ transition: color .3s ease;
+}
+
+.control-button::before {
+ content: '';
+ width: 100%;
+ height: 100%;
+ border-radius: 15em;
+ position: absolute;
+ top: 0;
+ left: 0;
+ background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);
+ transform: scaleX(0);
+ transform-origin: center;
+ transition: transform .5s ease;
+ display: block;
+ z-index: -1;
+}
+
+.control-button:hover::before {
+ transform: scaleX(1);
+}
+
+.control-button:hover {
+ color: #fff;
+}

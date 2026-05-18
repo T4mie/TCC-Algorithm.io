@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 export const transformBackendData = (data, currentNodes = []) => {
   // Criar mapa das posições atuais
   const positionMap = new Map(
@@ -102,6 +104,6 @@ export const addNode = async (
       fetchDataCallback(currentNodes);
     }
   } catch (err) {
-    alert('Erro ao criar nó: ' + err.message);
+    toast.error('Erro ao criar nó: ' + err.message);
   }
 };

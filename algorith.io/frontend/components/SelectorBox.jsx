@@ -15,11 +15,12 @@ export default function SelectorBox({props}) {
             <motion.div 
                 className='selectorBox'
                 initial="initial"
-                whileHover="hover"
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
             >   
                 <motion.div 
                     className="content-wrapper"
+                    whileHover="hover"
                     variants={slideVariants}
                     transition={{ type: "tween", ease: "easeInOut", duration: 0.2 }}
                 >

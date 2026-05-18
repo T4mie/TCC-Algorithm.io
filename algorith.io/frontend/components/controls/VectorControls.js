@@ -1,5 +1,7 @@
 // components/VectorControls.js
 import React from 'react';
+import '../../css/controls.css';
+import { motion } from 'framer-motion';
 
 export default function VectorControls({ states, handlers, centerView }) {
   const {
@@ -13,27 +15,43 @@ export default function VectorControls({ states, handlers, centerView }) {
     <div>
       {/* Seção de Gerenciamento: Criar e Inserir */}
       <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-        <section style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-          <input value={vectorSize} onChange={(e) => setVectorSize(e.target.value)} placeholder="Tamanho" style={{ width: '60px' }} />
-          <button onClick={vector.handleCreateVector}>Criar</button>
-        </section>
-        
-        <section style={{ display: 'flex', gap: '5px' }}>
-          <input value={vectorId} onChange={(e) => setVectorId(e.target.value)} placeholder="ID" style={{ width: '40px' }} />
-          <input value={vectorValue} onChange={(e) => setVectorValue(e.target.value)} placeholder="Valor" style={{ width: '60px' }} />
-          <button onClick={vector.handleInsertVectorValue}>Inserir</button>
-        </section>
-
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <button onClick={() => centerView && centerView()} className="control-button">Centralizar</button>
+        </motion.div>
+        <div style={{ height: '20px' }} />
+        <div className="input-container">
+          <input value={vectorSize} onChange={(e) => setVectorSize(e.target.value)} type="text" id="input" required/>
+          <label htmlFor="input" className="label">Tamanho do Vetor</label>
+          <div className="underline" />
+        </div>
+        <div style={{ height: '12px' }} />
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <button onClick={vector.handleCreateVector} className="control-button">Criar Vetor</button>
+        </motion.div>
+        <div style={{ height: '20px' }} />
+        <div className="input-container">
+          <input value={vectorId} onChange={(e) => setVectorId(e.target.value)} type="text" id="input-id" required/>
+          <label htmlFor="input-id" className="label">Índice</label>
+          <div className="underline" />
+        </div>
+        <div style={{ height: '12px' }} />
+        <div className="input-container">
+          <input value={vectorValue} onChange={(e) => setVectorValue(e.target.value)} type="text" id="input-value" required/>
+          <label htmlFor="input-id" className="label">Valor</label>
+          <div className="underline" />
+        </div>
+        <div style={{ height: '12px' }} />
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <button onClick={vector.handleInsertVectorValue} className="control-button">Inserir Valor no Índice</button>
+        </motion.div>
+        <div style={{ height: '20px' }} />
         <select 
           value={states.vectorType} 
           onChange={(e) => states.setVectorType(e.target.value)}>
           <option value="int">Inteiros</option>
           <option value="string">Texto</option>
         </select>
-
-        <div style={{ marginTop: '8px' }}>
-          <button onClick={() => centerView && centerView()} style={{ width: '100%' }}>Centralizar</button>
-        </div>
+        <div style={{ height: '20px' }} />
 
       </div>
 

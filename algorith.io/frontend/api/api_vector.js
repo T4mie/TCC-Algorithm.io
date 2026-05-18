@@ -1,6 +1,7 @@
 // ===== API PARA VETOR =====
 
 import { act } from "react";
+import {toast} from "sonner";
 
 export const transformVectorData = (data) => {
 
@@ -45,7 +46,7 @@ export const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
 
 export const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
-    alert('Digite um tamanho de vetor válido (um inteiro positivo).');
+    toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
     return;
   }
 
@@ -67,10 +68,10 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
       setNodeCount(Number(size));
     } else {
       const error = await response.json();
-      alert('Erro ao criar vetor: ' + error.error);
+      toast.error('Erro ao criar vetor: ' + error.error);
     }
   } catch (err) {
-    alert('Erro ao criar vetor: ' + err.message);
+    toast.error('Erro ao criar vetor: ' + err.message);
   }
 };
 
@@ -101,10 +102,10 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
       fetchDataCallback();
     } else {
       const error = await response.json();
-      alert('Erro do servidor: ' + error.error);
+      toast.error('Erro do servidor: ' + error.error);
     }
   } catch (err) {
-    alert('Erro ao inserir valor: ' + err.message);
+    toast.error('Erro ao inserir valor: ' + err.message);
   }
 };
 
@@ -169,7 +170,7 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
 
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
-    alert('Erro ao executar insertion sort: ' + err.message);
+    toast.error('Erro ao executar insertion sort: ' + err.message);
   } finally {
     setIsAnimating(false);
   }

@@ -1,5 +1,5 @@
 import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes} from '../api/api_vector';
-
+import {toast} from 'sonner'
 export const useVectorHandlers = (states) => {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId,
@@ -21,13 +21,13 @@ export const useVectorHandlers = (states) => {
 
     if (vectorType === 'int') {
       if (!/^-?\d+$/.test(vectorValue)) {
-        alert('Apenas números inteiros são permitidos neste vetor.');
+        toast.error('Apenas números inteiros são permitidos neste vetor.');
         return;
       }
       finalValue = Number(vectorValue);
     } else if (vectorType === 'string') {
       if (/\d/.test(vectorValue)) {
-        alert('Números não são permitidos em vetores de string.');
+        toast.error('Números não são permitidos em vetores de string.');
         return;
       }
     }
@@ -51,7 +51,7 @@ export const useVectorHandlers = (states) => {
       setIsAnimating(true);
       applyStepToNodes(allSteps[0], nodes, setNodes);
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 

@@ -1,5 +1,5 @@
 import { fetchSLLData, addNode } from '../api/api_sll';
-
+import {toast} from 'sonner'
 export const useSLLHandlers = (states) => {
   const { 
     nodeLabel, setNodeLabel, nodeCount, setNodeCount, 
@@ -7,6 +7,10 @@ export const useSLLHandlers = (states) => {
   } = states;
 
   const handleAddNode = () => {
+    if(nodeLabel.trim() === '') {
+      toast.error('O valor do nó não pode ser vazio!');
+      return;
+    }
     addNode(
       nodeLabel, 
       setNodeLabel, 

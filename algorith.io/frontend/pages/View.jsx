@@ -1,24 +1,23 @@
 // views/View.js
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
+import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType,MiniMap } from '@xyflow/react';
+import { Toaster } from 'sonner'
+import { motion} from 'framer-motion';
 import '@xyflow/react/dist/style.css';
-import '../css/sideBar.css';
-
+import '../css/view.css';
 // Importando Handlers e Custom Nodes
 import { useSLLHandlers } from '../handlers/sll_handle';
 import { useVectorHandlers } from '../handlers/vector_handle';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
-
+import SidePanel from '../components/SidePanel';
 // Importando os novos painéis modularizados
-import SLLControls from '../components/controls/SLLControls';
-import VectorControls from '../components/controls/VectorControls';
+
 
 const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode };
 const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2 } };
-const PANEL_STYLE = { padding: '10px', backgroundColor: '#fff', borderRadius: '5px', boxShadow: '0 0 10px rgba(0,0,0,0.1)' };
 
 export default function View() {
   const { type } = useParams();
@@ -42,7 +41,7 @@ export default function View() {
 
   const sharedStates = { 
     nodes, setNodes, edges, setEdges, nodeCount, setNodeCount, 
-    isAnimating, setIsAnimating, animationSpeed, setAnimationSpeed, // <- adicionei setAnimationSpeed
+    isAnimating, setIsAnimating, animationSpeed, setAnimationSpeed,
     nodeLabel, setNodeLabel, vectorSize, setVectorSize, 
     vectorId, setVectorId, vectorValue, setVectorValue,
     steps, setSteps, currentStep, setCurrentStep,
@@ -151,6 +150,7 @@ export default function View() {
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
+      <Toaster richColors position="top-center"></Toaster>
       <ReactFlow 
         nodes={nodes} edges={edges} nodeTypes={NODE_TYPES}
         defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
@@ -159,30 +159,23 @@ export default function View() {
       >
         <Background />
         <Panel position="top-left">
-           <Link to="/" style={{textDecoration: 'none', color: 'blue'}}>← Voltar</Link>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <Link to="/" className="exitBtn" >
+              <div className="sign">Retornar</div>
+            </Link>
+          </motion.div>
         </Panel>
         <Panel position="bottom-left">
           <a onClick={openWindow}>
-            <div style={{width:'100px',height:'100px',backgroundColor:'#000'}}>
+            <div className="codeBtn">
             </div>
           </a>
         </Panel>
-        {/* Centralizar é fornecido nos painéis de controle abaixo */}
-        <Panel position="center-right">
-          <div className='sideBar' style={PANEL_STYLE}>
-            {/* RENDERIZAÇÃO MODULARIZADA */}
-            {type === 'sll' && (
-              <SLLControls 
-                nodeLabel={nodeLabel} 
-                setNodeLabel={setNodeLabel} 
-                handleAddNode={sll.handleAddNode}
-                centerView={centerView}
-              />
-            )}
-            {type === 'vector' && (
-              <VectorControls states={sharedStates} handlers={vector} centerView={centerView} />
-            )}
-          </div>
+        <Panel position='bottom-right'>
+          <MiniMap nodeStrokeWidth={3}/>
+        </Panel>
+        <Panel position="top-right">
+          <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, sharedStates, centerView }} />
         </Panel>
       </ReactFlow>
     </div>
