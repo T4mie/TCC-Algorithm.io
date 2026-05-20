@@ -16,7 +16,7 @@ const createWindow = () => {
   win.loadFile('frontend/index.html')
 }
 
-function createChildWindow(type) {
+function createChildWindow(type, currentStep = -1) {
 
     if (childWindow) {
         childWindow.focus();
@@ -26,11 +26,15 @@ function createChildWindow(type) {
     childWindow = new BrowserWindow({
         width: 600,
         height: 400,
-
         parent: win, // define como filha
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
+        }
     });
 
-    const hash = type ? `/codeview?type=${type}` : '/codeview';
+    const hash = type ? `/codeview?type=${type}&step=${encodeURIComponent(currentStep)}` : `/codeview?step=${encodeURIComponent(currentStep)}`;
 
     childWindow.loadFile('frontend/index.html', {
         hash
@@ -41,11 +45,23 @@ function createChildWindow(type) {
     });
 }
 
-ipcMain.on('open-child-window', (event, type) => {
+ipcMain.on('open-child-window', (event, payload) => {
 
-    // support an optional type (e.g. 'vector' or 'sll') to pre-select behavior in the child
-    createChildWindow(type);
+    // payload expected as { type, currentStep }
+    const type = payload && payload.type ? payload.type : undefined;
+    const currentStep = payload && typeof payload.currentStep !== 'undefined' ? payload.currentStep : -1;
+    createChildWindow(type, currentStep);
 
+});
+
+// Forward live step updates from parent renderer to child window (if open)
+ipcMain.on('update-child-step', (event, payload) => {
+    if (!childWindow) return;
+    try {
+        childWindow.webContents.send('child-step-updated', payload);
+    } catch (e) {
+        console.warn('Failed to forward step update to child window', e);
+    }
 });
 
 app.whenReady().then(() => {

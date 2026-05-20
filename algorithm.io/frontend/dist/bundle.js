@@ -9091,6 +9091,138 @@ const applyStepToNodes = (step, nodes, setNodes) => {
 
 /***/ },
 
+/***/ "./frontend/code_view_data/insertion_sort/java.js"
+/*!********************************************************!*\
+  !*** ./frontend/code_view_data/insertion_sort/java.js ***!
+  \********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   javaLines: () => (/* binding */ javaLines)
+/* harmony export */ });
+const javaLines = [{
+  id: 'SIGNATURE',
+  text: 'public static void insertionSort(int[] A) {'
+}, {
+  id: 'INIT_SIZE',
+  text: '    int n = A.length;'
+}, {
+  id: 'INIT_LOOP',
+  text: '    for (int j = 1; j < n; j++) {'
+}, {
+  id: 'SET_KEY',
+  text: '        int chave = A[j];'
+}, {
+  id: 'INIT_I',
+  text: '        int i = j - 1;'
+}, {
+  id: 'WHILE_COND',
+  text: '        while (i >= 0 && A[i] > chave) {'
+}, {
+  id: 'SHIFT',
+  text: '            A[i + 1] = A[i];'
+}, {
+  id: 'DECREMENT_I',
+  text: '            i = i - 1;'
+}, {
+  id: 'END_WHILE',
+  text: '        }'
+}, {
+  id: 'INSERT',
+  text: '        A[i + 1] = chave;'
+}, {
+  id: 'END_FOR',
+  text: '    }'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/insertion_sort/pseudocodigo.js"
+/*!****************************************************************!*\
+  !*** ./frontend/code_view_data/insertion_sort/pseudocodigo.js ***!
+  \****************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   pseudocodigoLines: () => (/* binding */ pseudocodigoLines)
+/* harmony export */ });
+const pseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'INSERTION-SORT(A, n)'
+}, {
+  id: 'INIT_LOOP',
+  text: 'for j = 2 to n'
+}, {
+  id: 'SET_KEY',
+  text: '    chave = A[j]'
+}, {
+  id: 'COMMENT',
+  text: '    // Insere A[j] na sequencia ordenada A[1..j-1]'
+}, {
+  id: 'INIT_I',
+  text: '    i = j - 1'
+}, {
+  id: 'WHILE_COND',
+  text: '    while i > 0 and A[i] > chave'
+}, {
+  id: 'SHIFT',
+  text: '        A[i + 1] = A[i]'
+}, {
+  id: 'DECREMENT_I',
+  text: '        i = i - 1'
+}, {
+  id: 'INSERT',
+  text: '    A[i + 1] = chave'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/insertion_sort/python.js"
+/*!**********************************************************!*\
+  !*** ./frontend/code_view_data/insertion_sort/python.js ***!
+  \**********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   pythonLines: () => (/* binding */ pythonLines)
+/* harmony export */ });
+const pythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def insertion_sort(A):'
+}, {
+  id: 'INIT_SIZE',
+  text: '    n = len(A)'
+}, {
+  id: 'INIT_LOOP',
+  text: '    for j in range(1, n):'
+}, {
+  id: 'SET_KEY',
+  text: '        chave = A[j]'
+}, {
+  id: 'INIT_I',
+  text: '        i = j - 1'
+}, {
+  id: 'WHILE_COND',
+  text: '        while i >= 0 and A[i] > chave:'
+}, {
+  id: 'SHIFT',
+  text: '            A[i + 1] = A[i]'
+}, {
+  id: 'DECREMENT_I',
+  text: '            i = i - 1'
+}, {
+  id: 'INSERT',
+  text: '        A[i + 1] = chave'
+}];
+
+/***/ },
+
 /***/ "./frontend/components/BackgroundParticle.jsx"
 /*!****************************************************!*\
   !*** ./frontend/components/BackgroundParticle.jsx ***!
@@ -9644,6 +9776,9 @@ function VectorControls({
       setCurrentStep(-1);
       setIsAnimating(false);
       vector.fetchData();
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
     }
   }, "Encerrar Simula\xE7\xE3o"))));
 }
@@ -10054,6 +10189,9 @@ const useVectorHandlers = states => {
       setCurrentStep(0);
       setIsAnimating(true);
       (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(allSteps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
     } catch (err) {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error(err.message);
     }
@@ -10065,6 +10203,9 @@ const useVectorHandlers = states => {
       const nextIndex = currentStep + 1;
       setCurrentStep(nextIndex);
       (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[nextIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(nextIndex);
+      }
 
       // Se for o ÚLTIMO passo da lista, podemos encerrar o modo de animação
       if (nextIndex === steps.length - 1) {
@@ -10082,6 +10223,9 @@ const useVectorHandlers = states => {
       const prevIndex = currentStep - 1;
       setCurrentStep(prevIndex);
       (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[prevIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(prevIndex);
+      }
     }
   };
   return {
@@ -10110,48 +10254,112 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs");
+/* harmony import */ var _api_api_vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../api/api_vector */ "./frontend/api/api_vector.js");
+/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
+/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
+/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
 
 
-function CodeView() {
+
+
+// Importando os dados dos arquivos separados
+
+
+
+
+// Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
+const codeSnippets = {
+  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_3__.pseudocodigoLines,
+  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_4__.javaLines,
+  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_5__.pythonLines
+};
+function CodeView({
+  activeStep: propActiveStep = 'INIT_LOOP'
+}) {
   const location = (0,react_router_dom__WEBPACK_IMPORTED_MODULE_1__.useLocation)();
   const params = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => new URLSearchParams(location.search), [location.search]);
-  const viewType = params.get('type'); // 'vector' when opened from the vector view
-
+  const viewType = params.get('type');
+  const stepParam = params.get('step');
+  const [steps, setSteps] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [stepIndex, setStepIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(stepParam ? Number(stepParam) : -1);
+  const [activeStep, setActiveStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(propActiveStep);
   const [lang, setLang] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('pseudocódigo');
-  const pseudocódigo = `INSERTION-SORT(A, n)
-for j = 2 to n
-    chave = A[j]
-    // Insere A[j] na sequencia ordenada A[1..j-1]
-    i = j - 1
-    while i > 0 and A[i] > chave
-        A[i + 1] = A[i]
-        i = i - 1
-    A[i + 1] = chave`;
-  const javaCode = `public static void insertionSort(int[] A) {
-    int n = A.length;
-    for (int j = 1; j < n; j++) {
-        int chave = A[j];
-        int i = j - 1;
-        while (i >= 0 && A[i] > chave) {
-            A[i + 1] = A[i];
-            i = i - 1;
+
+  // Seleciona o array de código correto ou retorna um array vazio se não for viewType 'vector'
+  const codeLines = viewType === 'vector' ? codeSnippets[lang] : [];
+
+  // Map a backend step object to a code line id using heuristics,
+  // but prefer an explicit `code_id` when the backend provides it.
+  const mapStepToCodeId = (step, prevStep) => {
+    if (step && step.code_id) return step.code_id;
+    if (!step) return propActiveStep || 'INIT_LOOP';
+    const hasKey = typeof step.activeKey !== 'undefined' && step.activeKey !== null;
+    const comparing = Array.isArray(step.comparing) ? step.comparing : [];
+    const swapped = Array.isArray(step.swapped) ? step.swapped : [];
+    if (hasKey && (!prevStep || !prevStep.activeKey)) return 'SET_KEY';
+    if (swapped.length > 0) return 'SHIFT';
+    if (comparing.length > 0 && hasKey) return 'WHILE_COND';
+    if (!hasKey && prevStep && prevStep.activeKey) return 'INSERT';
+    return propActiveStep || 'INIT_LOOP';
+  };
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    // fetch all steps when viewing a vector so we can map updates later
+    const loadSteps = async () => {
+      if (viewType !== 'vector') return;
+      try {
+        const all = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_2__.fetchSortSteps)();
+        console.log('CodeView: loaded steps count', all.length, 'code_ids', all.map(s => s && s.code_id));
+        setSteps(all);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const prev = all[idx - 1] || null;
+          const current = all[idx] || null;
+          const codeId = mapStepToCodeId(current, prev);
+          setActiveStep(codeId);
         }
-        A[i + 1] = chave;
-    }
-}`;
-  const pythonCode = `def insertion_sort(A):
-    n = len(A)
-    for j in range(1, n):
-        chave = A[j]
-        i = j - 1
-        while i >= 0 and A[i] > chave:
-            A[i + 1] = A[i]
-            i = i - 1
-        A[i + 1] = chave`;
-  let codeToShow = '';
-  if (viewType === 'vector') {
-    if (lang === 'pseudocódigo') codeToShow = pseudocódigo;else if (lang === 'java') codeToShow = javaCode;else if (lang === 'python') codeToShow = pythonCode;
-  }
+      } catch (e) {
+        setActiveStep(propActiveStep);
+      }
+    };
+    loadSteps();
+  }, [stepParam, viewType]);
+
+  // register live updates from parent window (when user steps in View)
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'vector') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      console.log('CodeView: received child-step update', idx);
+      setStepIndex(idx);
+      if (idx < 0) {
+        // clear highlight when simulation ended
+        setActiveStep(null);
+        return;
+      }
+
+      // if we already have steps, map immediately; otherwise fetch
+      if (steps && steps.length > 0) {
+        console.log('CodeView: mapping step object', steps[idx]);
+        const prev = steps[idx - 1] || null;
+        const current = steps[idx] || null;
+        setActiveStep(mapStepToCodeId(current, prev));
+      } else {
+        try {
+          const all = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_2__.fetchSortSteps)();
+          console.log('CodeView: fetched steps on update', all.length, all.map(s => s && s.code_id));
+          setSteps(all);
+          const prev = all[idx - 1] || null;
+          const current = all[idx] || null;
+          setActiveStep(mapStepToCodeId(current, prev));
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+  }, [viewType, steps]);
   const buttonStyle = active => ({
     background: active ? '#0f766e' : '#111',
     color: active ? '#fff' : '#cfcfcf',
@@ -10163,7 +10371,8 @@ for j = 2 to n
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       padding: '16px',
-      height: '100vh',
+      height: '100%',
+      width: '100%',
       boxSizing: 'border-box',
       backgroundColor: '#0b0b0b',
       color: '#e6e6e6',
@@ -10181,16 +10390,17 @@ for j = 2 to n
       backgroundColor: '#000000',
       color: '#00ff88',
       borderRadius: 6,
-      padding: 12,
-      minHeight: 'calc(100vh - 84px)',
-      overflow: 'auto',
+      padding: '12px 0',
+      width: '100%',
+      height: '100%',
       boxShadow: 'inset 0 0 10px rgba(0,0,0,0.6)'
     }
-  }, viewType === 'vector' ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, viewType === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
-      marginBottom: 12
+      marginBottom: 12,
+      padding: '0 12px'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     style: buttonStyle(lang === 'pseudocódigo'),
@@ -10201,17 +10411,26 @@ for j = 2 to n
   }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     style: buttonStyle(lang === 'python'),
     onClick: () => setLang('python')
-  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("pre", {
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       margin: 0,
       whiteSpace: 'pre',
-      color: '#00ff88',
       fontSize: 14,
       lineHeight: 1.6
     }
-  }, codeToShow)) :
-  // not vector: keep console blank for now
-  null));
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
+  })))));
 }
 
 /***/ },
@@ -10391,7 +10610,9 @@ function View() {
     if (handlers.fetchData) handlers.fetchData(nodes);
   }, [type]);
   function openWindow() {
-    window.electronAPI.openChildWindow(type);
+    // pass currentStep so CodeView can open with the same highlighted step
+    const stepToSend = typeof currentStep === 'number' ? currentStep : -1;
+    window.electronAPI.openChildWindow(type, stepToSend);
   }
   const centerView = async () => {
     if (!rfInstance) return;

@@ -95,7 +95,14 @@ export default function VectorControls({ states, handlers, centerView }) {
               <button onClick={vector.handlePrevStep} disabled={currentStep === 0}>◀ Voltar</button>
               <button onClick={vector.handleNextStep} disabled={currentStep === steps.length - 1}>Próximo ▶</button>
             </div>
-            <button onClick={() => { setCurrentStep(-1); setIsAnimating(false); vector.fetchData(); }}>Encerrar Simulação</button>
+            <button onClick={() => { 
+              setCurrentStep(-1); 
+              setIsAnimating(false); 
+              vector.fetchData();
+              if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+                window.electronAPI.updateChildStep(-1);
+              }
+            }}>Encerrar Simulação</button>
           </div>
         )}
       </div>

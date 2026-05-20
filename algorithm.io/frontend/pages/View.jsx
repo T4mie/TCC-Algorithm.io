@@ -57,7 +57,9 @@ export default function View() {
   }, [type]);
 
   function openWindow() {
-    window.electronAPI.openChildWindow(type);
+    // pass currentStep so CodeView can open with the same highlighted step
+    const stepToSend = typeof currentStep === 'number' ? currentStep : -1;
+    window.electronAPI.openChildWindow(type, stepToSend);
 
   }
 

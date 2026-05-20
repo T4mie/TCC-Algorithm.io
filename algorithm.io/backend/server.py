@@ -145,6 +145,13 @@ def insertion_sort():
         sorter = InsertionSort(storageVector)
         steps = sorter.sort()
         
+        # Log code_ids for debugging (helps verifying SHIFT/DECREMENT_I presence)
+        try:
+            code_ids = [s.get('code_id') for s in steps]
+        except Exception:
+            code_ids = None
+        app.logger.debug(f"insertion-sort: steps_count={len(steps)} code_ids={code_ids}")
+
         # Retornar steps e estado atualizado do vetor
         return jsonify({
             "success": True,

@@ -50,6 +50,9 @@ export const useVectorHandlers = (states) => {
       setCurrentStep(0);
       setIsAnimating(true);
       applyStepToNodes(allSteps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
     } catch (err) {
       toast.error(err.message);
     }
@@ -61,6 +64,9 @@ export const useVectorHandlers = (states) => {
       const nextIndex = currentStep + 1;
       setCurrentStep(nextIndex);
       applyStepToNodes(steps[nextIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(nextIndex);
+      }
       
       // Se for o ÚLTIMO passo da lista, podemos encerrar o modo de animação
       if (nextIndex === steps.length - 1) {
@@ -79,6 +85,9 @@ export const useVectorHandlers = (states) => {
     const prevIndex = currentStep - 1;
     setCurrentStep(prevIndex);
     applyStepToNodes(steps[prevIndex], nodes, setNodes);
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(prevIndex);
+    }
   }
 };
 

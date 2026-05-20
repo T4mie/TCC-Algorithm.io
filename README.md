@@ -1,7 +1,7 @@
 # TCC-Algorithm.io
 
 ## Pasta algorith.io
-Passo a passo de configuração dentro da pasta algorith.io:
+Passo a passo de configuração dentro da pasta algorithm.io:
 -npm install
 -pip install -r requirements.txt
 
@@ -11,6 +11,6 @@ Passo a passo de configuração dentro da pasta algorith.io:
 ## Testar aplicação:
 -npm run start
 
-Testar criação de aplicativo na pasta algorith.io:
+Testar criação de aplicativo na pasta algorithm.io:
 -npm run make
 
