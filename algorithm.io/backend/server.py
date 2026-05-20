@@ -152,11 +152,18 @@ def insertion_sort():
             code_ids = None
         app.logger.debug(f"insertion-sort: steps_count={len(steps)} code_ids={code_ids}")
 
-        # Retornar steps e estado atualizado do vetor
+        # Retornar steps e o estado final baseado na cópia do sorter
+        # (não mutamos storageVector aqui).
+        final = None
+        try:
+            final = sorter.final_state()
+        except Exception:
+            final = storageVector.to_dict()
+
         return jsonify({
             "success": True,
             "steps": steps,
-            "data": storageVector.to_dict()  # Estado atualizado após sort
+            "data": final
         }), 200
         
     except AttributeError as e:
