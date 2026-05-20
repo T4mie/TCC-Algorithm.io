@@ -9370,12 +9370,7 @@ function SelectorBox({
       y: "-100%"
     } // Sobe 100% da altura para mostrar o texto
   };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Link, {
-    to: props.path,
-    style: {
-      textDecoration: "none"
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     className: "selectorBox",
     initial: "initial",
     whileHover: {
@@ -9383,6 +9378,11 @@ function SelectorBox({
     },
     whileTap: {
       scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Link, {
+    to: props.path,
+    style: {
+      textDecoration: "none"
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     className: "content-wrapper",
@@ -9400,7 +9400,10 @@ function SelectorBox({
     alt: props.label
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "box-section text-section"
-  }, props.label))));
+  }, props.label))))
+  //    
+  // 
+;
 }
 
 /***/ },
@@ -10928,6 +10931,10 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
     position: relative;
     box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;
 }
+.selectorBox Link{
+    width: 100%;
+    height: 100%;
+}
 
 .content-wrapper {
     width: 100%;
@@ -10962,8 +10969,10 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
 }
 
 .selectorContainer{
-    width: 70%;
-    height: 90%;
+    max-width: 70vw;
+    max-height: 70vh;
+    height: 50vh;
+    width: 50vw;
     display: flex;
     border-radius: 30px;
     background: white;
@@ -10976,7 +10985,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
     z-index: 1;
     padding: 12px;
 
-}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;AACzI;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,eAAe;AACnB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,UAAU;IACV,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,iBAAiB;IACjB,yJAAyJ;IACzJ,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,UAAU;IACV,aAAa;;AAEjB","sourcesContent":[".selectorBox {\r\n    border-radius: 0.5rem;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    overflow: hidden; \r\n    position: relative;\r\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\r\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit:fill;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color:white;\r\n    text-align: center;\r\n    background-color: #2563eb; /* Opcional: cor diferente no hover */\r\n}\r\n\r\n.selectorContainer{\r\n    width: 70%;\r\n    height: 90%;\r\n    display: flex;\r\n    border-radius: 30px;\r\n    background: white;\r\n    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset, rgba(0, 0, 0, 0.3) 0px -22px 10px -18px inset;\r\n    flex-direction: row;\r\n    row-gap: 1rem;\r\n    gap: 2rem;\r\n    flex-wrap:wrap ;\r\n    justify-content: last baseline;\r\n    z-index: 1;\r\n    padding: 12px;\r\n\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;AACzI;AACA;IACI,WAAW;IACX,YAAY;AAChB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,eAAe;AACnB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,YAAY;IACZ,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,iBAAiB;IACjB,yJAAyJ;IACzJ,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,UAAU;IACV,aAAa;;AAEjB","sourcesContent":[".selectorBox {\r\n    border-radius: 0.5rem;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    overflow: hidden; \r\n    position: relative;\r\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\r\n}\r\n.selectorBox Link{\r\n    width: 100%;\r\n    height: 100%;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\r\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit:fill;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color:white;\r\n    text-align: center;\r\n    background-color: #2563eb; /* Opcional: cor diferente no hover */\r\n}\r\n\r\n.selectorContainer{\r\n    max-width: 70vw;\r\n    max-height: 70vh;\r\n    height: 50vh;\r\n    width: 50vw;\r\n    display: flex;\r\n    border-radius: 30px;\r\n    background: white;\r\n    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset, rgba(0, 0, 0, 0.3) 0px -22px 10px -18px inset;\r\n    flex-direction: row;\r\n    row-gap: 1rem;\r\n    gap: 2rem;\r\n    flex-wrap:wrap ;\r\n    justify-content: last baseline;\r\n    z-index: 1;\r\n    padding: 12px;\r\n\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 

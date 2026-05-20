@@ -11,13 +11,14 @@ export default function SelectorBox({props}) {
     };
 
     return (
-        <Link to={props.path} style={{ textDecoration: "none" }}>
-            <motion.div 
-                className='selectorBox'
-                initial="initial"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-            >   
+        
+        <motion.div 
+            className='selectorBox'
+            initial="initial"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+        >   
+             <Link to={props.path} style={{ textDecoration: "none" }}>
                 <motion.div 
                     className="content-wrapper"
                     whileHover="hover"
@@ -32,7 +33,9 @@ export default function SelectorBox({props}) {
                         {props.label}
                     </div>
                 </motion.div>
-            </motion.div>
-        </Link>
+            </Link>
+        </motion.div>
+        //    
+        // 
     );
 }
