@@ -5,7 +5,7 @@ function ListNode({ data }) {
   return (
     <div
       style={{
-        width: '120px',
+        width: '140px',
         height: 'auto',
         borderRadius: '8px',
         background: '#2c3e50',
@@ -22,9 +22,9 @@ function ListNode({ data }) {
       <strong style={{ color: '#fff', fontSize: '12px', marginBottom: '5px' }}>
         {data.label}
       </strong>
-      <div style={{ color: '#ecf0f1', fontSize: '11px', textAlign: 'center' }}>
-        <div>Head: {data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'}</div>
-        <div>Tail: {data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'}</div>
+      <div style={{ fontSize: '11px', textAlign: 'center' }}>
+        <div style={{color:'white'}}>Head: {data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'}</div>
+        <div style={{color:'white'}}>Tail: {data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'}</div>
         <div style={{ marginTop: '3px', fontWeight: 'bold', color: '#3498db' }}>
           Size: {data.metadata?.size || 0}
         </div>

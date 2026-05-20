@@ -46,13 +46,13 @@ export default function VectorControls({ states, handlers, centerView }) {
         </motion.div>
         <div style={{ height: '20px' }} />
         <select 
+          className='control-selector'
           value={states.vectorType} 
           onChange={(e) => states.setVectorType(e.target.value)}>
           <option value="int">Inteiros</option>
           <option value="string">Texto</option>
         </select>
         <div style={{ height: '20px' }} />
-
       </div>
 
       {/* Seção Educativa: Controles de Ordenação */}
@@ -60,14 +60,15 @@ export default function VectorControls({ states, handlers, centerView }) {
         <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>Simulação (Sort)</h4>
         
         <div style={{ marginBottom: '10px' }}>
-          <button 
-            onClick={vector.handleInsertionSort} 
-            disabled={isAnimating}
-            style={{ width: '100%', backgroundColor: '#3498db', color: 'white', border: 'none', padding: '8px', borderRadius: '4px' }}
-          >
-            {isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'}
-          </button>
-          
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <button 
+              onClick={vector.handleInsertionSort} 
+              disabled={isAnimating}
+              className='control-button'
+            >
+              {isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'}
+            </button>
+          </motion.div>  
           <div style={{ marginTop: '8px' }}>
             <label style={{ fontSize: '11px' }}>Velocidade: {animationSpeed}ms</label>
             <input 

@@ -24,3 +24,18 @@
 .codeBtn:hover{
     cursor: pointer;;
 }
+
+/* Coloca as arestas acima dos nós */
+.react-flow__edges {
+  z-index: 5;
+}
+
+/* Mantém nós abaixo das arestas */
+.react-flow__nodes {
+  z-index: 1;
+}
+
+/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */
+.react-flow__handle {
+  z-index: 0;
+}

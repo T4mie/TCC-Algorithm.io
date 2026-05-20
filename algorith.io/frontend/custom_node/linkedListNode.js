@@ -30,6 +30,8 @@ function LinkedListNode({ data, isConnected }) {
         width: '50px',
         height: '50px',
         borderRadius: '50%',
+        boxSizing: 'border-box',
+        color:'white',
         background: backgroundColor,
         border: `${borderWidth} solid ${borderColor}`,
         display: 'flex',

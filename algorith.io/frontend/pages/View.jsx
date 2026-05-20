@@ -17,7 +17,7 @@ import SidePanel from '../components/SidePanel';
 
 
 const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode };
-const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2 } };
+const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2,zIndex:10 } };
 
 export default function View() {
   const { type } = useParams();

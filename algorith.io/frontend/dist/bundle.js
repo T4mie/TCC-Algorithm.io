@@ -9553,6 +9553,7 @@ function VectorControls({
       height: '20px'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    className: "control-selector",
     value: states.vectorType,
     onChange: e => states.setVectorType(e.target.value)
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
@@ -9572,18 +9573,15 @@ function VectorControls({
     style: {
       marginBottom: '10px'
     }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertionSort,
     disabled: isAnimating,
-    style: {
-      width: '100%',
-      backgroundColor: '#3498db',
-      color: 'white',
-      border: 'none',
-      padding: '8px',
-      borderRadius: '4px'
-    }
-  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "control-button"
+  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático')), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginTop: '8px'
     }
@@ -9712,6 +9710,8 @@ function LinkedListNode({
       width: '50px',
       height: '50px',
       borderRadius: '50%',
+      boxSizing: 'border-box',
+      color: 'white',
       background: backgroundColor,
       border: `${borderWidth} solid ${borderColor}`,
       display: 'flex',
@@ -9757,7 +9757,7 @@ function ListNode({
 }) {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      width: '120px',
+      width: '140px',
       height: 'auto',
       borderRadius: '8px',
       background: '#2c3e50',
@@ -9778,11 +9778,18 @@ function ListNode({
     }
   }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      color: '#ecf0f1',
       fontSize: '11px',
       textAlign: 'center'
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, "Head: ", data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, "Tail: ", data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: 'white'
+    }
+  }, "Head: ", data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: 'white'
+    }
+  }, "Tail: ", data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginTop: '3px',
       fontWeight: 'bold',
@@ -10326,7 +10333,8 @@ const DEFAULT_EDGE_OPTIONS = {
   },
   style: {
     stroke: '#000000',
-    strokeWidth: 2
+    strokeWidth: 2,
+    zIndex: 10
   }
 };
 function View() {
@@ -10587,23 +10595,23 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.input-container {
   .input-container input[type="text"]:valid ~ .label {
     top: -10px;
     font-size: 12px;
-    color: #333;
+    color: #1e427C;
   }
 
-  .input-container .underline {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 2px;
-    width: 100%;
-    background-color: #333;
-    transform: scaleX(0);
-    transition: all 0.3s ease;
-  }
+.input-container .underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background-color: #1e427C;
+  transform: scaleX(0);
+  transition: all 0.3s ease;
+}
 
-  .input-container input[type="text"]:focus ~ .underline,
-  .input-container input[type="text"]:valid ~ .underline {
-    transform: scaleX(1);}
+.input-container input[type="text"]:focus ~ .underline,
+.input-container input[type="text"]:valid ~ .underline {
+  transform: scaleX(1);}
 
 .control-button {
  width: 100%;
@@ -10653,7 +10661,17 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.input-container {
 
 .control-button:hover {
  color: #fff;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,WAAW;EACb;;EAEA;IACE,kBAAkB;IAClB,SAAS;IACT,OAAO;IACP,WAAW;IACX,WAAW;IACX,sBAAsB;IACtB,oBAAoB;IACpB,yBAAyB;EAC3B;;EAEA;;IAEE,oBAAoB,CAAC;;AAEzB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ","sourcesContent":[".input-container {\r\n    position: relative;\r\n    width: 100%;\r\n  }\r\n\r\n  .input-container input[type=\"text\"] {\r\n    font-size: 12px;\r\n    font-family: inherit;\r\n    width: 100%;\r\n    border: none;\r\n    border-bottom: 2px solid #ccc;\r\n    padding: 5px 0;\r\n    background-color: transparent;\r\n    outline: none;\r\n  }\r\n\r\n  .input-container .label {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    color: #ccc;\r\n    transition: all 0.3s ease;\r\n    pointer-events: none;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .label,\r\n  .input-container input[type=\"text\"]:valid ~ .label {\r\n    top: -10px;\r\n    font-size: 12px;\r\n    color: #333;\r\n  }\r\n\r\n  .input-container .underline {\r\n    position: absolute;\r\n    bottom: 0;\r\n    left: 0;\r\n    height: 2px;\r\n    width: 100%;\r\n    background-color: #333;\r\n    transform: scaleX(0);\r\n    transition: all 0.3s ease;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .underline,\r\n  .input-container input[type=\"text\"]:valid ~ .underline {\r\n    transform: scaleX(1);}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n color: #1e427C;\r\n transition: color .3s ease;\r\n}\r\n\r\n.control-button::before {\r\n content: '';\r\n width: 100%;\r\n height: 100%;\r\n border-radius: 15em;\r\n position: absolute;\r\n top: 0;\r\n left: 0;\r\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\r\n transform: scaleX(0);\r\n transform-origin: center;\r\n transition: transform .5s ease;\r\n display: block;\r\n z-index: -1;\r\n}\r\n\r\n.control-button:hover::before {\r\n transform: scaleX(1);\r\n}\r\n\r\n.control-button:hover {\r\n color: #fff;\r\n}"],"sourceRoot":""}]);
+}
+
+.control-selector{
+  width: 100%;
+  font-family: inherit;
+  border-radius: 15em;
+  font-size: 12px;
+}
+
+.control-selector option{
+}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,cAAc;EAChB;;AAEF;EACE,kBAAkB;EAClB,SAAS;EACT,OAAO;EACP,WAAW;EACX,WAAW;EACX,yBAAyB;EACzB,oBAAoB;EACpB,yBAAyB;AAC3B;;AAEA;;EAEE,oBAAoB,CAAC;;AAEvB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ;;AAEA;EACE,WAAW;EACX,oBAAoB;EACpB,mBAAmB;EACnB,eAAe;AACjB;;AAEA;AACA","sourcesContent":[".input-container {\r\n    position: relative;\r\n    width: 100%;\r\n  }\r\n\r\n  .input-container input[type=\"text\"] {\r\n    font-size: 12px;\r\n    font-family: inherit;\r\n    width: 100%;\r\n    border: none;\r\n    border-bottom: 2px solid #ccc;\r\n    padding: 5px 0;\r\n    background-color: transparent;\r\n    outline: none;\r\n  }\r\n\r\n  .input-container .label {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    color: #ccc;\r\n    transition: all 0.3s ease;\r\n    pointer-events: none;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .label,\r\n  .input-container input[type=\"text\"]:valid ~ .label {\r\n    top: -10px;\r\n    font-size: 12px;\r\n    color: #1e427C;\r\n  }\r\n\r\n.input-container .underline {\r\n  position: absolute;\r\n  bottom: 0;\r\n  left: 0;\r\n  height: 2px;\r\n  width: 100%;\r\n  background-color: #1e427C;\r\n  transform: scaleX(0);\r\n  transition: all 0.3s ease;\r\n}\r\n\r\n.input-container input[type=\"text\"]:focus ~ .underline,\r\n.input-container input[type=\"text\"]:valid ~ .underline {\r\n  transform: scaleX(1);}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n color: #1e427C;\r\n transition: color .3s ease;\r\n}\r\n\r\n.control-button::before {\r\n content: '';\r\n width: 100%;\r\n height: 100%;\r\n border-radius: 15em;\r\n position: absolute;\r\n top: 0;\r\n left: 0;\r\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\r\n transform: scaleX(0);\r\n transform-origin: center;\r\n transition: transform .5s ease;\r\n display: block;\r\n z-index: -1;\r\n}\r\n\r\n.control-button:hover::before {\r\n transform: scaleX(1);\r\n}\r\n\r\n.control-button:hover {\r\n color: #fff;\r\n}\r\n\r\n.control-selector{\r\n  width: 100%;\r\n  font-family: inherit;\r\n  border-radius: 15em;\r\n  font-size: 12px;\r\n}\r\n\r\n.control-selector option{\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -10822,7 +10840,22 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.exitBtn{
 }
 .codeBtn:hover{
     cursor: pointer;;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,sBAAsB;;AAE1B;AACA;IACI,eAAe;AACnB","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 15px;\r\n    background-color: #000;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}"],"sourceRoot":""}]);
+}
+
+/* Coloca as arestas acima dos nós */
+.react-flow__edges {
+  z-index: 5;
+}
+
+/* Mantém nós abaixo das arestas */
+.react-flow__nodes {
+  z-index: 1;
+}
+
+/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */
+.react-flow__handle {
+  z-index: 0;
+}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,sBAAsB;;AAE1B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,UAAU;AACZ;;AAEA,kCAAkC;AAClC;EACE,UAAU;AACZ;;AAEA,2EAA2E;AAC3E;EACE,UAAU;AACZ","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 15px;\r\n    background-color: #000;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 0;\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
