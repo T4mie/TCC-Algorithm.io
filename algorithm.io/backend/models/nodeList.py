@@ -4,7 +4,7 @@ class ListNode:
         self.id = "list"
         self.value = f"N={size}"
         self.position = {"x": 200, "y": 250}
-        self.label = f"Lista Ligada Simples"
+        self.label = f"Lista Simplesmente Ligada"
         self.type = "list"
         self.head = head
         self.tail = tail
@@ -36,5 +36,5 @@ class ListNode:
         if size is not None:
             self.size = size
             self.value = f"N={size}"
-            self.label = f"Lista Ligada Simples"
+            self.label = f"Lista Simplesmente Ligada"
             self.metadata["size"] = size

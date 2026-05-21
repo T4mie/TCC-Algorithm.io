@@ -1,6 +1,6 @@
 # TCC-Algorithm.io
 
-## Pasta algorith.io
+## Pasta algorithm.io
 Passo a passo de configuração dentro da pasta algorithm.io:
 -npm install
 -pip install -r requirements.txt

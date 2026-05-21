@@ -11,7 +11,7 @@ export default function Selector(){
     <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{duration:0.75}} style={{width: '100%',height:'100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <BackgroundParticles/>
         <div className='selectorContainer'>
-            <SelectorBox props={{ path: "/view/sll", icon:SLLIcon,label: "Lista Ligada Simples" }} />
+            <SelectorBox props={{ path: "/view/sll", icon:SLLIcon,label: "Lista Simplesmente Ligada" }} />
             <SelectorBox props={{ path: "/view/vector", icon:VectorIcon, label:"Vetor" }} />
         </div>
     </motion.div>
