@@ -8934,6 +8934,11 @@ const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCoun
     sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
     return;
   }
+  const vectorSize = Number(size);
+  if (vectorSize > 15) {
+    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O tamanho máximo do vetor é 15.');
+    return;
+  }
   const createData = {
     value: Number(size),
     position: {
@@ -8981,8 +8986,16 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
       body: JSON.stringify(insertData)
     });
     if (response.ok) {
+      const result = await response.json();
       setVectorId('');
       setVectorValue('');
+
+      // Se o vetor foi resetado, mostrar aviso
+      if (result.reset) {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.warning(result.info || 'Vetor foi resetado');
+      } else {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Valor inserido com sucesso');
+      }
       fetchDataCallback();
     } else {
       const error = await response.json();
@@ -10059,7 +10072,10 @@ function VectorNode({
   }, values.map((value, index) => {
     const isComparing = data.comparing?.includes(index);
     const isSwapped = data.swapped?.includes(index);
-    let backgroundColor = value ? '#3498db' : '#ecf0f1';
+
+    // Verifica se tem valor (inclusive 0, mas não null/undefined)
+    const hasValue = value !== null && value !== undefined && value !== '';
+    let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
     if (isSwapped) {
       backgroundColor = '#4CAF50';
     } else if (isComparing) {
@@ -10074,12 +10090,12 @@ function VectorNode({
         alignItems: 'center',
         borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
         background: backgroundColor,
-        color: value ? '#fff' : '#2c3e50',
+        color: hasValue ? '#fff' : '#2c3e50',
         fontSize: '14px',
         fontWeight: 'bold',
         transition: 'background 0.3s ease'
       }
-    }, value || '');
+    }, hasValue ? value : '');
   })));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (VectorNode);
@@ -10488,7 +10504,7 @@ function Selector() {
     props: {
       path: "/view/sll",
       icon: _icons_SLL_png__WEBPACK_IMPORTED_MODULE_5__,
-      label: "Lista Ligada Simples"
+      label: "Lista Simplesmente Ligada"
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {

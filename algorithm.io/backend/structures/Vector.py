@@ -20,6 +20,16 @@ class Vector:
             
         return self.nodes
             
+    def get_vector_data_type(self):
+        """Retorna o tipo de dados do vetor: 'int', 'string', ou None se vazio"""
+        for node in self.nodes:
+            if node.value is not None:
+                if isinstance(node.value, int):
+                    return 'int'
+                elif isinstance(node.value, str):
+                    return 'string'
+        return None
+
     def insert_value(self, node_id, value):
         index = int(node_id)
         if 0 <= index < len(self.nodes):

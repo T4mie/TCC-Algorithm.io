@@ -49,6 +49,12 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
     toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
     return;
   }
+  
+  const vectorSize = Number(size);
+  if (vectorSize > 15) {
+    toast.error('O tamanho máximo do vetor é 15.');
+    return;
+  }
 
   const createData = {
     value: Number(size),
@@ -97,8 +103,17 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
     });
 
     if (response.ok) {
+      const result = await response.json();
       setVectorId('');
       setVectorValue('');
+      
+      // Se o vetor foi resetado, mostrar aviso
+      if (result.reset) {
+        toast.warning(result.info || 'Vetor foi resetado');
+      } else {
+        toast.success('Valor inserido com sucesso');
+      }
+      
       fetchDataCallback();
     } else {
       const error = await response.json();

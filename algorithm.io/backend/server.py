@@ -99,20 +99,38 @@ def insert_value():
         return jsonify({"error": "O node_id deve ser um inteiro válido"}), 400
 
     value = data.get("value")
+    value_type = None
     
     # Validação lógica:
     if is_integer(value):
         # Se for um inteiro (ou string numérica), converte para int real
         value = int(value)
+        value_type = 'int'
     elif is_single_char(value):
         # Se for uma letra, mantém como string
         value = str(value)
+        value_type = 'string'
     else:
         return jsonify({"error": "O valor deve ser uma única letra ou um inteiro"}), 400
 
+    # Verificar tipo de dados atual do vetor
+    current_type = storageVector.get_vector_data_type()
+    reset_happened = False
+    
+    # Se o vetor tem dados de um tipo diferente, reseta
+    if current_type and current_type != value_type and storageVector.nodes:
+        # Reseta o vetor mantendo o tamanho
+        size = len(storageVector.nodes)
+        storageVector.create_vector(size)
+        reset_happened = True
+
     try:
         storageVector.insert_value(node_id, value)
-        return jsonify({"message": "Valor inserido com sucesso"}), 200
+        response = {"message": "Valor inserido com sucesso"}
+        if reset_happened:
+            response["reset"] = True
+            response["info"] = "Vetor foi resetado pois você inseriu um tipo de dado diferente"
+        return jsonify(response), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
