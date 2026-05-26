@@ -10,20 +10,11 @@ function LinkedListNode({ data, isConnected }) {
 
   if (data.type === 'head' || data.type === 'tail') {
     backgroundColor = '#555';
-  } else if (data.state === 'comparing') {
-    backgroundColor = '#ffb700'; // amarelo para comparação
-    borderWidth = '3px';
-  } else if (data.state === 'swapped') {
-    backgroundColor = '#00d084'; // verde para trocado
-    borderWidth = '3px';
-  } else if (data.state === 'sorted') {
-    backgroundColor = '#4CAF50'; // verde para ordenado
-    borderWidth = '2px';
   }
 
   return (
     <motion.div
-      initial={{ scale: 0.5, opacity: 0 }}
+      initial={{ scale: 1, opacity: 0 }}
       animate={{ scale: 1, opacity: 1,transition: { duration: 0.2} }}
       whileHover={{scale:1.1,transition:{duration:0.05}}}
       style={{

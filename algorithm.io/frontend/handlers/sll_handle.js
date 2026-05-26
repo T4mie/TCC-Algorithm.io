@@ -10,6 +10,9 @@ export const useSLLHandlers = (states) => {
     if(nodeLabel.trim() === '') {
       toast.error('O valor do nó não pode ser vazio!');
       return;
+    } else if (nodeLabel.length > 1) {
+      toast.error('O valor do nó deve ser um único caractere!');
+      return;
     }
     addNode(
       nodeLabel, 
