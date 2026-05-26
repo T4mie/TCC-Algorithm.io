@@ -17,12 +17,19 @@ const createWindow = () => {
 }
 
 function createChildWindow(type, currentStep = -1) {
-
     if (childWindow) {
+        if (childWindow.isMinimized()) {
+            childWindow.restore();
+        }
+        
         childWindow.focus();
+        
+        childWindow.webContents.send('child-step-updated', { step: currentStep });
+        
         return;
     }
 
+    // Se a janela não existir, cria uma nova normalmente
     childWindow = new BrowserWindow({
         width: 600,
         height: 400,
