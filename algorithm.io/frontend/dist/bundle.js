@@ -8863,7 +8863,10 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyAndPersistFinalState: () => (/* binding */ applyAndPersistFinalState),
+/* harmony export */   applyFinalState: () => (/* binding */ applyFinalState),
 /* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
+/* harmony export */   cancelAutomaticAnimation: () => (/* binding */ cancelAutomaticAnimation),
 /* harmony export */   createVector: () => (/* binding */ createVector),
 /* harmony export */   fetchSortSteps: () => (/* binding */ fetchSortSteps),
 /* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
@@ -8879,6 +8882,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Map para rastrear os timeouts da animação automática
+let automaticAnimationTimeouts = [];
+let automaticAnimationSteps = [];
 const transformVectorData = data => {
   // Se não há nós, retornar arrays vazios
   if (!data.nodes || data.nodes.length === 0) {
@@ -9007,8 +9014,14 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
   }
 };
 const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
-  if (isAnimating) return;
+  if (isAnimating) {
+    cancelAutomaticAnimation(setIsAnimating, setNodes, setEdges, nodes);
+    return;
+  }
   setIsAnimating(true);
+  // Limpa rigorosamente qualquer resíduo anterior
+  automaticAnimationTimeouts.forEach(clearTimeout);
+  automaticAnimationTimeouts = [];
   try {
     const response = await fetch('http://localhost:5000/insertion-sort', {
       method: 'POST',
@@ -9022,11 +9035,11 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     }
     const result = await response.json();
     const steps = result.steps;
+    automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
 
     // Animar cada passo
     steps.forEach((step, stepIndex) => {
-      setTimeout(() => {
-        // Atualizar nós com estados
+      const timeoutId = setTimeout(() => {
         const updatedNodes = nodes.map(node => {
           if (node.type === 'vector') {
             return {
@@ -9042,8 +9055,6 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
           }
           return node;
         });
-
-        // Atualizar edges
         const updatedEdges = step.edges.map(edge => ({
           id: `${edge.source}-${edge.target}`,
           source: edge.source,
@@ -9051,40 +9062,78 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
         }));
         setNodes(updatedNodes);
         setEdges(updatedEdges);
-
-        // Sincronizar com CodeView
         if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
           window.electronAPI.updateChildStep(stepIndex);
         }
 
-        // Se é o último passo, persistir o estado final
+        // Se é o último passo do loop
         if (stepIndex === steps.length - 1) {
-          setTimeout(async () => {
+          const finalPersistTimeout = setTimeout(async () => {
             try {
               await persistVectorState(updatedNodes);
-              // Resetar CodeView após persistir
               if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
                 window.electronAPI.updateChildStep(-1);
               }
+              setIsAnimating(false);
             } catch (err) {
               console.error('Erro ao persistir vetor:', err);
             }
           }, animationSpeed);
+          automaticAnimationTimeouts.push(finalPersistTimeout);
         }
       }, stepIndex * animationSpeed);
+      automaticAnimationTimeouts.push(timeoutId);
     });
 
-    // Aguardar a última animação terminar antes de finalizar
-    await new Promise(resolve => setTimeout(resolve, steps.length * animationSpeed + 500));
+    // Timeout de segurança para encerrar a flag de animação
+    const finalTimeoutId = setTimeout(() => {
+      setIsAnimating(false);
+      automaticAnimationTimeouts = [];
+      automaticAnimationSteps = [];
+    }, steps.length * animationSpeed + 100);
+    automaticAnimationTimeouts.push(finalTimeoutId);
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao executar insertion sort: ' + err.message);
-    // Resetar CodeView em caso de erro
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
       window.electronAPI.updateChildStep(-1);
     }
+    setIsAnimating(false);
+    automaticAnimationTimeouts = [];
+    automaticAnimationSteps = [];
+  }
+};
+const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, nodes) => {
+  try {
+    // 1. Limpa TODOS os timeouts imediatamente para congelar a tela
+    automaticAnimationTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    automaticAnimationTimeouts = [];
+
+    // 2. Recupera os passos que já estavam salvos localmente
+    let steps = automaticAnimationSteps;
+    if (!steps || steps.length === 0) {
+      // Fallback caso o array local tenha sumido por re-render do React
+      steps = await fetchSortSteps();
+    }
+    if (!steps || steps.length === 0) {
+      throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
+    }
+
+    // 3. Força o estado visual para o ÚLTIMO passo imediatamente
+    await applyAndPersistFinalState(steps, nodes, setNodes);
+
+    // Limpa as arestas visuais (edges) já que a ordenação acabou
+    setEdges([]);
+    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Simulação cancelada! O vetor pulou para o estado final.');
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(-1);
+    }
+  } catch (err) {
+    console.error('Erro ao cancelar animação:', err);
+    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao cancelar animação: ' + err.message);
   } finally {
     setIsAnimating(false);
+    automaticAnimationSteps = [];
   }
 };
 
@@ -9119,6 +9168,49 @@ const applyStepToNodes = (step, nodes, setNodes) => {
     return node;
   });
   setNodes(updatedNodes);
+};
+
+// Aplica o estado final (último passo) dos passos
+const applyFinalState = (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    return;
+  }
+  const finalStep = steps[steps.length - 1];
+  applyStepToNodes(finalStep, nodes, setNodes);
+};
+
+// Aplica o estado final e persiste o estado do vetor
+const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    throw new Error('Nenhum passo disponível');
+  }
+  const finalStep = steps[steps.length - 1];
+
+  // Criar os nodes atualizados com o estado final
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'vector') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: finalStep.nodes.map(n => n.value),
+          comparing: finalStep.comparing || [],
+          swapped: finalStep.swapped || [],
+          activeKey: finalStep.activeKey
+        }
+      };
+    }
+    return node;
+  });
+
+  // Atualizar o estado visual
+  setNodes(updatedNodes);
+
+  // Aguardar um pouco para garantir que os nodes foram atualizados
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // Persistir o estado final
+  await persistVectorState(updatedNodes);
 };
 
 // Persiste o estado final do vetor no backend
@@ -9553,9 +9645,9 @@ function VectorControls({
   const vector = handlers;
   const handleEndSimulation = async () => {
     try {
-      // Persistir o estado final do vetor
-      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_3__.persistVectorState)(nodes);
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Simulação encerrada e vetor atualizado!');
+      // Aplicar o estado final e persistir
+      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_3__.applyAndPersistFinalState)(states.steps, states.nodes, states.setNodes);
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Simulação encerrada e vetor atualizado para o estado final!');
     } catch (err) {
       sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao salvar estado do vetor: ' + err.message);
     } finally {
@@ -9591,7 +9683,12 @@ function VectorControls({
     onChange: e => setVectorSize(e.target.value),
     type: "text",
     id: "input",
-    required: true
+    required: true,
+    disabled: isAnimating,
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'text'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input",
     className: "label"
@@ -9607,7 +9704,12 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleCreateVector,
-    className: "control-button"
+    disabled: isAnimating,
+    className: "control-button",
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
+    }
   }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '20px'
@@ -9619,7 +9721,12 @@ function VectorControls({
     onChange: e => setVectorId(e.target.value),
     type: "text",
     id: "input-id",
-    required: true
+    required: true,
+    disabled: isAnimating,
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'text'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input-id",
     className: "label"
@@ -9636,7 +9743,12 @@ function VectorControls({
     onChange: e => setVectorValue(e.target.value),
     type: "text",
     id: "input-value",
-    required: true
+    required: true,
+    disabled: isAnimating,
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'text'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input-id",
     className: "label"
@@ -9652,7 +9764,12 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertVectorValue,
-    className: "control-button"
+    disabled: isAnimating,
+    className: "control-button",
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
+    }
   }, "Inserir Valor no \xCDndice")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '20px'
@@ -9660,7 +9777,12 @@ function VectorControls({
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
     className: "control-selector",
     value: states.vectorType,
-    onChange: e => states.setVectorType(e.target.value)
+    onChange: e => states.setVectorType(e.target.value),
+    disabled: isAnimating,
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
+    }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
     value: "int"
   }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
@@ -9683,10 +9805,16 @@ function VectorControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleInsertionSort,
-    disabled: isAnimating,
-    className: "control-button"
-  }, isAnimating ? '▶ Animando...' : '▶ Iniciar Automático')), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    onClick: vector.handleInsertionSort
+    // Desabilita apenas se estiver animando no modo Passo a Passo
+    ,
+    disabled: isAnimating && currentStep !== -1,
+    className: "control-button",
+    style: {
+      opacity: isAnimating && currentStep !== -1 ? 0.6 : 1,
+      cursor: isAnimating && currentStep !== -1 ? 'not-allowed' : 'pointer'
+    }
+  }, isAnimating && currentStep === -1 ? '⏹ Cancelar Animação' : '▶ Iniciar Automático')), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginTop: '8px'
     }
@@ -9703,7 +9831,8 @@ function VectorControls({
     onChange: e => setAnimationSpeed(Number(e.target.value)),
     style: {
       width: '100%'
-    }
+    },
+    disabled: isAnimating
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       textAlign: 'center',
@@ -9711,15 +9840,19 @@ function VectorControls({
       fontSize: '12px',
       color: '#666'
     }
-  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handlePrepareStepByStep,
-    style: {
-      width: '100%',
-      backgroundColor: '#2ecc71',
-      color: 'white',
-      padding: '10px'
+  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
     }
-  }, "Simular Passo a Passo") : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: vector.handlePrepareStepByStep,
+    disabled: isAnimating,
+    className: "control-button",
+    style: {
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
+    }
+  }, "Simular Passo a Passo")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       backgroundColor: '#f9f9f9',
       padding: '15px',
@@ -9740,13 +9873,31 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handlePrevStep,
-    disabled: currentStep === 0
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
   }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleNextStep,
-    disabled: currentStep === steps.length - 1
-  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleEndSimulation
-  }, "Encerrar Simula\xE7\xE3o"))));
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },
@@ -10137,11 +10288,18 @@ const useVectorHandlers = states => {
         sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Números não são permitidos em vetores de string.');
         return;
       }
+      finalValue = vectorValue.toUpperCase();
     }
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.insertVectorValue)(vectorId, finalValue, setVectorId, setVectorValue, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
-  const handleInsertionSort = () => {
-    (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+  const handleInsertionSort = async () => {
+    if (isAnimating && currentStep === -1) {
+      // Importante usar o await aqui para que o estado final seja garantido
+      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.cancelAutomaticAnimation)(setIsAnimating, setNodes, setEdges, nodes);
+    } else if (!isAnimating) {
+      // Se não está animando, iniciar
+      (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+    }
   };
 
   // Inicia o modo manual buscando os passos
@@ -10532,7 +10690,8 @@ const DEFAULT_EDGE_OPTIONS = {
   },
   style: {
     stroke: '#000000',
-    strokeWidth: 2
+    strokeWidth: 2,
+    zIndex: 10
   }
 };
 function View() {
@@ -10775,9 +10934,9 @@ background-color: #0b0b0b;
 background-color: #0b0b0b;
 }
 ::-webkit-scrollbar-thumb {
-background-color: #00ff88;
+background-color: #0b0b0b;
 border-radius: 30px;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/codeView.css"],"names":[],"mappings":"AAAA;AACA,UAAU;AACV,yBAAyB;AACzB;AACA;AACA,uDAAuD;AACvD,yBAAyB;AACzB;AACA;AACA,yBAAyB;AACzB,mBAAmB;AACnB","sourcesContent":["::-webkit-scrollbar {\r\nwidth: 6px;\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-track {\r\n-webkit-box-shadow: inset 0 0 6px rgba(30, 30, 30, 0.3);\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-thumb {\r\nbackground-color: #00ff88;\r\nborder-radius: 30px;\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/codeView.css"],"names":[],"mappings":"AAAA;AACA,UAAU;AACV,yBAAyB;AACzB;AACA;AACA,uDAAuD;AACvD,yBAAyB;AACzB;AACA;AACA,yBAAyB;AACzB,mBAAmB;AACnB","sourcesContent":["::-webkit-scrollbar {\r\nwidth: 6px;\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-track {\r\n-webkit-box-shadow: inset 0 0 6px rgba(30, 30, 30, 0.3);\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-thumb {\r\nbackground-color: #0b0b0b;\r\nborder-radius: 30px;\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -11078,7 +11237,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.exitBtn{
 .codeBtn{
     width:10vw;
     height:6vw;
-    border-radius: 15px;
+    border-radius: 12px;
     background-color: #0b0b0b;
     color: #00ff88;
     font-size: 0.8rem;
@@ -11093,18 +11252,18 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.exitBtn{
 
 /* Coloca as arestas acima dos nós */
 .react-flow__edges {
-  z-index: 5 !important;
+  z-index: 5;
 }
 
 /* Mantém nós abaixo das arestas */
 .react-flow__nodes {
-  z-index: 1 !important;
+  z-index: 1;
 }
 
 /* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */
 .react-flow__handle {
-  z-index: 6 !important;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,sBAAsB;;AAE1B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,qBAAqB;AACvB;;AAEA,kCAAkC;AAClC;EACE,qBAAqB;AACvB;;AAEA,2EAA2E;AAC3E;EACE,qBAAqB;AACvB","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 15px;\r\n    background-color: #000;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5 !important;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1 !important;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 6 !important;\r\n}"],"sourceRoot":""}]);
+  z-index: 0;
+}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,yBAAyB;IACzB,cAAc;IACd,iBAAiB;IACjB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;;AAE3B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,UAAU;AACZ;;AAEA,kCAAkC;AAClC;EACE,UAAU;AACZ;;AAEA,2EAA2E;AAC3E;EACE,UAAU;AACZ","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 12px;\r\n    background-color: #0b0b0b;\r\n    color: #00ff88;\r\n    font-size: 0.8rem;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 0;\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 

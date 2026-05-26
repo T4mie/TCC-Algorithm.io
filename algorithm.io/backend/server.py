@@ -107,8 +107,8 @@ def insert_value():
         value = int(value)
         value_type = 'int'
     elif is_single_char(value):
-        # Se for uma letra, mantém como string
-        value = str(value)
+        # Se for uma letra, converte para uppercase
+        value = str(value).upper()
         value_type = 'string'
     else:
         return jsonify({"error": "O valor deve ser uma única letra ou um inteiro"}), 400

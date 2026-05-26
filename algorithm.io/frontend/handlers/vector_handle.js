@@ -1,4 +1,4 @@
-import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState} from '../api/api_vector';
+import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState, cancelAutomaticAnimation } from '../api/api_vector';
 import {toast} from 'sonner'
 export const useVectorHandlers = (states) => {
   const {
@@ -30,6 +30,7 @@ export const useVectorHandlers = (states) => {
         toast.error('Números não são permitidos em vetores de string.');
         return;
       }
+      finalValue = vectorValue.toUpperCase();
     }
 
     insertVectorValue(
@@ -38,8 +39,14 @@ export const useVectorHandlers = (states) => {
     );
   };
 
-  const handleInsertionSort = () => {
-    startInsertionSort(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+  const handleInsertionSort = async () => {
+    if (isAnimating && currentStep === -1) {
+      // Importante usar o await aqui para que o estado final seja garantido
+      await cancelAutomaticAnimation(setIsAnimating, setNodes, setEdges, nodes);
+    } else if (!isAnimating) {
+      // Se não está animando, iniciar
+      startInsertionSort(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
+    }
   };
 
   // Inicia o modo manual buscando os passos
