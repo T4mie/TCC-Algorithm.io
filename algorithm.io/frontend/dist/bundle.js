@@ -9840,18 +9840,19 @@ function VectorControls({
       fontSize: '12px',
       color: '#666'
     }
-  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handlePrepareStepByStep,
     disabled: isAnimating,
+    className: "control-button",
     style: {
-      width: '100%',
-      backgroundColor: isAnimating ? '#95a5a6' : '#2ecc71',
-      color: 'white',
-      padding: '10px',
-      cursor: isAnimating ? 'not-allowed' : 'pointer',
-      opacity: isAnimating ? 0.6 : 1
+      opacity: isAnimating ? 0.6 : 1,
+      cursor: isAnimating ? 'not-allowed' : 'pointer'
     }
-  }, "Simular Passo a Passo") : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, "Simular Passo a Passo")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       backgroundColor: '#f9f9f9',
       padding: '15px',
@@ -9872,20 +9873,31 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handlePrevStep,
-    disabled: currentStep === 0
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
   }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleNextStep,
-    disabled: currentStep === steps.length - 1
-  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleEndSimulation,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
     style: {
-      width: '100%',
-      backgroundColor: '#e74c3c',
-      color: 'white',
-      padding: '10px',
-      cursor: 'pointer'
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
     }
-  }, "Encerrar Simula\xE7\xE3o"))));
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },

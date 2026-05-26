@@ -149,35 +149,57 @@ export default function VectorControls({ states, handlers, centerView }) {
         <div style={{ textAlign: 'center', margin: '10px 0', fontSize: '12px', color: '#666' }}>— OU —</div>
 
         {currentStep === -1 ? (
-          <button 
-            onClick={vector.handlePrepareStepByStep} 
-            disabled={isAnimating}
-            style={{ 
-              width: '100%', 
-              backgroundColor: isAnimating ? '#95a5a6' : '#2ecc71', 
-              color: 'white', 
-              padding: '10px',
-              cursor: isAnimating ? 'not-allowed' : 'pointer',
-              opacity: isAnimating ? 0.6 : 1
-            }}
-          >
-            Simular Passo a Passo
-          </button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <button 
+              onClick={vector.handlePrepareStepByStep} 
+              disabled={isAnimating}
+              className='control-button'
+              style={{ 
+                opacity: isAnimating ? 0.6 : 1,
+                cursor: isAnimating ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Simular Passo a Passo
+            </button>
+          </motion.div>
         ) : (
           <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
             <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '10px' }}>
               Passo: <strong>{currentStep + 1} / {steps.length}</strong>
             </p>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-              <button onClick={vector.handlePrevStep} disabled={currentStep === 0}>◀ Voltar</button>
-              <button onClick={vector.handleNextStep} disabled={currentStep === steps.length - 1}>Próximo ▶</button>
+              <button 
+                onClick={vector.handlePrevStep} 
+                disabled={currentStep === 0}
+                className='control-button'
+                style={{ 
+                  opacity: currentStep === 0 ? 0.6 : 1,
+                  cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                ◀ Voltar
+              </button>
+              <button 
+                onClick={vector.handleNextStep} 
+                disabled={currentStep === steps.length - 1}
+                className='control-button'
+                style={{ 
+                  opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+                  cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Próximo ▶
+              </button>
             </div>
-            <button 
-              onClick={handleEndSimulation}
-              style={{ width: '100%', backgroundColor: '#e74c3c', color: 'white', padding: '10px', cursor: 'pointer' }}
-            >
-              Encerrar Simulação
-            </button>
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <button 
+                onClick={handleEndSimulation}
+                className='control-button'
+                style={{ marginTop: '5px' }}
+              >
+                Encerrar Simulação
+              </button>
+            </motion.div>
           </div>
         )}
       </div>
