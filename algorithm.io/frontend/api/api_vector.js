@@ -3,6 +3,10 @@
 import { act } from "react";
 import {toast} from "sonner";
 
+  // Map para rastrear os timeouts da animação automática
+  let automaticAnimationTimeouts = [];
+  let automaticAnimationSteps = [];
+
 export const transformVectorData = (data) => {
 
    // Se não há nós, retornar arrays vazios
@@ -124,11 +128,16 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
   }
 };
 
-
 export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
-  if (isAnimating) return;
+  if (isAnimating) {
+    cancelAutomaticAnimation(setIsAnimating, setNodes, setEdges, nodes);
+    return;
+  }
 
   setIsAnimating(true);
+  // Limpa rigorosamente qualquer resíduo anterior
+  automaticAnimationTimeouts.forEach(clearTimeout);
+  automaticAnimationTimeouts = []; 
 
   try {
     const response = await fetch('http://localhost:5000/insertion-sort', {
@@ -143,11 +152,11 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
 
     const result = await response.json();
     const steps = result.steps;
+    automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
 
     // Animar cada passo
     steps.forEach((step, stepIndex) => {
-      setTimeout(() => {
-        // Atualizar nós com estados
+      const timeoutId = setTimeout(() => {
         const updatedNodes = nodes.map(node => {
           if (node.type === 'vector') {
             return {
@@ -164,7 +173,6 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
           return node;
         });
 
-        // Atualizar edges
         const updatedEdges = step.edges.map(edge => ({
           id: `${edge.source}-${edge.target}`,
           source: edge.source,
@@ -174,40 +182,86 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
         setNodes(updatedNodes);
         setEdges(updatedEdges);
 
-        // Sincronizar com CodeView
         if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
           window.electronAPI.updateChildStep(stepIndex);
         }
 
-        // Se é o último passo, persistir o estado final
+        // Se é o último passo do loop
         if (stepIndex === steps.length - 1) {
-          setTimeout(async () => {
+          const finalPersistTimeout = setTimeout(async () => {
             try {
               await persistVectorState(updatedNodes);
-              // Resetar CodeView após persistir
               if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
                 window.electronAPI.updateChildStep(-1);
               }
+              setIsAnimating(false);
             } catch (err) {
               console.error('Erro ao persistir vetor:', err);
             }
           }, animationSpeed);
+          automaticAnimationTimeouts.push(finalPersistTimeout);
         }
       }, stepIndex * animationSpeed);
+      
+      automaticAnimationTimeouts.push(timeoutId);
     });
 
-    // Aguardar a última animação terminar antes de finalizar
-    await new Promise(resolve => setTimeout(resolve, steps.length * animationSpeed + 500));
+    // Timeout de segurança para encerrar a flag de animação
+    const finalTimeoutId = setTimeout(() => {
+      setIsAnimating(false);
+      automaticAnimationTimeouts = [];
+      automaticAnimationSteps = [];
+    }, steps.length * animationSpeed + 100);
+    
+    automaticAnimationTimeouts.push(finalTimeoutId);
 
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     toast.error('Erro ao executar insertion sort: ' + err.message);
-    // Resetar CodeView em caso de erro
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
       window.electronAPI.updateChildStep(-1);
     }
+    setIsAnimating(false);
+    automaticAnimationTimeouts = [];
+    automaticAnimationSteps = [];
+  }
+};
+
+export const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, nodes) => {
+  try {
+    // 1. Limpa TODOS os timeouts imediatamente para congelar a tela
+    automaticAnimationTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    automaticAnimationTimeouts = [];
+
+    // 2. Recupera os passos que já estavam salvos localmente
+    let steps = automaticAnimationSteps;
+    if (!steps || steps.length === 0) {
+      // Fallback caso o array local tenha sumido por re-render do React
+      steps = await fetchSortSteps();
+    }
+    
+    if (!steps || steps.length === 0) {
+      throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
+    }
+
+    // 3. Força o estado visual para o ÚLTIMO passo imediatamente
+    await applyAndPersistFinalState(steps, nodes, setNodes);
+    
+    // Limpa as arestas visuais (edges) já que a ordenação acabou
+    setEdges([]);
+    
+    toast.success('Simulação cancelada! O vetor pulou para o estado final.');
+    
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(-1);
+    }
+    
+  } catch (err) {
+    console.error('Erro ao cancelar animação:', err);
+    toast.error('Erro ao cancelar animação: ' + err.message);
   } finally {
     setIsAnimating(false);
+    automaticAnimationSteps = [];
   }
 };
 
@@ -240,6 +294,50 @@ export const applyStepToNodes = (step, nodes, setNodes) => {
     return node;
   });
   setNodes(updatedNodes);
+};
+
+// Aplica o estado final (último passo) dos passos
+export const applyFinalState = (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    return;
+  }
+  const finalStep = steps[steps.length - 1];
+  applyStepToNodes(finalStep, nodes, setNodes);
+};
+
+// Aplica o estado final e persiste o estado do vetor
+export const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    throw new Error('Nenhum passo disponível');
+  }
+  
+  const finalStep = steps[steps.length - 1];
+  
+  // Criar os nodes atualizados com o estado final
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'vector') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: finalStep.nodes.map(n => n.value),
+          comparing: finalStep.comparing || [],
+          swapped: finalStep.swapped || [],
+          activeKey: finalStep.activeKey
+        }
+      };
+    }
+    return node;
+  });
+  
+  // Atualizar o estado visual
+  setNodes(updatedNodes);
+  
+  // Aguardar um pouco para garantir que os nodes foram atualizados
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  // Persistir o estado final
+  await persistVectorState(updatedNodes);
 };
 
 // Persiste o estado final do vetor no backend
