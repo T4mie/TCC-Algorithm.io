@@ -1,4 +1,4 @@
-import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes} from '../api/api_vector';
+import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState} from '../api/api_vector';
 import {toast} from 'sonner'
 export const useVectorHandlers = (states) => {
   const {
@@ -68,13 +68,17 @@ export const useVectorHandlers = (states) => {
         window.electronAPI.updateChildStep(nextIndex);
       }
       
-      // Se for o ÚLTIMO passo da lista, podemos encerrar o modo de animação
+      // Se for o ÚLTIMO passo da lista, persistir o vetor e encerrar modo de animação
       if (nextIndex === steps.length - 1) {
-        // Opcional: Pequeno delay para o usuário ver o vetor limpo antes de sumir o botão
-        setTimeout(() => {
-          setIsAnimating(false);
-          // Não resetamos o currentStep para -1 imediatamente para o usuário 
-          // poder ver que chegou no 10/10, por exemplo.
+        setTimeout(async () => {
+          try {
+            // Persistir o estado final do vetor
+            await persistVectorState(nodes);
+            setIsAnimating(false);
+          } catch (err) {
+            console.error('Erro ao persistir vetor no último passo:', err);
+            setIsAnimating(false);
+          }
         }, 500);
       }
     }

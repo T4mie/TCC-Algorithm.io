@@ -139,6 +139,24 @@ def get_vector_data():
     """Retorna toda a estrutura do vetor (nós + edges)"""
     return jsonify(storageVector.to_dict())
 
+@app.route("/update_vector", methods=["POST"])
+def update_vector():
+    """Atualiza o vetor com o estado final (após ordenação)"""
+    data = request.json
+    if not data or "nodes" not in data:
+        return jsonify({"error": "Campo 'nodes' é obrigatório"}), 400
+    
+    try:
+        # Atualiza os valores do vetor com os valores ordenados
+        nodes_data = data.get("nodes", [])
+        for idx, node_data in enumerate(nodes_data):
+            if idx < len(storageVector.nodes):
+                storageVector.nodes[idx].value = node_data.get("value")
+        
+        return jsonify({"message": "Vetor atualizado com sucesso", "data": storageVector.to_dict()}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 #  ===== ROTA PARA EXECUTAR O ALGORITMO DE ORDENAÇÃO (EXEMPLO COM INSERTION SORT) =====
 @app.route("/insertion-sort", methods=["POST"])
 def insertion_sort():

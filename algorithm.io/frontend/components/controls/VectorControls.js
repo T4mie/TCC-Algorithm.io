@@ -2,14 +2,33 @@
 import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
+import { persistVectorState } from '../../api/api_vector';
+import { toast } from 'sonner';
 
 export default function VectorControls({ states, handlers, centerView }) {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId, vectorValue, setVectorValue,
-    isAnimating, animationSpeed, setAnimationSpeed, currentStep, steps, setIsAnimating, setCurrentStep
+    isAnimating, animationSpeed, setAnimationSpeed, currentStep, steps, setIsAnimating, setCurrentStep, nodes
   } = states;
 
   const vector = handlers;
+
+  const handleEndSimulation = async () => {
+    try {
+      // Persistir o estado final do vetor
+      await persistVectorState(nodes);
+      toast.success('Simulação encerrada e vetor atualizado!');
+    } catch (err) {
+      toast.error('Erro ao salvar estado do vetor: ' + err.message);
+    } finally {
+      // Resetar os estados
+      setCurrentStep(-1); 
+      setIsAnimating(false); 
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
+    }
+  };
 
   return (
     <div>
@@ -95,14 +114,7 @@ export default function VectorControls({ states, handlers, centerView }) {
               <button onClick={vector.handlePrevStep} disabled={currentStep === 0}>◀ Voltar</button>
               <button onClick={vector.handleNextStep} disabled={currentStep === steps.length - 1}>Próximo ▶</button>
             </div>
-            <button onClick={() => { 
-              setCurrentStep(-1); 
-              setIsAnimating(false); 
-              vector.fetchData();
-              if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-                window.electronAPI.updateChildStep(-1);
-              }
-            }}>Encerrar Simulação</button>
+            <button onClick={handleEndSimulation}>Encerrar Simulação</button>
           </div>
         )}
       </div>

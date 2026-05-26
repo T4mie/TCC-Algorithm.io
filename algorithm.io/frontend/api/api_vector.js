@@ -145,47 +145,67 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
     const steps = result.steps;
 
     // Animar cada passo
-    for (const step of steps) {
-      // Atualizar nós com estados
-      const updatedNodes = nodes.map(node => {
-        if (node.type === 'vector') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              values: step.nodes.map(n => n.value),
-              comparing: step.comparing || [],
-              swapped: step.swapped || [],
-              activeKey: step.activeKey
-            }
-          };
+    steps.forEach((step, stepIndex) => {
+      setTimeout(() => {
+        // Atualizar nós com estados
+        const updatedNodes = nodes.map(node => {
+          if (node.type === 'vector') {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                values: step.nodes.map(n => n.value),
+                comparing: step.comparing || [],
+                swapped: step.swapped || [],
+                activeKey: step.activeKey
+              }
+            };
+          }
+          return node;
+        });
+
+        // Atualizar edges
+        const updatedEdges = step.edges.map(edge => ({
+          id: `${edge.source}-${edge.target}`,
+          source: edge.source,
+          target: edge.target
+        }));
+
+        setNodes(updatedNodes);
+        setEdges(updatedEdges);
+
+        // Sincronizar com CodeView
+        if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+          window.electronAPI.updateChildStep(stepIndex);
         }
-        return node;
-      });
 
-      // Atualizar edges
-      const updatedEdges = step.edges.map(edge => ({
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target
-      }));
+        // Se é o último passo, persistir o estado final
+        if (stepIndex === steps.length - 1) {
+          setTimeout(async () => {
+            try {
+              await persistVectorState(updatedNodes);
+              // Resetar CodeView após persistir
+              if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+                window.electronAPI.updateChildStep(-1);
+              }
+            } catch (err) {
+              console.error('Erro ao persistir vetor:', err);
+            }
+          }, animationSpeed);
+        }
+      }, stepIndex * animationSpeed);
+    });
 
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
-
-      // Aguardar antes do próximo passo
-      await new Promise(resolve => setTimeout(resolve, animationSpeed));
-    }
-
-    const finalResponse = await fetch('http://localhost:5000/vector_data');
-    const finalData = await finalResponse.json();
-    const { reactFlowNodes, reactFlowEdges } = transformVectorData(finalData);
-    setNodes(reactFlowNodes);
-    setEdges(reactFlowEdges);
+    // Aguardar a última animação terminar antes de finalizar
+    await new Promise(resolve => setTimeout(resolve, steps.length * animationSpeed + 500));
 
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     toast.error('Erro ao executar insertion sort: ' + err.message);
+    // Resetar CodeView em caso de erro
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(-1);
+    }
   } finally {
     setIsAnimating(false);
   }
@@ -220,4 +240,34 @@ export const applyStepToNodes = (step, nodes, setNodes) => {
     return node;
   });
   setNodes(updatedNodes);
+};
+
+// Persiste o estado final do vetor no backend
+export const persistVectorState = async (nodes) => {
+  try {
+    // Extrai os valores do nó vector (que é um nó especial com todos os valores)
+    const vectorNode = nodes.find(n => n.type === 'vector');
+    if (!vectorNode) {
+      throw new Error('Nó vector não encontrado');
+    }
+
+    const values = vectorNode.data.values || [];
+    const response = await fetch('http://localhost:5000/update_vector', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nodes: values.map(value => ({ value }))
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao atualizar vetor');
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error('Erro ao persistir vetor:', err);
+    throw err;
+  }
 };

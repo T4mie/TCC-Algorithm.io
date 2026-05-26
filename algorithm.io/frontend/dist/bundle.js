@@ -8868,6 +8868,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fetchSortSteps: () => (/* binding */ fetchSortSteps),
 /* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
 /* harmony export */   insertVectorValue: () => (/* binding */ insertVectorValue),
+/* harmony export */   persistVectorState: () => (/* binding */ persistVectorState),
 /* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort),
 /* harmony export */   transformVectorData: () => (/* binding */ transformVectorData)
 /* harmony export */ });
@@ -9023,47 +9024,65 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     const steps = result.steps;
 
     // Animar cada passo
-    for (const step of steps) {
-      // Atualizar nós com estados
-      const updatedNodes = nodes.map(node => {
-        if (node.type === 'vector') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              values: step.nodes.map(n => n.value),
-              comparing: step.comparing || [],
-              swapped: step.swapped || [],
-              activeKey: step.activeKey
-            }
-          };
+    steps.forEach((step, stepIndex) => {
+      setTimeout(() => {
+        // Atualizar nós com estados
+        const updatedNodes = nodes.map(node => {
+          if (node.type === 'vector') {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                values: step.nodes.map(n => n.value),
+                comparing: step.comparing || [],
+                swapped: step.swapped || [],
+                activeKey: step.activeKey
+              }
+            };
+          }
+          return node;
+        });
+
+        // Atualizar edges
+        const updatedEdges = step.edges.map(edge => ({
+          id: `${edge.source}-${edge.target}`,
+          source: edge.source,
+          target: edge.target
+        }));
+        setNodes(updatedNodes);
+        setEdges(updatedEdges);
+
+        // Sincronizar com CodeView
+        if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+          window.electronAPI.updateChildStep(stepIndex);
         }
-        return node;
-      });
 
-      // Atualizar edges
-      const updatedEdges = step.edges.map(edge => ({
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target
-      }));
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
+        // Se é o último passo, persistir o estado final
+        if (stepIndex === steps.length - 1) {
+          setTimeout(async () => {
+            try {
+              await persistVectorState(updatedNodes);
+              // Resetar CodeView após persistir
+              if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+                window.electronAPI.updateChildStep(-1);
+              }
+            } catch (err) {
+              console.error('Erro ao persistir vetor:', err);
+            }
+          }, animationSpeed);
+        }
+      }, stepIndex * animationSpeed);
+    });
 
-      // Aguardar antes do próximo passo
-      await new Promise(resolve => setTimeout(resolve, animationSpeed));
-    }
-    const finalResponse = await fetch('http://localhost:5000/vector_data');
-    const finalData = await finalResponse.json();
-    const {
-      reactFlowNodes,
-      reactFlowEdges
-    } = transformVectorData(finalData);
-    setNodes(reactFlowNodes);
-    setEdges(reactFlowEdges);
+    // Aguardar a última animação terminar antes de finalizar
+    await new Promise(resolve => setTimeout(resolve, steps.length * animationSpeed + 500));
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao executar insertion sort: ' + err.message);
+    // Resetar CodeView em caso de erro
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(-1);
+    }
   } finally {
     setIsAnimating(false);
   }
@@ -9100,6 +9119,37 @@ const applyStepToNodes = (step, nodes, setNodes) => {
     return node;
   });
   setNodes(updatedNodes);
+};
+
+// Persiste o estado final do vetor no backend
+const persistVectorState = async nodes => {
+  try {
+    // Extrai os valores do nó vector (que é um nó especial com todos os valores)
+    const vectorNode = nodes.find(n => n.type === 'vector');
+    if (!vectorNode) {
+      throw new Error('Nó vector não encontrado');
+    }
+    const values = vectorNode.data.values || [];
+    const response = await fetch('http://localhost:5000/update_vector', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        nodes: values.map(value => ({
+          value
+        }))
+      })
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao atualizar vetor');
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('Erro ao persistir vetor:', err);
+    throw err;
+  }
 };
 
 /***/ },
@@ -9585,7 +9635,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _css_controls_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../css/controls.css */ "./frontend/css/controls.css");
 /* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _api_api_vector__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../api/api_vector */ "./frontend/api/api_vector.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
 // components/VectorControls.js
+
+
 
 
 
@@ -9607,9 +9661,26 @@ function VectorControls({
     currentStep,
     steps,
     setIsAnimating,
-    setCurrentStep
+    setCurrentStep,
+    nodes
   } = states;
   const vector = handlers;
+  const handleEndSimulation = async () => {
+    try {
+      // Persistir o estado final do vetor
+      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_3__.persistVectorState)(nodes);
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Simulação encerrada e vetor atualizado!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao salvar estado do vetor: ' + err.message);
+    } finally {
+      // Resetar os estados
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
+    }
+  };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       marginBottom: '15px',
@@ -9788,14 +9859,7 @@ function VectorControls({
     onClick: vector.handleNextStep,
     disabled: currentStep === steps.length - 1
   }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: () => {
-      setCurrentStep(-1);
-      setIsAnimating(false);
-      vector.fetchData();
-      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-        window.electronAPI.updateChildStep(-1);
-      }
-    }
+    onClick: handleEndSimulation
   }, "Encerrar Simula\xE7\xE3o"))));
 }
 
@@ -10226,13 +10290,17 @@ const useVectorHandlers = states => {
         window.electronAPI.updateChildStep(nextIndex);
       }
 
-      // Se for o ÚLTIMO passo da lista, podemos encerrar o modo de animação
+      // Se for o ÚLTIMO passo da lista, persistir o vetor e encerrar modo de animação
       if (nextIndex === steps.length - 1) {
-        // Opcional: Pequeno delay para o usuário ver o vetor limpo antes de sumir o botão
-        setTimeout(() => {
-          setIsAnimating(false);
-          // Não resetamos o currentStep para -1 imediatamente para o usuário 
-          // poder ver que chegou no 10/10, por exemplo.
+        setTimeout(async () => {
+          try {
+            // Persistir o estado final do vetor
+            await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.persistVectorState)(nodes);
+            setIsAnimating(false);
+          } catch (err) {
+            console.error('Erro ao persistir vetor no último passo:', err);
+            setIsAnimating(false);
+          }
         }, 500);
       }
     }

@@ -58,9 +58,6 @@ class InsertionSort:
             self.steps.append(self.capture_state(code_id='INIT_LOOP'))
             self.steps.append(self.capture_state(comparing_indices=[i], key_value=key_value, code_id='SET_KEY'))
             
-            # Etapa faltante para acender o comentário no Pseudocódigo
-            self.steps.append(self.capture_state(code_id='COMMENT'))
-
             j = i - 1
 
             self.steps.append(self.capture_state(code_id='INIT_I', key_value=key_value))
@@ -109,16 +106,9 @@ class InsertionSort:
                 else:
                     break
             
-            
-            # Opcional: Acende a chave final do while (útil se estiver usando Java)
-            self.steps.append(self.capture_state(key_value=key_value, code_id='END_WHILE'))
-
             insert_target = all_indices[j + 1]
             self.nodes[insert_target].value = key_value
             self.steps.append(self.capture_state(key_value=None, code_id='INSERT'))
-            
-            # Opcional: Acende a chave final do for (útil se estiver usando Java)
-            self.steps.append(self.capture_state(key_value=None, code_id='END_FOR'))
 
         # passo final
         self.steps.append(self.capture_state(comparing_indices=[], swapped_indices=[], key_value=None, code_id='END_FUNC'))
