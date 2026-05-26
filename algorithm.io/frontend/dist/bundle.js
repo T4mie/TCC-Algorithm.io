@@ -9893,19 +9893,10 @@ function LinkedListNode({
   let borderWidth = '1px';
   if (data.type === 'head' || data.type === 'tail') {
     backgroundColor = '#555';
-  } else if (data.state === 'comparing') {
-    backgroundColor = '#ffb700'; // amarelo para comparação
-    borderWidth = '3px';
-  } else if (data.state === 'swapped') {
-    backgroundColor = '#00d084'; // verde para trocado
-    borderWidth = '3px';
-  } else if (data.state === 'sorted') {
-    backgroundColor = '#4CAF50'; // verde para ordenado
-    borderWidth = '2px';
   }
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_3__.motion.div, {
     initial: {
-      scale: 0.5,
+      scale: 1,
       opacity: 0
     },
     animate: {
@@ -10193,6 +10184,9 @@ const useSLLHandlers = states => {
   const handleAddNode = () => {
     if (nodeLabel.trim() === '') {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O valor do nó não pode ser vazio!');
+      return;
+    } else if (nodeLabel.length > 1) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O valor do nó deve ser um único caractere!');
       return;
     }
     (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes // ← Passa os nós atuais
@@ -10639,8 +10633,7 @@ const DEFAULT_EDGE_OPTIONS = {
   },
   style: {
     stroke: '#000000',
-    strokeWidth: 2,
-    zIndex: 10
+    strokeWidth: 2
   }
 };
 function View() {
@@ -11158,18 +11151,18 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.exitBtn{
 
 /* Coloca as arestas acima dos nós */
 .react-flow__edges {
-  z-index: 5;
+  z-index: 5 !important;
 }
 
 /* Mantém nós abaixo das arestas */
 .react-flow__nodes {
-  z-index: 1;
+  z-index: 1 !important;
 }
 
 /* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */
 .react-flow__handle {
-  z-index: 0;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,sBAAsB;;AAE1B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,UAAU;AACZ;;AAEA,kCAAkC;AAClC;EACE,UAAU;AACZ;;AAEA,2EAA2E;AAC3E;EACE,UAAU;AACZ","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 15px;\r\n    background-color: #000;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 0;\r\n}"],"sourceRoot":""}]);
+  z-index: 6 !important;
+}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,sBAAsB;;AAE1B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,qBAAqB;AACvB;;AAEA,kCAAkC;AAClC;EACE,qBAAqB;AACvB;;AAEA,2EAA2E;AAC3E;EACE,qBAAqB;AACvB","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 15px;\r\n    background-color: #000;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5 !important;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1 !important;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 6 !important;\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
