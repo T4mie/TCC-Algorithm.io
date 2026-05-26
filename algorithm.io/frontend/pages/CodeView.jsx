@@ -7,6 +7,7 @@ import { pseudocodigoLines } from '../code_view_data/insertion_sort/pseudocodigo
 import { javaLines } from '../code_view_data/insertion_sort/java';
 import { pythonLines } from '../code_view_data/insertion_sort/python';
 
+import '../css/codeView.css';
 // Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
 const codeSnippets = {
   pseudocódigo: pseudocodigoLines,
@@ -119,24 +120,26 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
   return (
     <div style={{
       padding: '16px',
-      height: '100%',
-      width:'100%',
+      minHeight: '100vh',
+      width: '100%',
       boxSizing: 'border-box',
       backgroundColor: '#0b0b0b',
       color: '#e6e6e6',
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace'
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      overflow: 'hidden'
     }}>
-      <h1 style={{ margin: 0, paddingBottom: 12, color: '#ffffff' }}>Code View</h1>
+      <h1 style={{ margin: 0, paddingBottom: 12, color: '#ffffff' }}>Visualizador de Código</h1>
       
-      <div style={{
+      <div  className="codeView__container" style={{
         marginTop: 8,
-        backgroundColor: '#000000',
+        backgroundColor: '#0b0b0b',
         color: '#00ff88',
         borderRadius: 6,
-        padding: '12px 0',
-        width:'100%',
-        height:'100%',
-        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.6)'
+        padding: '12px',
+        width: '95%',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxSizing: 'border-box'
       }}>
         {viewType === 'vector' && (
           <>

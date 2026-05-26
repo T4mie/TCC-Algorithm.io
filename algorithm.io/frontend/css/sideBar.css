@@ -1,9 +1,10 @@
 .sideBar{
     padding: 10px; 
+    padding-top: 12px;
     background-color: #fff; 
-    border-radius: 5px; 
+    border-radius: 12px; 
     box-shadow: 0 0 10px rgba(0,0,0,0.2); 
-    height:60vh;
+    height:95vh;
     width: 25vw;
     overflow-y: auto;
 }

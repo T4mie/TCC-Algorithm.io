@@ -9,7 +9,7 @@ export default function SidePanel({ props }) {
 
   const panelVariants = {
     closed: {
-      x: '90%',
+      x: '105%',
       transition: { type: 'spring', stiffness: 300, damping: 30 }
     },
     open: {
@@ -32,17 +32,21 @@ export default function SidePanel({ props }) {
         }}
       >
         
-        {/* O BOTÃO AGORA FICA AQUI: Sempre visível e colado na esquerda do painel */}
+        
         <button 
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            transform: 'translateX(-1%)',
+            position: 'absolute',    
+            right: '100%',           
+            marginRight: '16px',     
+            top: '0px',             
             cursor: 'pointer',
             backgroundColor: '#fff',
             border: '1px solid #ccc',
-            borderRight: 'none', // Remove a borda que encosta no painel
-            borderRadius: '4px 0 0 4px', // Arredonda apenas os cantos esquerdos
-            whiteSpace: 'nowrap'
+            padding: '8px 12px',    
+            borderRadius: '12px',    
+            whiteSpace: 'nowrap',
+            zIndex: 3
           }}
         >
           {isOpen ? '✕ Fechar' : '☰ Abrir'}

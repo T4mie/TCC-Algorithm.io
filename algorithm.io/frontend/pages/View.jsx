@@ -169,13 +169,14 @@ export default function View() {
         <Panel position="bottom-left">
           <a onClick={openWindow}>
             <div className="codeBtn">
+              Ver Código
             </div>
           </a>
         </Panel>
         <Panel position='bottom-right'>
           <MiniMap nodeStrokeWidth={3}/>
         </Panel>
-        <Panel position="top-right">
+        <Panel position="center-right">
           <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, sharedStates, centerView }} />
         </Panel>
       </ReactFlow>
