@@ -9378,6 +9378,116 @@ const pythonLines = [{
 
 /***/ },
 
+/***/ "./frontend/components/HelpWidget.jsx"
+/*!********************************************!*\
+  !*** ./frontend/components/HelpWidget.jsx ***!
+  \********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ HelpWidget)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
+
+
+function HelpWidget({
+  label = 'Texto',
+  inline = false,
+  sizeScale = 1
+}) {
+  const [isOpen, setIsOpen] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const btnSize = Math.round(48 * sizeScale);
+  const ButtonElement = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    "aria-label": "Ajuda",
+    onClick: () => setIsOpen(true),
+    style: {
+      width: btnSize + 'px',
+      height: btnSize + 'px',
+      borderRadius: '50%',
+      backgroundColor: '#1e427C',
+      color: '#fff',
+      border: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: Math.round(20 * sizeScale) + 'px',
+      cursor: 'pointer',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+    }
+  }, "?");
+
+  // Modal portal (shared for inline and non-inline)
+  const Modal = isOpen ? /*#__PURE__*/react_dom__WEBPACK_IMPORTED_MODULE_1__.createPortal(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    role: "dialog",
+    "aria-modal": "true",
+    style: {
+      position: 'fixed',
+      left: '5%',
+      right: '5%',
+      top: '5%',
+      bottom: '5%',
+      background: 'rgba(30,66,124,0.92)',
+      borderRadius: '12px',
+      padding: '20px',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+      color: '#fff',
+      overflow: 'auto',
+      zIndex: 10000,
+      WebkitBackdropFilter: 'blur(4px)'
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    "aria-label": "Fechar",
+    onClick: () => setIsOpen(false),
+    style: {
+      position: 'absolute',
+      right: '12px',
+      top: '12px',
+      width: '36px',
+      height: '36px',
+      borderRadius: '8px',
+      border: 'none',
+      background: 'rgba(255,255,255,0.12)',
+      color: '#fff',
+      cursor: 'pointer',
+      fontSize: '18px'
+    }
+  }, "\u2715"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '8px',
+      fontSize: Math.round(18 * sizeScale) + 'px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: '#fff'
+    }
+  }, label))), document.body) : null;
+  if (inline) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      style: {
+        display: 'flex',
+        padding: '6px'
+      }
+    }, ButtonElement, Modal);
+  }
+
+  // non-inline: render fixed button at top-right via portal
+  const fixedContainer = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      position: 'fixed',
+      top: `${16 * sizeScale}px`,
+      right: `${16 * sizeScale}px`,
+      zIndex: 10000
+    }
+  }, ButtonElement);
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react_dom__WEBPACK_IMPORTED_MODULE_1__.createPortal(fixedContainer, document.body), Modal);
+}
+
+/***/ },
+
 /***/ "./frontend/components/SelectorBox.jsx"
 /*!*********************************************!*\
   !*** ./frontend/components/SelectorBox.jsx ***!
@@ -9463,6 +9573,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../components/controls/VectorControls */ "./frontend/components/controls/VectorControls.js");
 /* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
 /* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+
 
 
 
@@ -9516,6 +9628,18 @@ function SidePanel({
       zIndex: 3
     }
   }, isOpen ? '✕ Fechar' : '☰ Abrir'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      position: 'absolute',
+      right: 'calc(100% + 96px)',
+      /* ajuste horizontal: alterar este valor (96px) para mover o botão mais/menos à esquerda */
+      top: '0px',
+      zIndex: 2
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_5__["default"], {
+    label: props.type === 'sll' ? 'Texto 2' : 'Texto 3',
+    inline: true,
+    sizeScale: 0.6
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "sideBar"
   }, props.type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
     nodeLabel: props.nodeLabel,
@@ -10581,6 +10705,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _css_selector_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../css/selector.css */ "./frontend/css/selector.css");
 /* harmony import */ var _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../icons/SLL.png */ "./frontend/icons/SLL.png");
 /* harmony import */ var _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../icons/Vector.png */ "./frontend/icons/Vector.png");
+/* harmony import */ var _components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../components/HelpWidget */ "./frontend/components/HelpWidget.jsx");
+
 
 
 
@@ -10631,7 +10757,10 @@ function Selector() {
       icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
       label: "Vetor"
     }
-  }))));
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
+    label: "Texto 1",
+    sizeScale: 0.6
+  }));
 }
 
 /***/ },
@@ -10890,7 +11019,8 @@ function View() {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.MiniMap, {
     nodeStrokeWidth: 3
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {
-    position: "center-right"
+    position: "center-right",
+    className: "app-side-panel"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_13__["default"], {
     props: {
       type,

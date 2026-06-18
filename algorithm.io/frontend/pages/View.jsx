@@ -176,10 +176,11 @@ export default function View() {
         <Panel position='bottom-right'>
           <MiniMap nodeStrokeWidth={3}/>
         </Panel>
-        <Panel position="center-right">
+        <Panel position="center-right" className="app-side-panel">
           <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, sharedStates, centerView }} />
         </Panel>
       </ReactFlow>
+      
     </div>
   );
 }

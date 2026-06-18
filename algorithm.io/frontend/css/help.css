@@ -1,0 +1,64 @@
+/* Help widget styles */
+.help-widget-wrapper{
+  position: fixed; /* top/right set inline by component */
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.help-widget-btn{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #1e427C; /* app primary color */
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+.help-widget-btn:hover{ transform: scale(1.05); }
+
+/* label removed: sample text moved inside modal */
+
+.help-modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.help-modal{
+  position: relative;
+  width: calc(100% - 10vw);
+  max-width: 960px;
+  max-height: calc(100% - 10vh);
+  background: rgba(30,66,124,0.92); /* blue, semi-transparent */
+  border-radius: 12px;
+  padding: 24px;
+  overflow: auto;
+  box-sizing: border-box;
+  margin: 5vh 5vw; /* keeps space from edges, proportional */
+}
+
+.help-modal-close{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.help-modal-content h2{ color: #fff; margin-top: 0; }
+.help-modal-content p{ color: #fff; line-height: 1.5; }

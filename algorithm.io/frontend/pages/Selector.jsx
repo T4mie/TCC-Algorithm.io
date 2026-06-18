@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import '../css/selector.css'
 import SLLIcon from '../icons/SLL.png'
 import VectorIcon from '../icons/Vector.png'
+import HelpWidget from '../components/HelpWidget';
 export default function Selector(){
     return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{duration:0.75}} style={{width: '100%',height:'100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
@@ -15,6 +16,7 @@ export default function Selector(){
                 <SelectorBox props={{ path: "/view/vector", icon:VectorIcon, label:"Vetor" }} />
             </div>
         </div>
+        <HelpWidget label="Texto 1" sizeScale={0.6} />
     </motion.div>
     );
 }

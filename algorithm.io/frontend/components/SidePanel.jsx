@@ -3,6 +3,7 @@ import SLLControls from '../components/controls/SLLControls';
 import VectorControls from '../components/controls/VectorControls';
 import '../css/sideBar.css';
 import { motion} from 'framer-motion';
+import HelpWidget from './HelpWidget';
 
 export default function SidePanel({ props }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +52,15 @@ export default function SidePanel({ props }) {
         >
           {isOpen ? '✕ Fechar' : '☰ Abrir'}
         </button>
+
+        <div style={{
+          position: 'absolute',
+          right: 'calc(100% + 96px)', /* ajuste horizontal: alterar este valor (96px) para mover o botão mais/menos à esquerda */
+          top: '0px',
+          zIndex: 2
+        }}>
+          <HelpWidget label={props.type === 'sll' ? 'Texto 2' : 'Texto 3'} inline sizeScale={0.6} />
+        </div>
 
         {/* O Painel Lateral em si */}
         <div 
