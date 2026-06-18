@@ -16,7 +16,7 @@ export default function Selector(){
                 <SelectorBox props={{ path: "/view/vector", icon:VectorIcon, label:"Vetor" }} />
             </div>
         </div>
-        <HelpWidget label="Texto 1" sizeScale={0.6} />
+        <HelpWidget label={`O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas e Vetores com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`} sizeScale={0.6} />
     </motion.div>
     );
 }

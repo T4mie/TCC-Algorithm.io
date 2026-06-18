@@ -9457,12 +9457,13 @@ function HelpWidget({
     }
   }, "\u2715"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      marginTop: '8px',
-      fontSize: Math.round(18 * sizeScale) + 'px'
+      marginTop: '28px',
+      fontSize: '18px'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      color: '#fff'
+      color: '#fff',
+      whiteSpace: 'pre-wrap'
     }
   }, label))), document.body) : null;
   if (inline) {
@@ -9636,7 +9637,7 @@ function SidePanel({
       zIndex: 2
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_5__["default"], {
-    label: props.type === 'sll' ? 'Texto 2' : 'Texto 3',
+    label: props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`,
     inline: true,
     sizeScale: 0.6
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -10758,7 +10759,7 @@ function Selector() {
       label: "Vetor"
     }
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
-    label: "Texto 1",
+    label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas e Vetores com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`,
     sizeScale: 0.6
   }));
 }

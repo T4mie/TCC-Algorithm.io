@@ -59,7 +59,7 @@ export default function SidePanel({ props }) {
           top: '0px',
           zIndex: 2
         }}>
-          <HelpWidget label={props.type === 'sll' ? 'Texto 2' : 'Texto 3'} inline sizeScale={0.6} />
+          <HelpWidget label={props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`} inline sizeScale={0.6} />
         </div>
 
         {/* O Painel Lateral em si */}

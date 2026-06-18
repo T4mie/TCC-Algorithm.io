@@ -71,8 +71,8 @@ export default function HelpWidget({ label = 'Texto', inline = false, sizeScale 
         ✕
       </button>
 
-      <div style={{ marginTop: '8px', fontSize: Math.round(18 * sizeScale) + 'px' }}>
-        <div style={{ color: '#fff' }}>{label}</div>
+      <div style={{ marginTop: '28px', fontSize: '18px' }}>
+          <div style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{label}</div>
       </div>
     </div>,
     document.body
