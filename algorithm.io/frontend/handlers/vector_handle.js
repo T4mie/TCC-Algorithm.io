@@ -109,6 +109,6 @@ export const useVectorHandlers = (states) => {
     handlePrepareStepByStep,
     handleNextStep,
     handlePrevStep,
-    fetchData: () => fetchVectorData(setNodes, setEdges, setNodeCount)
+    fetchData: () => fetchVectorData(setNodes, setEdges, setNodeCount, nodes)
   };
 };

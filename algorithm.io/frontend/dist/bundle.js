@@ -8726,7 +8726,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 function App() {
-  return console.log('App component rendered'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.HashRouter, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Routes, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Route, {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.HashRouter, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Routes, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Route, {
     path: "/",
     element: /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_pages_Selector__WEBPACK_IMPORTED_MODULE_3__["default"], null)
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Route, {
@@ -8737,6 +8737,54 @@ function App() {
     element: /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_pages_CodeView__WEBPACK_IMPORTED_MODULE_4__["default"], null)
   })));
 }
+
+/***/ },
+
+/***/ "./frontend/api/api_client.js"
+/*!************************************!*\
+  !*** ./frontend/api/api_client.js ***!
+  \************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   API_BASE_URL: () => (/* binding */ API_BASE_URL),
+/* harmony export */   fetchJson: () => (/* binding */ fetchJson),
+/* harmony export */   postJson: () => (/* binding */ postJson)
+/* harmony export */ });
+const API_BASE_URL = 'http://localhost:5000';
+const defaultHeaders = {
+  'Content-Type': 'application/json'
+};
+const resolveUrl = url => {
+  if (typeof url !== 'string') {
+    throw new TypeError('URL deve ser uma string');
+  }
+  return url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
+};
+const fetchJson = async (url, options = {}) => {
+  const response = await fetch(resolveUrl(url), {
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    const message = data && data.error ? data.error : response.statusText;
+    throw new Error(message || 'Erro na requisição');
+  }
+  return data;
+};
+const postJson = async (path, body = {}) => {
+  return fetchJson(path, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+};
+
 
 /***/ },
 
@@ -8753,12 +8801,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   transformBackendData: () => (/* binding */ transformBackendData)
 /* harmony export */ });
 /* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
 
+
+
+// Transforma os dados retornados pelo backend em nós e arestas para o React Flow.
 const transformBackendData = (data, currentNodes = []) => {
-  // Criar mapa das posições atuais
   const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
-
-  // Converter nós do backend, mas preservar posições
   const reactFlowNodes = data.nodes.map(node => ({
     id: node.id,
     type: node.type,
@@ -8770,16 +8819,12 @@ const transformBackendData = (data, currentNodes = []) => {
       metadata: node.metadata
     }
   }));
-
-  // Converter edges E usar o type como sourceHandle quando necessário
   const reactFlowEdges = data.edges.map(edge => {
     const baseEdge = {
       id: `${edge.source}-${edge.target}-${edge.type}`,
       source: edge.source,
       target: edge.target
     };
-
-    // Se a edge for do tipo "head" ou "tail", usar como handle
     if (edge.type === "head" || edge.type === "tail") {
       baseEdge.sourceHandle = edge.type;
     }
@@ -8794,38 +8839,34 @@ const transformBackendData = (data, currentNodes = []) => {
 };
 const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
   try {
-    const response = await fetch(`http://localhost:5000/SLL_data`);
-    const data = await response.json();
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/SLL_data');
     const {
       reactFlowNodes,
       reactFlowEdges,
       dataNodesCount
-    } = transformBackendData(data, currentNodes // ← Passa os nós atuais
-    );
+    } = transformBackendData(data, currentNodes);
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
     setNodeCount(dataNodesCount);
   } catch (err) {
-    console.error(`Erro ao carregar dados de SLL_data:`, err);
+    console.error('Erro ao carregar dados de SLL_data:', err);
   }
 };
-const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
-) => {
+const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
     return;
   }
   const basePosition = {
-    x: 600,
-    y: 0
+    x: 100,
+    y: 139
   };
-  const horizontalSpacing = 0;
-  const verticalSpacing = 80;
-  // const nodesPerColumn = 5; // Quantos nós por coluna antes de começar uma nova linha
-
+  const horizontalSpacing = 200;
+  const verticalSpacing = 90;
+  const nodesPerRow = 5;
   const newPosition = {
-    x: basePosition.x + nodeCount * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount) * verticalSpacing
+    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
+    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
   };
   const newNodeData = {
     value: nodeLabel,
@@ -8834,20 +8875,10 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
     type: 'SLL'
   };
   try {
-    const response = await fetch('http://localhost:5000/nodes_last', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(newNodeData)
-    });
-    if (response.ok) {
-      setNodeLabel('');
-      setNodeCount(nodeCount + 1);
-
-      // Passa os nós atuais para preservar posições
-      fetchDataCallback(currentNodes);
-    }
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/nodes_last', newNodeData);
+    setNodeLabel('');
+    setNodeCount(nodeCount + 1);
+    fetchDataCallback(currentNodes);
   } catch (err) {
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
   }
@@ -8875,10 +8906,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort),
 /* harmony export */   transformVectorData: () => (/* binding */ transformVectorData)
 /* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
-// ===== API PARA VETOR =====
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+// ===== API para operações de vetor e animação =====
 
 
 
@@ -8886,8 +8916,7 @@ __webpack_require__.r(__webpack_exports__);
 // Map para rastrear os timeouts da animação automática
 let automaticAnimationTimeouts = [];
 let automaticAnimationSteps = [];
-const transformVectorData = data => {
-  // Se não há nós, retornar arrays vazios
+const transformVectorData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return {
       reactFlowNodes: [],
@@ -8895,36 +8924,32 @@ const transformVectorData = data => {
       dataNodesCount: 0
     };
   }
-
-  // Para vetores, criar um único nó representando a barra
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
   const values = data.nodes.map(node => node.value);
   const labels = data.nodes.map(node => node.label);
-  const position = data.nodes[0]?.position || {
+  const position = positionMap.get('vector') || data.nodes[0]?.position || {
     x: 100,
     y: 100
   };
   const vectorNode = {
     id: 'vector',
     type: 'vector',
-    position: position,
+    position,
     data: {
-      values: values,
-      labels: labels,
+      values,
+      labels,
       type: 'vector'
     }
   };
-
-  // Edges podem ser ignorados para vetores, pois é uma representação visual única
   return {
     reactFlowNodes: [vectorNode],
     reactFlowEdges: [],
     dataNodesCount: 1
   };
 };
-const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
+const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
-    const response = await fetch('http://localhost:5000/vector_data');
-    const data = await response.json();
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/vector_data');
     const {
       reactFlowNodes,
       reactFlowEdges,
@@ -8939,12 +8964,12 @@ const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
 };
 const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
     return;
   }
   const vectorSize = Number(size);
   if (vectorSize > 15) {
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O tamanho máximo do vetor é 15.');
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('O tamanho máximo do vetor é 15.');
     return;
   }
   const createData = {
@@ -8955,23 +8980,12 @@ const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCoun
     }
   };
   try {
-    const response = await fetch('http://localhost:5000/create_vector', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(createData)
-    });
-    if (response.ok) {
-      setVectorSize('');
-      fetchDataCallback();
-      setNodeCount(Number(size));
-    } else {
-      const error = await response.json();
-      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao criar vetor: ' + error.error);
-    }
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/create_vector', createData);
+    setVectorSize('');
+    fetchDataCallback();
+    setNodeCount(vectorSize);
   } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao criar vetor: ' + err.message);
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar vetor: ' + err.message);
   }
 };
 const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
@@ -8983,34 +8997,20 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
   }
   const insertData = {
     node_id: nodeId,
-    value: value
+    value
   };
   try {
-    const response = await fetch('http://localhost:5000/insert_vector', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(insertData)
-    });
-    if (response.ok) {
-      const result = await response.json();
-      setVectorId('');
-      setVectorValue('');
-
-      // Se o vetor foi resetado, mostrar aviso
-      if (result.reset) {
-        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.warning(result.info || 'Vetor foi resetado');
-      } else {
-        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Valor inserido com sucesso');
-      }
-      fetchDataCallback();
+    const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insert_vector', insertData);
+    setVectorId('');
+    setVectorValue('');
+    if (result.reset) {
+      sonner__WEBPACK_IMPORTED_MODULE_0__.toast.warning(result.info || 'Vetor foi resetado');
     } else {
-      const error = await response.json();
-      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro do servidor: ' + error.error);
+      sonner__WEBPACK_IMPORTED_MODULE_0__.toast.success('Valor inserido com sucesso');
     }
+    fetchDataCallback();
   } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao inserir valor: ' + err.message);
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao inserir valor: ' + err.message);
   }
 };
 const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
@@ -9019,25 +9019,12 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     return;
   }
   setIsAnimating(true);
-  // Limpa rigorosamente qualquer resíduo anterior
   automaticAnimationTimeouts.forEach(clearTimeout);
   automaticAnimationTimeouts = [];
   try {
-    const response = await fetch('http://localhost:5000/insertion-sort', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao executar insertion sort');
-    }
-    const result = await response.json();
+    const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insertion-sort');
     const steps = result.steps;
-    automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
-
-    // Animar cada passo
+    automaticAnimationSteps = steps;
     steps.forEach((step, stepIndex) => {
       const timeoutId = setTimeout(() => {
         const updatedNodes = nodes.map(node => {
@@ -9055,18 +9042,11 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
           }
           return node;
         });
-        const updatedEdges = step.edges.map(edge => ({
-          id: `${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target
-        }));
         setNodes(updatedNodes);
-        setEdges(updatedEdges);
+        setEdges([]);
         if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
           window.electronAPI.updateChildStep(stepIndex);
         }
-
-        // Se é o último passo do loop
         if (stepIndex === steps.length - 1) {
           const finalPersistTimeout = setTimeout(async () => {
             try {
@@ -9084,8 +9064,6 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
       }, stepIndex * animationSpeed);
       automaticAnimationTimeouts.push(timeoutId);
     });
-
-    // Timeout de segurança para encerrar a flag de animação
     const finalTimeoutId = setTimeout(() => {
       setIsAnimating(false);
       automaticAnimationTimeouts = [];
@@ -9094,7 +9072,7 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     automaticAnimationTimeouts.push(finalTimeoutId);
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao executar insertion sort: ' + err.message);
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao executar insertion sort: ' + err.message);
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
       window.electronAPI.updateChildStep(-1);
     }
@@ -9105,52 +9083,33 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
 };
 const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, nodes) => {
   try {
-    // 1. Limpa TODOS os timeouts imediatamente para congelar a tela
     automaticAnimationTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
     automaticAnimationTimeouts = [];
-
-    // 2. Recupera os passos que já estavam salvos localmente
     let steps = automaticAnimationSteps;
     if (!steps || steps.length === 0) {
-      // Fallback caso o array local tenha sumido por re-render do React
       steps = await fetchSortSteps();
     }
     if (!steps || steps.length === 0) {
       throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
     }
-
-    // 3. Força o estado visual para o ÚLTIMO passo imediatamente
     await applyAndPersistFinalState(steps, nodes, setNodes);
-
-    // Limpa as arestas visuais (edges) já que a ordenação acabou
     setEdges([]);
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Simulação cancelada! O vetor pulou para o estado final.');
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.success('Simulação cancelada! O vetor pulou para o estado final.');
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
       window.electronAPI.updateChildStep(-1);
     }
   } catch (err) {
     console.error('Erro ao cancelar animação:', err);
-    sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao cancelar animação: ' + err.message);
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao cancelar animação: ' + err.message);
   } finally {
     setIsAnimating(false);
     automaticAnimationSteps = [];
   }
 };
-
-// Busca os passos no servidor e retorna a lista
 const fetchSortSteps = async () => {
-  const response = await fetch('http://localhost:5000/insertion-sort', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!response.ok) throw new Error('Erro ao buscar passos');
-  const result = await response.json();
+  const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insertion-sort');
   return result.steps;
 };
-
-// Atualiza o estado visual para um passo específico
 const applyStepToNodes = (step, nodes, setNodes) => {
   const updatedNodes = nodes.map(node => {
     if (node.type === 'vector') {
@@ -9169,8 +9128,6 @@ const applyStepToNodes = (step, nodes, setNodes) => {
   });
   setNodes(updatedNodes);
 };
-
-// Aplica o estado final (último passo) dos passos
 const applyFinalState = (steps, nodes, setNodes) => {
   if (!steps || steps.length === 0) {
     return;
@@ -9178,15 +9135,11 @@ const applyFinalState = (steps, nodes, setNodes) => {
   const finalStep = steps[steps.length - 1];
   applyStepToNodes(finalStep, nodes, setNodes);
 };
-
-// Aplica o estado final e persiste o estado do vetor
 const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
   if (!steps || steps.length === 0) {
     throw new Error('Nenhum passo disponível');
   }
   const finalStep = steps[steps.length - 1];
-
-  // Criar os nodes atualizados com o estado final
   const updatedNodes = nodes.map(node => {
     if (node.type === 'vector') {
       return {
@@ -9202,42 +9155,22 @@ const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
     }
     return node;
   });
-
-  // Atualizar o estado visual
   setNodes(updatedNodes);
-
-  // Aguardar um pouco para garantir que os nodes foram atualizados
   await new Promise(resolve => setTimeout(resolve, 50));
-
-  // Persistir o estado final
   await persistVectorState(updatedNodes);
 };
-
-// Persiste o estado final do vetor no backend
 const persistVectorState = async nodes => {
   try {
-    // Extrai os valores do nó vector (que é um nó especial com todos os valores)
     const vectorNode = nodes.find(n => n.type === 'vector');
     if (!vectorNode) {
       throw new Error('Nó vector não encontrado');
     }
     const values = vectorNode.data.values || [];
-    const response = await fetch('http://localhost:5000/update_vector', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        nodes: values.map(value => ({
-          value
-        }))
-      })
+    return await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/update_vector', {
+      nodes: values.map(value => ({
+        value
+      }))
     });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao atualizar vetor');
-    }
-    return await response.json();
   } catch (err) {
     console.error('Erro ao persistir vetor:', err);
     throw err;
@@ -10485,7 +10418,7 @@ const useVectorHandlers = states => {
     handlePrepareStepByStep,
     handleNextStep,
     handlePrevStep,
-    fetchData: () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount)
+    fetchData: () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount, nodes)
   };
 };
 
@@ -10518,6 +10451,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// CodeView exibe o código do algoritmo com destaque na linha ativa.
+// A lógica de mapeamento de passos para código está concentrada neste componente.
 // Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
 const codeSnippets = {
   pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_3__.pseudocodigoLines,
@@ -10554,12 +10490,12 @@ function CodeView({
     return propActiveStep || 'INIT_LOOP';
   };
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    // fetch all steps when viewing a vector so we can map updates later
+    // Carrega todos os passos quando a visão é de vetor, para permitir o
+    // mapeamento dos passos em linhas de código posteriormente.
     const loadSteps = async () => {
       if (viewType !== 'vector') return;
       try {
         const all = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_2__.fetchSortSteps)();
-        console.log('CodeView: loaded steps count', all.length, 'code_ids', all.map(s => s && s.code_id));
         setSteps(all);
         if (stepParam !== null) {
           const idx = Number(stepParam);
@@ -10582,34 +10518,34 @@ function CodeView({
     if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
     const handler = async payload => {
       const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
-      console.log('CodeView: received child-step update', idx);
       setStepIndex(idx);
       if (idx < 0) {
         // clear highlight when simulation ended
         setActiveStep(null);
         return;
       }
-
-      // if we already have steps, map immediately; otherwise fetch
       if (steps && steps.length > 0) {
-        console.log('CodeView: mapping step object', steps[idx]);
         const prev = steps[idx - 1] || null;
         const current = steps[idx] || null;
         setActiveStep(mapStepToCodeId(current, prev));
       } else {
         try {
           const all = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_2__.fetchSortSteps)();
-          console.log('CodeView: fetched steps on update', all.length, all.map(s => s && s.code_id));
           setSteps(all);
           const prev = all[idx - 1] || null;
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
         } catch (e) {
-          // ignore
+          // Ignore fetch failures on live update
         }
       }
     };
     window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
   }, [viewType, steps]);
   const buttonStyle = active => ({
     background: active ? '#0f766e' : '#111',
@@ -10799,14 +10735,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// Importando Handlers e Custom Nodes
+
+// Importando handlers de domínio e componentes de nó customizados.
 
 
 
 
 
-
-// Importando os novos painéis modularizados
 
 const NODE_TYPES = {
   SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_10__["default"],
@@ -10871,14 +10806,22 @@ function View() {
     vectorType,
     setVectorType
   };
+
+  // Handlers de domínio para cada tipo de visualização.
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__.useVectorHandlers)(sharedStates);
   const handlers = type === 'sll' ? sll : vector;
+
+  // Efeito de inicialização: busca os dados iniciais sempre que o tipo muda.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (handlers.fetchData) handlers.fetchData(nodes);
+    if (!handlers.fetchData) return;
+    setNodes([]);
+    setEdges([]);
+    setNodeCount(0);
+    handlers.fetchData([]);
   }, [type]);
   function openWindow() {
-    // pass currentStep so CodeView can open with the same highlighted step
+    // Passa currentStep para que o CodeView abra com o passo correto destacado.
     const stepToSend = typeof currentStep === 'number' ? currentStep : -1;
     window.electronAPI.openChildWindow(type, stepToSend);
   }

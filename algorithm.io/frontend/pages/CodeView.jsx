@@ -8,6 +8,9 @@ import { javaLines } from '../code_view_data/insertion_sort/java';
 import { pythonLines } from '../code_view_data/insertion_sort/python';
 
 import '../css/codeView.css';
+
+// CodeView exibe o código do algoritmo com destaque na linha ativa.
+// A lógica de mapeamento de passos para código está concentrada neste componente.
 // Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
 const codeSnippets = {
   pseudocódigo: pseudocodigoLines,
@@ -47,12 +50,12 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
   };
 
   useEffect(() => {
-    // fetch all steps when viewing a vector so we can map updates later
+    // Carrega todos os passos quando a visão é de vetor, para permitir o
+    // mapeamento dos passos em linhas de código posteriormente.
     const loadSteps = async () => {
       if (viewType !== 'vector') return;
       try {
         const all = await fetchSortSteps();
-        console.log('CodeView: loaded steps count', all.length, 'code_ids', all.map(s => s && s.code_id));
         setSteps(all);
         if (stepParam !== null) {
           const idx = Number(stepParam);
@@ -76,7 +79,6 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
 
     const handler = async (payload) => {
       const idx = (payload && typeof payload.step !== 'undefined') ? Number(payload.step) : -1;
-      console.log('CodeView: received child-step update', idx);
       setStepIndex(idx);
 
       if (idx < 0) {
@@ -85,27 +87,29 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
         return;
       }
 
-      // if we already have steps, map immediately; otherwise fetch
       if (steps && steps.length > 0) {
-        console.log('CodeView: mapping step object', steps[idx]);
         const prev = steps[idx - 1] || null;
         const current = steps[idx] || null;
         setActiveStep(mapStepToCodeId(current, prev));
       } else {
         try {
           const all = await fetchSortSteps();
-          console.log('CodeView: fetched steps on update', all.length, all.map(s => s && s.code_id));
           setSteps(all);
           const prev = all[idx - 1] || null;
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
         } catch (e) {
-          // ignore
+          // Ignore fetch failures on live update
         }
       }
     };
 
     window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
   }, [viewType, steps]);
 
   const buttonStyle = (active) => ({

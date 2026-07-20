@@ -7,7 +7,6 @@ import CodeView from './pages/CodeView';
 export default function App() {
   
   return (
-    console.log('App component rendered'),
     <Router>
       <Routes>
         <Route path="/" element={<Selector />} />

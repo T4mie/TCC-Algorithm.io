@@ -3,8 +3,13 @@ from models.nodeList import ListNode
 from models.edge import Edge
 
 class SLL:
+    """Uma representação de lista simplesmente encadeada com nós e arestas.
+
+    Esta classe mantém o estado da lista em memória e produz uma
+    representação serializável por `to_dict` que o frontend pode consumir.
+    """
+
     def __init__(self):
-        
         self.nodes = {}
         self.edges = []
         if len(self.nodes) != 0:

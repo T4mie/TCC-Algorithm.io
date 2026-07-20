@@ -1,45 +1,41 @@
-// ===== API PARA VETOR =====
+// ===== API para operações de vetor e animação =====
 
-import { act } from "react";
-import {toast} from "sonner";
+import { toast } from "sonner";
+import { fetchJson, postJson } from "./api_client";
 
-  // Map para rastrear os timeouts da animação automática
-  let automaticAnimationTimeouts = [];
-  let automaticAnimationSteps = [];
+// Map para rastrear os timeouts da animação automática
+let automaticAnimationTimeouts = [];
+let automaticAnimationSteps = [];
 
-export const transformVectorData = (data) => {
-
-   // Se não há nós, retornar arrays vazios
+export const transformVectorData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return { reactFlowNodes: [], reactFlowEdges: [], dataNodesCount: 0 };
   }
 
-  // Para vetores, criar um único nó representando a barra
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
   const values = data.nodes.map(node => node.value);
   const labels = data.nodes.map(node => node.label);
-  const position = data.nodes[0]?.position || { x: 100, y: 100 };
+  const position = positionMap.get('vector') || data.nodes[0]?.position || { x: 100, y: 100 };
 
   const vectorNode = {
     id: 'vector',
     type: 'vector',
-    position: position,
+    position,
     data: {
-      values: values,
-      labels: labels,
+      values,
+      labels,
       type: 'vector'
     }
   };
 
-  // Edges podem ser ignorados para vetores, pois é uma representação visual única
   return { reactFlowNodes: [vectorNode], reactFlowEdges: [], dataNodesCount: 1 };
 };
 
-export const fetchVectorData = async (setNodes, setEdges, setNodeCount) => {
+export const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
-    const response = await fetch('http://localhost:5000/vector_data');
-    const data = await response.json();
+    const data = await fetchJson('/vector_data');
     const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformVectorData(data);
-    
+
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
     setNodeCount(dataNodesCount);
@@ -53,7 +49,7 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
     toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
     return;
   }
-  
+
   const vectorSize = Number(size);
   if (vectorSize > 15) {
     toast.error('O tamanho máximo do vetor é 15.');
@@ -66,20 +62,10 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
   };
 
   try {
-    const response = await fetch('http://localhost:5000/create_vector', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(createData)
-    });
-
-    if (response.ok) {
-      setVectorSize('');
-      fetchDataCallback();
-      setNodeCount(Number(size));
-    } else {
-      const error = await response.json();
-      toast.error('Erro ao criar vetor: ' + error.error);
-    }
+    await postJson('/create_vector', createData);
+    setVectorSize('');
+    fetchDataCallback();
+    setNodeCount(vectorSize);
   } catch (err) {
     toast.error('Erro ao criar vetor: ' + err.message);
   }
@@ -96,33 +82,22 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
 
   const insertData = {
     node_id: nodeId,
-    value: value
+    value
   };
 
   try {
-    const response = await fetch('http://localhost:5000/insert_vector', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(insertData)
-    });
+    const result = await postJson('/insert_vector', insertData);
+    setVectorId('');
+    setVectorValue('');
 
-    if (response.ok) {
-      const result = await response.json();
-      setVectorId('');
-      setVectorValue('');
-      
       // Se o vetor foi resetado, mostrar aviso
-      if (result.reset) {
-        toast.warning(result.info || 'Vetor foi resetado');
-      } else {
-        toast.success('Valor inserido com sucesso');
-      }
-      
-      fetchDataCallback();
+    if (result.reset) {
+      toast.warning(result.info || 'Vetor foi resetado');
     } else {
-      const error = await response.json();
-      toast.error('Erro do servidor: ' + error.error);
+      toast.success('Valor inserido com sucesso');
     }
+
+    fetchDataCallback();
   } catch (err) {
     toast.error('Erro ao inserir valor: ' + err.message);
   }
@@ -137,20 +112,10 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
   setIsAnimating(true);
   // Limpa rigorosamente qualquer resíduo anterior
   automaticAnimationTimeouts.forEach(clearTimeout);
-  automaticAnimationTimeouts = []; 
+  automaticAnimationTimeouts = [];
 
   try {
-    const response = await fetch('http://localhost:5000/insertion-sort', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao executar insertion sort');
-    }
-
-    const result = await response.json();
+    const result = await postJson('/insertion-sort');
     const steps = result.steps;
     automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
 
@@ -173,14 +138,8 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
           return node;
         });
 
-        const updatedEdges = step.edges.map(edge => ({
-          id: `${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target
-        }));
-
         setNodes(updatedNodes);
-        setEdges(updatedEdges);
+        setEdges([]);
 
         if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
           window.electronAPI.updateChildStep(stepIndex);
@@ -202,7 +161,7 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
           automaticAnimationTimeouts.push(finalPersistTimeout);
         }
       }, stepIndex * animationSpeed);
-      
+
       automaticAnimationTimeouts.push(timeoutId);
     });
 
@@ -212,9 +171,8 @@ export const startInsertionSort = async (isAnimating, setIsAnimating, nodes, set
       automaticAnimationTimeouts = [];
       automaticAnimationSteps = [];
     }, steps.length * animationSpeed + 100);
-    
-    automaticAnimationTimeouts.push(finalTimeoutId);
 
+    automaticAnimationTimeouts.push(finalTimeoutId);
   } catch (err) {
     console.error('Erro ao executar insertion sort:', err);
     toast.error('Erro ao executar insertion sort: ' + err.message);
@@ -239,7 +197,7 @@ export const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdge
       // Fallback caso o array local tenha sumido por re-render do React
       steps = await fetchSortSteps();
     }
-    
+
     if (!steps || steps.length === 0) {
       throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
     }
@@ -249,13 +207,12 @@ export const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdge
     
     // Limpa as arestas visuais (edges) já que a ordenação acabou
     setEdges([]);
-    
+
     toast.success('Simulação cancelada! O vetor pulou para o estado final.');
-    
+
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
       window.electronAPI.updateChildStep(-1);
     }
-    
   } catch (err) {
     console.error('Erro ao cancelar animação:', err);
     toast.error('Erro ao cancelar animação: ' + err.message);
@@ -267,12 +224,7 @@ export const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdge
 
 // Busca os passos no servidor e retorna a lista
 export const fetchSortSteps = async () => {
-  const response = await fetch('http://localhost:5000/insertion-sort', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  if (!response.ok) throw new Error('Erro ao buscar passos');
-  const result = await response.json();
+  const result = await postJson('/insertion-sort');
   return result.steps;
 };
 
@@ -310,7 +262,7 @@ export const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
   if (!steps || steps.length === 0) {
     throw new Error('Nenhum passo disponível');
   }
-  
+
   const finalStep = steps[steps.length - 1];
   
   // Criar os nodes atualizados com o estado final
@@ -329,14 +281,12 @@ export const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
     }
     return node;
   });
-  
+
   // Atualizar o estado visual
   setNodes(updatedNodes);
   
   // Aguardar um pouco para garantir que os nodes foram atualizados
   await new Promise(resolve => setTimeout(resolve, 50));
-  
-  // Persistir o estado final
   await persistVectorState(updatedNodes);
 };
 
@@ -350,20 +300,7 @@ export const persistVectorState = async (nodes) => {
     }
 
     const values = vectorNode.data.values || [];
-    const response = await fetch('http://localhost:5000/update_vector', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nodes: values.map(value => ({ value }))
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao atualizar vetor');
-    }
-
-    return await response.json();
+    return await postJson('/update_vector', { nodes: values.map(value => ({ value })) });
   } catch (err) {
     console.error('Erro ao persistir vetor:', err);
     throw err;

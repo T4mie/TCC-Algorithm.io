@@ -1,23 +1,24 @@
 // views/View.js
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType,MiniMap } from '@xyflow/react';
-import { Toaster } from 'sonner'
-import { motion} from 'framer-motion';
+import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType, MiniMap } from '@xyflow/react';
+import { Toaster } from 'sonner';
+import { motion } from 'framer-motion';
 import '@xyflow/react/dist/style.css';
 import '../css/view.css';
-// Importando Handlers e Custom Nodes
+
+// Importando handlers de domínio e componentes de nó customizados.
 import { useSLLHandlers } from '../handlers/sll_handle';
 import { useVectorHandlers } from '../handlers/vector_handle';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
 import SidePanel from '../components/SidePanel';
-// Importando os novos painéis modularizados
+
 
 
 const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode };
-const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2,zIndex:10 } };
+const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2, zIndex: 10 } };
 
 export default function View() {
   const { type } = useParams();
@@ -48,19 +49,25 @@ export default function View() {
     vectorType, setVectorType
   };
 
+  // Handlers de domínio para cada tipo de visualização.
   const sll = useSLLHandlers(sharedStates);
   const vector = useVectorHandlers(sharedStates);
   const handlers = type === 'sll' ? sll : vector;
 
+  // Efeito de inicialização: busca os dados iniciais sempre que o tipo muda.
   useEffect(() => {
-    if (handlers.fetchData) handlers.fetchData(nodes);
+    if (!handlers.fetchData) return;
+
+    setNodes([]);
+    setEdges([]);
+    setNodeCount(0);
+    handlers.fetchData([]);
   }, [type]);
 
   function openWindow() {
-    // pass currentStep so CodeView can open with the same highlighted step
+    // Passa currentStep para que o CodeView abra com o passo correto destacado.
     const stepToSend = typeof currentStep === 'number' ? currentStep : -1;
     window.electronAPI.openChildWindow(type, stepToSend);
-
   }
 
   const centerView = async () => {

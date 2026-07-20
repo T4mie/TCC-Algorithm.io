@@ -1,7 +1,14 @@
 import copy
 
 
-class InsertionSort:    
+class InsertionSort:
+    """Encapsula a lógica de Insertion Sort e a geração de passos para animação.
+
+    A classe não altera o estado do vetor original diretamente. Em vez disso,
+    ela trabalha sobre uma cópia dos nós e produz um histórico de passos
+    (`steps`) que a interface utiliza para renderizar a animação.
+    """
+
     def __init__(self, vector):
         # Mantemos referência ao vetor original, mas operamos sobre
         # uma cópia profunda dos nós para não alterar o estado do
@@ -30,14 +37,9 @@ class InsertionSort:
     def sort(self):
         """Insertion sort atualizado: inclui espaços vazios na ordenação e mapeia 100% dos steps"""
         
-        # DEBUG: Mostrar o estado inicial dos nodes (valores)
-        # Nota: usamos `original_nodes` que foi inicializada no construtor.
-        try:
-            import sys
-            initial_values = [node.value for node in self.original_nodes]
-            print(f"[DEBUG] VALORES INICIAIS DO SORT: {initial_values}", file=sys.stderr)
-        except Exception:
-            pass
+        # Estado inicial do algoritmo para animação.
+        # A depuração de valores diretos deve ser feita com logging externo,
+        # não com prints embutidos neste método.
         
         all_indices = list(range(len(self.nodes)))
         
@@ -77,13 +79,9 @@ class InsertionSort:
                 
                 # --- INÍCIO DA COMPARAÇÃO BLINDADA ---
                 is_current_greater = False
-                
-                # Vamos printar exatamente o que o Python está enxergando no servidor
-                import sys
-                print(f"[DEBUG] Comparando índice j={j}: current='{current_value}' (tipo: {type(current_value)}) com key='{key_value}' (tipo: {type(key_value)})", file=sys.stderr)
-                
+
                 if current_value is None and key_value is not None:
-                    is_current_greater = True 
+                    is_current_greater = True
                 elif current_value is not None and key_value is not None:
                     try:
                         # Tenta converter explicitamente para número (trata "14" > "9")
@@ -91,8 +89,6 @@ class InsertionSort:
                     except (ValueError, TypeError):
                         # Fallback seguro: se não for número, compara como string
                         is_current_greater = str(current_value) > str(key_value)
-                
-                print(f"[DEBUG] is_current_greater avaliou para: {is_current_greater}", file=sys.stderr)
                 # --- FIM DA COMPARAÇÃO BLINDADA ---
 
                 if is_current_greater:

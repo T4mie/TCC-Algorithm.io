@@ -1,20 +1,23 @@
-const { app, BrowserWindow,ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+
 let win;
 let childWindow;
+
+// Cria a janela principal da aplicação Electron.
 const createWindow = () => {
   win = new BrowserWindow({
     width: 1200,
     height: 600,
     webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
     }
-  })
+  });
 
-  win.loadFile('frontend/index.html')
-}
+  win.loadFile('frontend/index.html');
+};
 
 function createChildWindow(type, currentStep = -1) {
     if (childWindow) {

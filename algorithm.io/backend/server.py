@@ -2,31 +2,28 @@ from flask import Flask, jsonify, request
 from structures.SLL import SLL
 from structures.Vector import Vector
 from algorithms.insertion_sort import InsertionSort
+from services.utils import is_single_char, is_integer
 
+# ===== CONFIGURAÇÃO DA APLICAÇÃO =====
 app = Flask(__name__)
 storageSLL = SLL()
 storageVector = Vector()
 
 
-#  ===== UTILS (mudar de lugar)  ===== 
+def json_error(message, status=400):
+    """Retorna um JSON de erro padronizado para as rotas."""
+    return jsonify({"error": message}), status
 
-def is_single_char(value):
-    """Verifica se o valor é uma única letra"""
-    if not isinstance(value, str):
-        return False
-    return len(value) == 1 and value.isalnum()
 
-def is_integer(value):
-    """Verifica se o valor é um inteiro ou uma string que representa um inteiro"""
-    if isinstance(value, bool): 
-        return False
-    if isinstance(value, int):
-        return True
-    if isinstance(value, str):
-        return value.lstrip('-').isdigit() # Lida com números negativos em string
-    return False
+def parse_int(value, name="valor"):
+    """Tenta converter um valor para inteiro, retornando None em falha."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"O campo '{name}' deve ser um inteiro válido")
 
-# ===== ROTAS PARA GERENCIAR NÓS  SLL =====
+
+# ===== ROTAS PARA GERENCIAR NÓS SLL =====
 
 @app.route("/nodes_last", methods=["POST"])
 def create_node_last():
@@ -75,28 +72,29 @@ def get_all_data():
 def create_vector():
     data = request.json
     if not data or "value" not in data:
-        return jsonify({"error": "Campo 'value' é obrigatório"}), 400
-    
-    if not is_integer(data.get("value")):
-        return jsonify({"error": "O valor deve ser um inteiro válido"}), 400
+        return json_error("Campo 'value' é obrigatório")
 
-    node = storageVector.create_vector(
-        size=int(data.get("value")),
+    try:
+        size = parse_int(data.get("value"), name='value')
+    except ValueError as exc:
+        return json_error(str(exc))
+
+    nodes = storageVector.create_vector(
+        size=size,
         position=data.get("position")
     )
-    return jsonify([node.to_dict() for node in node]), 201
+    return jsonify([node.to_dict() for node in nodes]), 201
 
 @app.route("/insert_vector", methods=["POST"])
 def insert_value():
     data = request.json
     if not data or "node_id" not in data or "value" not in data:
-        return jsonify({"error": "Campos 'node_id' e 'value' são obrigatórios"}), 400
-    
-    # Converter node_id para int (índice do vetor)
+        return json_error("Campos 'node_id' e 'value' são obrigatórios")
+
     try:
-        node_id = int(data.get("node_id"))
-    except:
-        return jsonify({"error": "O node_id deve ser um inteiro válido"}), 400
+        node_id = parse_int(data.get("node_id"), name='node_id')
+    except ValueError as exc:
+        return json_error(str(exc))
 
     value = data.get("value")
     value_type = None
@@ -180,13 +178,13 @@ def insertion_sort():
         
         sorter = InsertionSort(storageVector)
         steps = sorter.sort()
-        
+
         # Log code_ids for debugging (helps verifying SHIFT/DECREMENT_I presence)
         try:
             code_ids = [s.get('code_id') for s in steps]
         except Exception:
             code_ids = None
-        app.logger.debug(f"insertion-sort: steps_count={len(steps)} code_ids={code_ids}")
+        app.logger.debug("insertion-sort: steps_count=%d code_ids=%s", len(steps), code_ids)
 
         # Retornar steps e o estado final baseado na cópia do sorter
         # (não mutamos storageVector aqui).
@@ -223,50 +221,3 @@ def insertion_sort():
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
-
-# POR ENQUANTO, NÃO UTILIZADO --------------------------------------------------------------------
-
-# @app.route("/nodes", methods=["GET"])
-# def get_all_nodes():
-#     """Retorna todos os nós"""
-#     nodes = storageSLL.get_all_nodes()
-#     return jsonify([node.to_dict() for node in nodes])
-
-# @app.route("/nodes/<node_id>", methods=["GET"])
-# def get_node(node_id):
-#     """Retorna um nó específico"""
-#     node = storageSLL.get_node(node_id)
-#     if not node:
-#         return jsonify({"error": "Nó não encontrado"}), 404
-#     return jsonify(node.to_dict())
-
-# @app.route("/nodes/<node_id>", methods=["DELETE"])
-# def delete_node(node_id):
-#     """Deleta um nó"""
-#     try:
-#         storageSLL.delete_node(node_id)
-#         return jsonify({"message": "Nó deletado com sucesso"}), 200
-#     except ValueError as e:
-#         return jsonify({"error": str(e)}), 404
-
-# ===== ROTAS PARA GERENCIAR EDGES =====
-
-# @app.route("/edges", methods=["POST"])
-# def create_edge():
-#     """Cria uma ligação entre dois nós"""
-#     data = request.json
-#     if not data or "source_id" not in data or "target_id" not in data:
-#         return jsonify({"error": "Campos 'source_id' e 'target_id' são obrigatórios"}), 400
-    
-#     relation = data.get("relation", "next")
-#     try:
-#         edge = storageSLL.add_edge(data["source_id"], data["target_id"], relation)
-#         return jsonify(edge.to_dict()), 201
-#     except ValueError as e:
-#         return jsonify({"error": str(e)}), 400
-
-# @app.route("/edges", methods=["GET"])
-# def get_all_edges():
-#     """Retorna todas as ligações"""
-#     edges = storageSLL.get_all_edges()
-#     return jsonify([edge.to_dict() for edge in edges])

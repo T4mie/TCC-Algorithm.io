@@ -2,6 +2,12 @@ from models.node import Node
 from models.edge import Edge
 
 class Vector:
+    """Representa um vetor indexado como uma coleção de nós para visualização.
+
+    A classe é responsável por criar o vetor inicial, inserir valores por índice
+    e serializar seu estado para o frontend.
+    """
+
     def __init__(self):
         self.nodes = []
         self.edges = []
