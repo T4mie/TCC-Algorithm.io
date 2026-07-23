@@ -3,7 +3,8 @@ import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
 
-export default function SLLControls({ nodeLabel, setNodeLabel, handleAddNode, centerView }) {
+export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, handleRemoveNode, centerView}) 
+{
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleAddNode();
   };
@@ -20,9 +21,30 @@ export default function SLLControls({ nodeLabel, setNodeLabel, handleAddNode, ce
         <div className="underline" />
       </div>
       <div style={{ height: '12px' }} />
+
       <motion.div whileTap={{ scale: 0.95 }}>
-        <button onClick={handleAddNode} className="control-button">Adicionar Nó</button>
+        <button
+          onClick={handleAddNode}
+          className="control-button"
+        >
+          {handleRemoveNode ? "Enfileirar" : "Adicionar Nó"}
+        </button>
       </motion.div>
+
+      {handleRemoveNode && (
+        <>
+          <div style={{ height: '12px' }} />
+
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <button
+              onClick={handleRemoveNode}
+              className="control-button"
+            >
+              Desenfileirar
+            </button>
+          </motion.div>
+        </>
+      )}
     </div>
   );
 }

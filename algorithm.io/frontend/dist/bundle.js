@@ -8788,6 +8788,92 @@ const postJson = async (path, body = {}) => {
 
 /***/ },
 
+/***/ "./frontend/api/api_queue.js"
+/*!***********************************!*\
+  !*** ./frontend/api/api_queue.js ***!
+  \***********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   dequeueQueue: () => (/* binding */ dequeueQueue),
+/* harmony export */   enqueueQueue: () => (/* binding */ enqueueQueue),
+/* harmony export */   fetchQueueData: () => (/* binding */ fetchQueueData)
+/* harmony export */ });
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+
+
+const transformQueueData = (data, currentNodes = []) => {
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+  const reactFlowNodes = data.nodes.filter(node => node.id !== "list").map((node, index) => ({
+    id: node.id,
+    type: "SLL",
+    position: {
+      x: 100 + index * 120,
+      y: 140
+    },
+    data: {
+      label: node.label || node.value,
+      type: "queue",
+      state: null,
+      metadata: node.metadata
+    }
+  }));
+  const reactFlowEdges = data.edges.map(edge => ({
+    id: `${edge.source}-${edge.target}-${edge.type}`,
+    source: edge.source,
+    target: edge.target,
+    type: 'default'
+  }));
+  return {
+    reactFlowNodes,
+    reactFlowEdges
+  };
+};
+const fetchQueueData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/queue_data');
+    const {
+      reactFlowNodes,
+      reactFlowEdges
+    } = transformQueueData(data, currentNodes);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    setNodeCount(reactFlowNodes.length);
+  } catch (err) {
+    console.error('Erro ao carregar fila:', err);
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao carregar fila do backend');
+  }
+};
+const enqueueQueue = async (value, setNodeLabel, setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    const payload = {
+      value,
+      label: value,
+      position: {
+        x: 100 + currentNodes.length * 120,
+        y: 140
+      },
+      type: 'queue'
+    };
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/queue_enqueue', payload);
+    await fetchQueueData(setNodes, setEdges, setNodeCount, currentNodes);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao enfileirar: ' + err.message);
+  }
+};
+const dequeueQueue = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/queue_dequeue', {});
+    await fetchQueueData(setNodes, setEdges, setNodeCount, currentNodes);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao desenfileirar: ' + err.message);
+  }
+};
+
+/***/ },
+
 /***/ "./frontend/api/api_sll.js"
 /*!*********************************!*\
   !*** ./frontend/api/api_sll.js ***!
@@ -8807,7 +8893,10 @@ __webpack_require__.r(__webpack_exports__);
 
 // Transforma os dados retornados pelo backend em nós e arestas para o React Flow.
 const transformBackendData = (data, currentNodes = []) => {
+  // Criar mapa das posições atuais
   const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+
+  // Converter nós do backend, mas preservar posições
   const reactFlowNodes = data.nodes.map(node => ({
     id: node.id,
     type: node.type,
@@ -8819,12 +8908,16 @@ const transformBackendData = (data, currentNodes = []) => {
       metadata: node.metadata
     }
   }));
+
+  // Converter edges E usar o type como sourceHandle quando necessário
   const reactFlowEdges = data.edges.map(edge => {
     const baseEdge = {
       id: `${edge.source}-${edge.target}-${edge.type}`,
       source: edge.source,
       target: edge.target
     };
+
+    // Se a edge for do tipo "head" ou "tail", usar como handle
     if (edge.type === "head" || edge.type === "tail") {
       baseEdge.sourceHandle = edge.type;
     }
@@ -8852,7 +8945,8 @@ const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
     console.error('Erro ao carregar dados de SLL_data:', err);
   }
 };
-const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes) => {
+const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
+) => {
   if (!nodeLabel.trim()) {
     console.error('Digite um rótulo para o nó');
     return;
@@ -8878,6 +8972,8 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
     await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/nodes_last', newNodeData);
     setNodeLabel('');
     setNodeCount(nodeCount + 1);
+
+    // Passa os nós atuais para preservar posições
     fetchDataCallback(currentNodes);
   } catch (err) {
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
@@ -9003,6 +9099,8 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
     const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insert_vector', insertData);
     setVectorId('');
     setVectorValue('');
+
+    // Se o vetor foi resetado, mostrar aviso
     if (result.reset) {
       sonner__WEBPACK_IMPORTED_MODULE_0__.toast.warning(result.info || 'Vetor foi resetado');
     } else {
@@ -9019,12 +9117,15 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
     return;
   }
   setIsAnimating(true);
+  // Limpa rigorosamente qualquer resíduo anterior
   automaticAnimationTimeouts.forEach(clearTimeout);
   automaticAnimationTimeouts = [];
   try {
     const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insertion-sort');
     const steps = result.steps;
-    automaticAnimationSteps = steps;
+    automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
+
+    // Animar cada passo
     steps.forEach((step, stepIndex) => {
       const timeoutId = setTimeout(() => {
         const updatedNodes = nodes.map(node => {
@@ -9047,6 +9148,8 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
         if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
           window.electronAPI.updateChildStep(stepIndex);
         }
+
+        // Se é o último passo do loop
         if (stepIndex === steps.length - 1) {
           const finalPersistTimeout = setTimeout(async () => {
             try {
@@ -9064,6 +9167,8 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
       }, stepIndex * animationSpeed);
       automaticAnimationTimeouts.push(timeoutId);
     });
+
+    // Timeout de segurança para encerrar a flag de animação
     const finalTimeoutId = setTimeout(() => {
       setIsAnimating(false);
       automaticAnimationTimeouts = [];
@@ -9083,16 +9188,24 @@ const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, 
 };
 const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, nodes) => {
   try {
+    // 1. Limpa TODOS os timeouts imediatamente para congelar a tela
     automaticAnimationTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
     automaticAnimationTimeouts = [];
+
+    // 2. Recupera os passos que já estavam salvos localmente
     let steps = automaticAnimationSteps;
     if (!steps || steps.length === 0) {
+      // Fallback caso o array local tenha sumido por re-render do React
       steps = await fetchSortSteps();
     }
     if (!steps || steps.length === 0) {
       throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
     }
+
+    // 3. Força o estado visual para o ÚLTIMO passo imediatamente
     await applyAndPersistFinalState(steps, nodes, setNodes);
+
+    // Limpa as arestas visuais (edges) já que a ordenação acabou
     setEdges([]);
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.success('Simulação cancelada! O vetor pulou para o estado final.');
     if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
@@ -9106,10 +9219,14 @@ const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, node
     automaticAnimationSteps = [];
   }
 };
+
+// Busca os passos no servidor e retorna a lista
 const fetchSortSteps = async () => {
   const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insertion-sort');
   return result.steps;
 };
+
+// Atualiza o estado visual para um passo específico
 const applyStepToNodes = (step, nodes, setNodes) => {
   const updatedNodes = nodes.map(node => {
     if (node.type === 'vector') {
@@ -9128,6 +9245,8 @@ const applyStepToNodes = (step, nodes, setNodes) => {
   });
   setNodes(updatedNodes);
 };
+
+// Aplica o estado final (último passo) dos passos
 const applyFinalState = (steps, nodes, setNodes) => {
   if (!steps || steps.length === 0) {
     return;
@@ -9135,11 +9254,15 @@ const applyFinalState = (steps, nodes, setNodes) => {
   const finalStep = steps[steps.length - 1];
   applyStepToNodes(finalStep, nodes, setNodes);
 };
+
+// Aplica o estado final e persiste o estado do vetor
 const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
   if (!steps || steps.length === 0) {
     throw new Error('Nenhum passo disponível');
   }
   const finalStep = steps[steps.length - 1];
+
+  // Criar os nodes atualizados com o estado final
   const updatedNodes = nodes.map(node => {
     if (node.type === 'vector') {
       return {
@@ -9155,12 +9278,19 @@ const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
     }
     return node;
   });
+
+  // Atualizar o estado visual
   setNodes(updatedNodes);
+
+  // Aguardar um pouco para garantir que os nodes foram atualizados
   await new Promise(resolve => setTimeout(resolve, 50));
   await persistVectorState(updatedNodes);
 };
+
+// Persiste o estado final do vetor no backend
 const persistVectorState = async nodes => {
   try {
+    // Extrai os valores do nó vector (que é um nó especial com todos os valores)
     const vectorNode = nodes.find(n => n.type === 'vector');
     if (!vectorNode) {
       throw new Error('Nó vector não encontrado');
@@ -9536,6 +9666,7 @@ function SidePanel({
       }
     }
   };
+  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e use o botão "Enfileirar" para adicionar um elemento. O botão "Desenfileirar" remove o elemento da frente da fila e reorganiza os demais.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nNesta versão, a visualização foi criada para seleção e entrada, enquanto a lógica interna ainda está em desenvolvimento.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
     initial: "closed",
     animate: isOpen ? "open" : "closed",
@@ -9565,12 +9696,11 @@ function SidePanel({
     style: {
       position: 'absolute',
       right: 'calc(100% + 96px)',
-      /* ajuste horizontal: alterar este valor (96px) para mover o botão mais/menos à esquerda */
       top: '0px',
       zIndex: 2
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_5__["default"], {
-    label: props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`,
+    label: helpText,
     inline: true,
     sizeScale: 0.6
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -9580,7 +9710,65 @@ function SidePanel({
     setNodeLabel: props.setNodeLabel,
     handleAddNode: props.sll.handleAddNode,
     centerView: props.centerView
-  }), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
+  }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    nodeLabel: props.sharedStates.queueValue,
+    setNodeLabel: props.sharedStates.setQueueValue,
+    handleAddNode: props.queue.handleEnqueue,
+    handleRemoveNode: props.queue.handleDequeue,
+    centerView: props.centerView
+  }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => props.centerView && props.centerView(),
+    className: "control-button"
+  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: props.sharedStates.stackValue,
+    onChange: e => props.sharedStates.setStackValue(e.target.value),
+    type: "text",
+    id: "stack-input",
+    required: true
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "stack-input",
+    className: "label"
+  }, "Valor da Pilha"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    disabled: true,
+    className: "control-button"
+  }, "Empilhar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    disabled: true,
+    className: "control-button"
+  }, "Remover do Topo")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      color: '#666',
+      marginTop: '12px'
+    }
+  }, "A visualiza\xE7\xE3o da pilha foi criada para entrada e sele\xE7\xE3o nesta vers\xE3o.")), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
     states: props.sharedStates,
     handlers: props.vector,
     centerView: props.centerView
@@ -9611,6 +9799,7 @@ function SLLControls({
   nodeLabel,
   setNodeLabel,
   handleAddNode,
+  handleRemoveNode,
   centerView
 }) {
   const handleKeyPress = e => {
@@ -9652,7 +9841,18 @@ function SLLControls({
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: handleAddNode,
     className: "control-button"
-  }, "Adicionar N\xF3")));
+  }, handleRemoveNode ? "Enfileirar" : "Adicionar Nó")), handleRemoveNode && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleRemoveNode,
+    className: "control-button"
+  }, "Desenfileirar"))));
 }
 
 /***/ },
@@ -10650,7 +10850,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-
 function Selector() {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     initial: {
@@ -10684,18 +10883,30 @@ function Selector() {
     className: "selectorContainer"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
-      path: "/view/sll",
+      path: '/view/sll',
       icon: _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__,
-      label: "Lista Simplesmente Ligada"
+      label: 'Lista Simplesmente Ligada'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
-      path: "/view/vector",
+      path: '/view/vector',
       icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
-      label: "Vetor"
+      label: 'Vetor'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    props: {
+      path: '/view/queue',
+      icon: _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__,
+      label: 'Fila'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    props: {
+      path: '/view/stack',
+      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      label: 'Pilha'
     }
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
-    label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas e Vetores com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`,
+    label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas e Pilhas com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`,
     sizeScale: 0.6
   }));
 }
@@ -10727,6 +10938,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
 /* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
 /* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
+/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
 // views/View.js
 
 
@@ -10736,7 +10948,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// Importando handlers de domínio e componentes de nó customizados.
 
 
 
@@ -10780,6 +10991,8 @@ function View() {
   const [vectorId, setVectorId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorValue, setVectorValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [vectorType, setVectorType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
+  const [queueValue, setQueueValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [stackValue, setStackValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const sharedStates = {
     nodes,
     setNodes,
@@ -10804,21 +11017,69 @@ function View() {
     currentStep,
     setCurrentStep,
     vectorType,
-    setVectorType
+    setVectorType,
+    queueValue,
+    setQueueValue,
+    stackValue,
+    setStackValue
   };
-
-  // Handlers de domínio para cada tipo de visualização.
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__.useVectorHandlers)(sharedStates);
-  const handlers = type === 'sll' ? sll : vector;
-
-  // Efeito de inicialização: busca os dados iniciais sempre que o tipo muda.
+  const handleEnqueue = () => {
+    const value = queueValue.trim();
+    if (!value) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Informe um valor para enfileirar');
+      return;
+    }
+    (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.enqueueQueue)(value, setNodeLabel, setNodes, setEdges, setNodeCount, nodes).then(() => setQueueValue(''));
+  };
+  const handleDequeue = async () => {
+    if (!nodes.length) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('A fila já está vazia');
+      return;
+    }
+    try {
+      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.dequeueQueue)(setNodes, setEdges, setNodeCount, nodes);
+    } catch (error) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao desenfileirar: ' + error.message);
+    }
+  };
+  const queue = {
+    handleEnqueue,
+    handleDequeue
+  };
+  const stack = {
+    handlePush: () => {},
+    handlePop: () => {}
+  };
+  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : {
+    fetchData: () => {}
+  };
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (!handlers.fetchData) return;
+    if (type === 'sll') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      handlers.fetchData([]);
+      return;
+    }
+    if (type === 'vector') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      handlers.fetchData([]);
+      return;
+    }
+    if (type === 'queue') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.fetchQueueData)(setNodes, setEdges, setNodeCount, []);
+      return;
+    }
     setNodes([]);
     setEdges([]);
     setNodeCount(0);
-    handlers.fetchData([]);
   }, [type]);
   function openWindow() {
     // Passa currentStep para que o CodeView abra com o passo correto destacado.
@@ -10972,6 +11233,8 @@ function View() {
       setNodeLabel,
       sll,
       vector,
+      queue,
+      stack,
       sharedStates,
       centerView
     }

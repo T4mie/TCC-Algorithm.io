@@ -2,18 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ReactFlow, Background, Panel, useNodesState, useEdgesState, MarkerType, MiniMap } from '@xyflow/react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { motion } from 'framer-motion';
 import '@xyflow/react/dist/style.css';
 import '../css/view.css';
 
-// Importando handlers de domínio e componentes de nó customizados.
 import { useSLLHandlers } from '../handlers/sll_handle';
 import { useVectorHandlers } from '../handlers/vector_handle';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
 import SidePanel from '../components/SidePanel';
+import { enqueueQueue, dequeueQueue, fetchQueueData } from '../api/api_queue';
 
 
 
@@ -39,29 +39,62 @@ export default function View() {
   const [vectorId, setVectorId] = useState('');
   const [vectorValue, setVectorValue] = useState('');
   const [vectorType, setVectorType] = useState('int');
+  const [queueValue, setQueueValue] = useState('');
+  const [stackValue, setStackValue] = useState('');
 
-  const sharedStates = { 
-    nodes, setNodes, edges, setEdges, nodeCount, setNodeCount, 
+  const sharedStates = {
+    nodes, setNodes, edges, setEdges, nodeCount, setNodeCount,
     isAnimating, setIsAnimating, animationSpeed, setAnimationSpeed,
-    nodeLabel, setNodeLabel, vectorSize, setVectorSize, 
+    nodeLabel, setNodeLabel, vectorSize, setVectorSize,
     vectorId, setVectorId, vectorValue, setVectorValue,
     steps, setSteps, currentStep, setCurrentStep,
-    vectorType, setVectorType
+    vectorType, setVectorType,
+    queueValue, setQueueValue,
+    stackValue, setStackValue
   };
 
-  // Handlers de domínio para cada tipo de visualização.
   const sll = useSLLHandlers(sharedStates);
   const vector = useVectorHandlers(sharedStates);
-  const handlers = type === 'sll' ? sll : vector;
 
-  // Efeito de inicialização: busca os dados iniciais sempre que o tipo muda.
+  const handleEnqueue = () => {
+    const value = queueValue.trim();
+    if (!value) {
+      toast.error('Informe um valor para enfileirar');
+      return;
+    }
+
+    enqueueQueue(value, setNodeLabel, setNodes, setEdges, setNodeCount, nodes).then(() => setQueueValue(''));
+  };
+
+  const handleDequeue = async () => {
+    if (!nodes.length) {
+      toast.error('A fila já está vazia');
+      return;
+    }
+
+    try {
+      await dequeueQueue(setNodes, setEdges, setNodeCount, nodes);
+    } 
+    catch (error) {
+      toast.error('Erro ao desenfileirar: ' + error.message);
+    }
+  };
+
+  const queue = { handleEnqueue, handleDequeue };
+  const stack = { handlePush: () => {}, handlePop: () => {} };
+  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : { fetchData: () => {} };
+
   useEffect(() => {
-    if (!handlers.fetchData) return;
-
-    setNodes([]);
-    setEdges([]);
-    setNodeCount(0);
-    handlers.fetchData([]);
+    if (type === 'sll') {
+      setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
+    }
+    if (type === 'vector') {
+      setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
+    }
+    if (type === 'queue') {
+      setNodes([]); setEdges([]); setNodeCount(0); fetchQueueData(setNodes, setEdges, setNodeCount, []); return;
+    }
+    setNodes([]); setEdges([]); setNodeCount(0);
   }, [type]);
 
   function openWindow() {
@@ -184,7 +217,7 @@ export default function View() {
           <MiniMap nodeStrokeWidth={3}/>
         </Panel>
         <Panel position="center-right" className="app-side-panel">
-          <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, sharedStates, centerView }} />
+          <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, queue, stack, sharedStates, centerView }} />
         </Panel>
       </ReactFlow>
       

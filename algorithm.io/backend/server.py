@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from structures.SLL import SLL
 from structures.Vector import Vector
+from structures.Queue import Queue
 from algorithms.insertion_sort import InsertionSort
 from services.utils import is_single_char, is_integer
 
@@ -8,6 +9,7 @@ from services.utils import is_single_char, is_integer
 app = Flask(__name__)
 storageSLL = SLL()
 storageVector = Vector()
+storageQueue = Queue()
 
 
 def json_error(message, status=400):
@@ -65,6 +67,43 @@ def create_node_first():
 def get_all_data():
     """Retorna toda a estrutura (nós + edges)"""
     return jsonify(storageSLL.to_dict())
+
+# ===== ROTAS PARA GERENCIAR A FILA =====
+
+@app.route("/queue_enqueue", methods=["POST"])
+def queue_enqueue():
+    data = request.json
+    if not data or "value" not in data:
+        return json_error("Campo 'value' é obrigatório")
+    if not is_single_char(data.get("value")) and not is_integer(data.get("value")):
+        return jsonify({"error": "O valor deve ser uma única letra ou um inteiro"}), 400
+
+    value = data.get("value")
+    if is_integer(value):
+        value = int(value)
+    elif is_single_char(value):
+        value = str(value).upper()
+
+    node = storageQueue.enqueue(
+        value=value,
+        position=data.get("position"),
+        label=data.get("label"),
+        node_type=data.get("type"),
+        node_id=data.get("id")
+    )
+    return jsonify(node.to_dict()), 201
+
+@app.route("/queue_dequeue", methods=["POST"])
+def queue_dequeue():
+    try:
+        node = storageQueue.dequeue()
+        return jsonify(node.to_dict()), 200
+    except ValueError as exc:
+        return json_error(str(exc))
+
+@app.route("/queue_data", methods=["GET"])
+def get_queue_data():
+    return jsonify(storageQueue.to_dict())
 
 # ===== ROTAS PARA GERENCIAR NÓS VECTOR ===== #
 
