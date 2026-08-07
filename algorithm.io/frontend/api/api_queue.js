@@ -66,3 +66,8 @@ export const dequeueQueue = async (setNodes, setEdges, setNodeCount, currentNode
     toast.error('Erro ao desenfileirar: ' + err.message);
   }
 };
+
+// Limpa a fila no backend, como se ela nunca tivesse sido usada
+export const clearQueue = async () => {
+  return postJson('/clear_queue', {});
+};

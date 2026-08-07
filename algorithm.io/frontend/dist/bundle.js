@@ -8796,6 +8796,7 @@ const postJson = async (path, body = {}) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   clearQueue: () => (/* binding */ clearQueue),
 /* harmony export */   dequeueQueue: () => (/* binding */ dequeueQueue),
 /* harmony export */   enqueueQueue: () => (/* binding */ enqueueQueue),
 /* harmony export */   fetchQueueData: () => (/* binding */ fetchQueueData)
@@ -8872,6 +8873,11 @@ const dequeueQueue = async (setNodes, setEdges, setNodeCount, currentNodes = [])
   }
 };
 
+// Limpa a fila no backend, como se ela nunca tivesse sido usada
+const clearQueue = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_queue', {});
+};
+
 /***/ },
 
 /***/ "./frontend/api/api_sll.js"
@@ -8883,6 +8889,7 @@ const dequeueQueue = async (setNodes, setEdges, setNodeCount, currentNodes = [])
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   addNode: () => (/* binding */ addNode),
+/* harmony export */   clearSLL: () => (/* binding */ clearSLL),
 /* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
 /* harmony export */   transformBackendData: () => (/* binding */ transformBackendData)
 /* harmony export */ });
@@ -8945,6 +8952,11 @@ const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
     console.error('Erro ao carregar dados de SLL_data:', err);
   }
 };
+
+// Limpa a lista no backend, como se ela nunca tivesse sido usada
+const clearSLL = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_sll', {});
+};
 const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
 ) => {
   if (!nodeLabel.trim()) {
@@ -8982,6 +8994,213 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
 
 /***/ },
 
+/***/ "./frontend/api/api_stack.js"
+/*!***********************************!*\
+  !*** ./frontend/api/api_stack.js ***!
+  \***********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyAndPersistFinalState: () => (/* binding */ applyAndPersistFinalState),
+/* harmony export */   applyFinalState: () => (/* binding */ applyFinalState),
+/* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
+/* harmony export */   clearStack: () => (/* binding */ clearStack),
+/* harmony export */   createStack: () => (/* binding */ createStack),
+/* harmony export */   fetchPopSteps: () => (/* binding */ fetchPopSteps),
+/* harmony export */   fetchPushSteps: () => (/* binding */ fetchPushSteps),
+/* harmony export */   fetchStackData: () => (/* binding */ fetchStackData),
+/* harmony export */   fetchStackSteps: () => (/* binding */ fetchStackSteps),
+/* harmony export */   persistStackState: () => (/* binding */ persistStackState),
+/* harmony export */   transformStackData: () => (/* binding */ transformStackData)
+/* harmony export */ });
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+// ===== API para operações de pilha (push/pop) e simulação passo a passo =====
+
+
+
+const transformStackData = (data, currentNodes = []) => {
+  if (!data.nodes || data.nodes.length === 0) {
+    return {
+      reactFlowNodes: [],
+      reactFlowEdges: [],
+      dataNodesCount: 0
+    };
+  }
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+  const values = data.nodes.map(node => node.value);
+  const labels = data.nodes.map(node => node.label);
+  const position = positionMap.get('stack') || data.nodes[0]?.position || {
+    x: 100,
+    y: 100
+  };
+  const stackNode = {
+    id: 'stack',
+    type: 'stack',
+    position,
+    data: {
+      values,
+      labels,
+      top: typeof data.top === 'number' ? data.top : -1,
+      type: 'stack'
+    }
+  };
+  return {
+    reactFlowNodes: [stackNode],
+    reactFlowEdges: [],
+    dataNodesCount: 1
+  };
+};
+const fetchStackData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/stack_data');
+    const {
+      reactFlowNodes,
+      reactFlowEdges,
+      dataNodesCount
+    } = transformStackData(data, currentNodes);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados da pilha:', err);
+  }
+};
+const createStack = async (size, setStackSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
+  if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um tamanho de pilha válido (um inteiro positivo).');
+    return;
+  }
+  const stackSize = Number(size);
+  if (stackSize > 15) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('O tamanho máximo da pilha é 15.');
+    return;
+  }
+  const createData = {
+    value: stackSize,
+    position: {
+      x: 100,
+      y: 100
+    }
+  };
+  try {
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/create_stack', createData);
+    setStackSize('');
+    fetchDataCallback();
+    setNodeCount(stackSize);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar pilha: ' + err.message);
+  }
+};
+
+// Executa o push no servidor e retorna { op: 'push', steps, data }
+const fetchPushSteps = async value => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/stack_push_steps', {
+    value
+  });
+};
+
+// Executa o pop no servidor e retorna { op: 'pop', steps, data }
+const fetchPopSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/stack_pop_steps', {});
+};
+
+// Busca os últimos passos gerados (push ou pop), usado pela janela do CodeView
+const fetchStackSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/stack_steps');
+};
+
+// Atualiza o estado visual para um passo específico
+const applyStepToNodes = (step, nodes, setNodes) => {
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'stack') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: step.nodes.map(n => n.value),
+          labels: step.nodes.map(n => n.label),
+          top: step.top,
+          highlighted: step.highlighted || [],
+          activeValue: step.activeValue,
+          codeId: step.code_id
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+};
+
+// Aplica o estado final (último passo) dos passos
+const applyFinalState = (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    return;
+  }
+  const finalStep = steps[steps.length - 1];
+  applyStepToNodes(finalStep, nodes, setNodes);
+};
+
+// Aplica o estado final e persiste o estado da pilha.
+// Ao encerrar a simulação, limpa os campos que só existem durante a
+// animação (highlighted/activeValue/codeId) para que nenhum resquício
+// do último passo (ex.: o valor removido no pop) continue aparecendo
+// depois que a operação já terminou.
+const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    throw new Error('Nenhum passo disponível');
+  }
+  const finalStep = steps[steps.length - 1];
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'stack') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: finalStep.nodes.map(n => n.value),
+          labels: finalStep.nodes.map(n => n.label),
+          top: finalStep.top,
+          highlighted: [],
+          activeValue: null,
+          codeId: null
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  await persistStackState(updatedNodes);
+};
+
+// Limpa a pilha no backend, como se ela nunca tivesse sido criada
+const clearStack = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_stack', {});
+};
+
+// Persiste o estado final da pilha no backend
+const persistStackState = async nodes => {
+  try {
+    const stackNode = nodes.find(n => n.type === 'stack');
+    if (!stackNode) {
+      throw new Error('Nó da pilha não encontrado');
+    }
+    const values = stackNode.data.values || [];
+    return await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/update_stack', {
+      nodes: values.map(value => ({
+        value
+      })),
+      top: stackNode.data.top
+    });
+  } catch (err) {
+    console.error('Erro ao persistir pilha:', err);
+    throw err;
+  }
+};
+
+/***/ },
+
 /***/ "./frontend/api/api_vector.js"
 /*!************************************!*\
   !*** ./frontend/api/api_vector.js ***!
@@ -8993,25 +9212,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   applyAndPersistFinalState: () => (/* binding */ applyAndPersistFinalState),
 /* harmony export */   applyFinalState: () => (/* binding */ applyFinalState),
 /* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
-/* harmony export */   cancelAutomaticAnimation: () => (/* binding */ cancelAutomaticAnimation),
+/* harmony export */   clearVector: () => (/* binding */ clearVector),
 /* harmony export */   createVector: () => (/* binding */ createVector),
 /* harmony export */   fetchSortSteps: () => (/* binding */ fetchSortSteps),
 /* harmony export */   fetchVectorData: () => (/* binding */ fetchVectorData),
 /* harmony export */   insertVectorValue: () => (/* binding */ insertVectorValue),
 /* harmony export */   persistVectorState: () => (/* binding */ persistVectorState),
-/* harmony export */   startInsertionSort: () => (/* binding */ startInsertionSort),
 /* harmony export */   transformVectorData: () => (/* binding */ transformVectorData)
 /* harmony export */ });
 /* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
 /* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
-// ===== API para operações de vetor e animação =====
+// ===== API para operações de vetor e simulação passo a passo do insertion sort =====
 
 
 
-
-// Map para rastrear os timeouts da animação automática
-let automaticAnimationTimeouts = [];
-let automaticAnimationSteps = [];
 const transformVectorData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return {
@@ -9111,114 +9325,6 @@ const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fet
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao inserir valor: ' + err.message);
   }
 };
-const startInsertionSort = async (isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed) => {
-  if (isAnimating) {
-    cancelAutomaticAnimation(setIsAnimating, setNodes, setEdges, nodes);
-    return;
-  }
-  setIsAnimating(true);
-  // Limpa rigorosamente qualquer resíduo anterior
-  automaticAnimationTimeouts.forEach(clearTimeout);
-  automaticAnimationTimeouts = [];
-  try {
-    const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/insertion-sort');
-    const steps = result.steps;
-    automaticAnimationSteps = steps; // Armazena a referência para o cancelamento
-
-    // Animar cada passo
-    steps.forEach((step, stepIndex) => {
-      const timeoutId = setTimeout(() => {
-        const updatedNodes = nodes.map(node => {
-          if (node.type === 'vector') {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                values: step.nodes.map(n => n.value),
-                comparing: step.comparing || [],
-                swapped: step.swapped || [],
-                activeKey: step.activeKey
-              }
-            };
-          }
-          return node;
-        });
-        setNodes(updatedNodes);
-        setEdges([]);
-        if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-          window.electronAPI.updateChildStep(stepIndex);
-        }
-
-        // Se é o último passo do loop
-        if (stepIndex === steps.length - 1) {
-          const finalPersistTimeout = setTimeout(async () => {
-            try {
-              await persistVectorState(updatedNodes);
-              if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-                window.electronAPI.updateChildStep(-1);
-              }
-              setIsAnimating(false);
-            } catch (err) {
-              console.error('Erro ao persistir vetor:', err);
-            }
-          }, animationSpeed);
-          automaticAnimationTimeouts.push(finalPersistTimeout);
-        }
-      }, stepIndex * animationSpeed);
-      automaticAnimationTimeouts.push(timeoutId);
-    });
-
-    // Timeout de segurança para encerrar a flag de animação
-    const finalTimeoutId = setTimeout(() => {
-      setIsAnimating(false);
-      automaticAnimationTimeouts = [];
-      automaticAnimationSteps = [];
-    }, steps.length * animationSpeed + 100);
-    automaticAnimationTimeouts.push(finalTimeoutId);
-  } catch (err) {
-    console.error('Erro ao executar insertion sort:', err);
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao executar insertion sort: ' + err.message);
-    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-      window.electronAPI.updateChildStep(-1);
-    }
-    setIsAnimating(false);
-    automaticAnimationTimeouts = [];
-    automaticAnimationSteps = [];
-  }
-};
-const cancelAutomaticAnimation = async (setIsAnimating, setNodes, setEdges, nodes) => {
-  try {
-    // 1. Limpa TODOS os timeouts imediatamente para congelar a tela
-    automaticAnimationTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-    automaticAnimationTimeouts = [];
-
-    // 2. Recupera os passos que já estavam salvos localmente
-    let steps = automaticAnimationSteps;
-    if (!steps || steps.length === 0) {
-      // Fallback caso o array local tenha sumido por re-render do React
-      steps = await fetchSortSteps();
-    }
-    if (!steps || steps.length === 0) {
-      throw new Error('Nenhum passo de ordenação encontrado para finalizar.');
-    }
-
-    // 3. Força o estado visual para o ÚLTIMO passo imediatamente
-    await applyAndPersistFinalState(steps, nodes, setNodes);
-
-    // Limpa as arestas visuais (edges) já que a ordenação acabou
-    setEdges([]);
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.success('Simulação cancelada! O vetor pulou para o estado final.');
-    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-      window.electronAPI.updateChildStep(-1);
-    }
-  } catch (err) {
-    console.error('Erro ao cancelar animação:', err);
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao cancelar animação: ' + err.message);
-  } finally {
-    setIsAnimating(false);
-    automaticAnimationSteps = [];
-  }
-};
 
 // Busca os passos no servidor e retorna a lista
 const fetchSortSteps = async () => {
@@ -9237,7 +9343,9 @@ const applyStepToNodes = (step, nodes, setNodes) => {
           values: step.nodes.map(n => n.value),
           comparing: step.comparing || [],
           swapped: step.swapped || [],
-          activeKey: step.activeKey
+          activeKey: step.activeKey,
+          iValue: step.iValue,
+          jValue: step.jValue
         }
       };
     }
@@ -9270,9 +9378,11 @@ const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
         data: {
           ...node.data,
           values: finalStep.nodes.map(n => n.value),
-          comparing: finalStep.comparing || [],
-          swapped: finalStep.swapped || [],
-          activeKey: finalStep.activeKey
+          comparing: [],
+          swapped: [],
+          activeKey: null,
+          iValue: null,
+          jValue: null
         }
       };
     }
@@ -9305,6 +9415,11 @@ const persistVectorState = async nodes => {
     console.error('Erro ao persistir vetor:', err);
     throw err;
   }
+};
+
+// Limpa o vetor no backend, como se ele nunca tivesse sido criado
+const clearVector = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_vector', {});
 };
 
 /***/ },
@@ -9437,6 +9552,207 @@ const pythonLines = [{
 }, {
   id: 'INSERT',
   text: '        A[i + 1] = chave'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_pop/java.js"
+/*!*********************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_pop/java.js ***!
+  \*********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPopJavaLines: () => (/* binding */ stackPopJavaLines)
+/* harmony export */ });
+const stackPopJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public int pop() {'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if (topo == -1) {'
+}, {
+  id: 'UNDERFLOW',
+  text: '        throw new RuntimeException("Estouro negativo (Underflow)");'
+}, {
+  id: 'END_CHECK_EMPTY',
+  text: '    }'
+}, {
+  id: 'READ_VALUE',
+  text: '    int valor = pilha[topo];'
+}, {
+  id: 'CLEAR_VALUE',
+  text: '    pilha[topo] = 0;'
+}, {
+  id: 'DECREMENT_TOP',
+  text: '    topo--;'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor;'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js"
+/*!*****************************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_pop/pseudocodigo.js ***!
+  \*****************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPopPseudocodigoLines: () => (/* binding */ stackPopPseudocodigoLines)
+/* harmony export */ });
+const stackPopPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'POP(S)'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    se S.topo == -1'
+}, {
+  id: 'UNDERFLOW',
+  text: '        erro "Estouro negativo (Underflow)"'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = S[S.topo]'
+}, {
+  id: 'CLEAR_VALUE',
+  text: '    S[S.topo] = vazio'
+}, {
+  id: 'DECREMENT_TOP',
+  text: '    S.topo = S.topo - 1'
+}, {
+  id: 'END_FUNC',
+  text: '    retorna valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_pop/python.js"
+/*!***********************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_pop/python.js ***!
+  \***********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPopPythonLines: () => (/* binding */ stackPopPythonLines)
+/* harmony export */ });
+const stackPopPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def pop(pilha):'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if pilha.topo == -1:'
+}, {
+  id: 'UNDERFLOW',
+  text: '        raise Exception("Estouro negativo (Underflow)")'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = pilha[pilha.topo]'
+}, {
+  id: 'CLEAR_VALUE',
+  text: '    pilha[pilha.topo] = None'
+}, {
+  id: 'DECREMENT_TOP',
+  text: '    pilha.topo -= 1'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_push/java.js"
+/*!**********************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_push/java.js ***!
+  \**********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPushJavaLines: () => (/* binding */ stackPushJavaLines)
+/* harmony export */ });
+const stackPushJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public void push(int valor) {'
+}, {
+  id: 'CHECK_FULL',
+  text: '    if (topo == tamanho - 1) {'
+}, {
+  id: 'OVERFLOW',
+  text: '        throw new RuntimeException("Estouro de pilha (Overflow)");'
+}, {
+  id: 'END_CHECK_FULL',
+  text: '    }'
+}, {
+  id: 'INCREMENT_TOP',
+  text: '    topo++;'
+}, {
+  id: 'SET_VALUE',
+  text: '    pilha[topo] = valor;'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js"
+/*!******************************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_push/pseudocodigo.js ***!
+  \******************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPushPseudocodigoLines: () => (/* binding */ stackPushPseudocodigoLines)
+/* harmony export */ });
+const stackPushPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'PUSH(S, valor)'
+}, {
+  id: 'CHECK_FULL',
+  text: '    se S.topo == S.tamanho - 1'
+}, {
+  id: 'OVERFLOW',
+  text: '        erro "Estouro de pilha (Overflow)"'
+}, {
+  id: 'INCREMENT_TOP',
+  text: '    S.topo = S.topo + 1'
+}, {
+  id: 'SET_VALUE',
+  text: '    S[S.topo] = valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/stack/stack_push/python.js"
+/*!************************************************************!*\
+  !*** ./frontend/code_view_data/stack/stack_push/python.js ***!
+  \************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   stackPushPythonLines: () => (/* binding */ stackPushPythonLines)
+/* harmony export */ });
+const stackPushPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def push(pilha, valor):'
+}, {
+  id: 'CHECK_FULL',
+  text: '    if pilha.topo == pilha.tamanho - 1:'
+}, {
+  id: 'OVERFLOW',
+  text: '        raise Exception("Estouro de pilha (Overflow)")'
+}, {
+  id: 'INCREMENT_TOP',
+  text: '    pilha.topo += 1'
+}, {
+  id: 'SET_VALUE',
+  text: '    pilha[pilha.topo] = valor'
 }];
 
 /***/ },
@@ -9635,9 +9951,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../components/controls/SLLControls */ "./frontend/components/controls/SLLControls.js");
 /* harmony import */ var _components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../components/controls/VectorControls */ "./frontend/components/controls/VectorControls.js");
-/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
-/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
-/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+/* harmony import */ var _components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../components/controls/StackControls */ "./frontend/components/controls/StackControls.js");
+/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+
 
 
 
@@ -9666,8 +9984,8 @@ function SidePanel({
       }
     }
   };
-  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e use o botão "Enfileirar" para adicionar um elemento. O botão "Desenfileirar" remove o elemento da frente da fila e reorganiza os demais.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nNesta versão, a visualização foi criada para seleção e entrada, enquanto a lógica interna ainda está em desenvolvimento.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
+  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e use o botão "Enfileirar" para adicionar um elemento. O botão "Desenfileirar" remove o elemento da frente da fila e reorganiza os demais.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_5__.motion.div, {
     initial: "closed",
     animate: isOpen ? "open" : "closed",
     variants: panelVariants,
@@ -9699,7 +10017,7 @@ function SidePanel({
       top: '0px',
       zIndex: 2
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_5__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
     label: helpText,
     inline: true,
     sizeScale: 0.6
@@ -9709,66 +10027,20 @@ function SidePanel({
     nodeLabel: props.nodeLabel,
     setNodeLabel: props.setNodeLabel,
     handleAddNode: props.sll.handleAddNode,
+    handleClear: props.sll.handleClear,
     centerView: props.centerView
   }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
     nodeLabel: props.sharedStates.queueValue,
     setNodeLabel: props.sharedStates.setQueueValue,
     handleAddNode: props.queue.handleEnqueue,
     handleRemoveNode: props.queue.handleDequeue,
+    handleClear: props.queue.handleClear,
     centerView: props.centerView
-  }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
-    whileTap: {
-      scale: 0.95
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: () => props.centerView && props.centerView(),
-    className: "control-button"
-  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      height: '20px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "input-container"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    value: props.sharedStates.stackValue,
-    onChange: e => props.sharedStates.setStackValue(e.target.value),
-    type: "text",
-    id: "stack-input",
-    required: true
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    htmlFor: "stack-input",
-    className: "label"
-  }, "Valor da Pilha"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "underline"
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      height: '12px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
-    whileTap: {
-      scale: 0.95
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    disabled: true,
-    className: "control-button"
-  }, "Empilhar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      height: '12px'
-    }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_4__.motion.div, {
-    whileTap: {
-      scale: 0.95
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    disabled: true,
-    className: "control-button"
-  }, "Remover do Topo")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
-    style: {
-      fontSize: '12px',
-      color: '#666',
-      marginTop: '12px'
-    }
-  }, "A visualiza\xE7\xE3o da pilha foi criada para entrada e sele\xE7\xE3o nesta vers\xE3o.")), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
+  }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__["default"], {
+    states: props.sharedStates,
+    handlers: props.stack,
+    centerView: props.centerView
+  }), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
     states: props.sharedStates,
     handlers: props.vector,
     centerView: props.centerView
@@ -9800,6 +10072,7 @@ function SLLControls({
   setNodeLabel,
   handleAddNode,
   handleRemoveNode,
+  handleClear,
   centerView
 }) {
   const handleKeyPress = e => {
@@ -9852,7 +10125,245 @@ function SLLControls({
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: handleRemoveNode,
     className: "control-button"
-  }, "Desenfileirar"))));
+  }, "Desenfileirar"))), handleClear && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleClear,
+    className: "control-button control-button-danger"
+  }, "Limpar"))));
+}
+
+/***/ },
+
+/***/ "./frontend/components/controls/StackControls.js"
+/*!*******************************************************!*\
+  !*** ./frontend/components/controls/StackControls.js ***!
+  \*******************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ StackControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _css_controls_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../css/controls.css */ "./frontend/css/controls.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+// components/StackControls.js
+
+
+
+function StackControls({
+  states,
+  handlers,
+  centerView
+}) {
+  const {
+    stackSize,
+    setStackSize,
+    stackValue,
+    setStackValue,
+    currentStep,
+    steps,
+    stackOperation
+  } = states;
+  const stack = handlers;
+  const isSimulating = currentStep !== -1;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    className: "control-button"
+  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: stackSize,
+    onChange: e => setStackSize(e.target.value),
+    type: "text",
+    id: "stack-size-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "stack-size-input",
+    className: "label"
+  }, "Tamanho da Pilha"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handleCreateStack,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Criar Pilha")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: stackValue,
+    onChange: e => setStackValue(e.target.value),
+    type: "text",
+    id: "stack-value-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "stack-value-input",
+    className: "label"
+  }, "Valor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    className: "control-selector",
+    value: states.stackType,
+    onChange: e => states.setStackType(e.target.value),
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "int"
+  }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "string"
+  }, "Texto")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handlePush,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Empilhar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handlePop,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Remover do Topo")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Limpar"))), isSimulating && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o: ", stackOperation === 'pop' ? 'Desempilhando' : 'Empilhando'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handlePrevStep,
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: stack.handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },
@@ -9891,9 +10402,6 @@ function VectorControls({
     setVectorId,
     vectorValue,
     setVectorValue,
-    isAnimating,
-    animationSpeed,
-    setAnimationSpeed,
     currentStep,
     steps,
     setIsAnimating,
@@ -9901,6 +10409,12 @@ function VectorControls({
     nodes
   } = states;
   const vector = handlers;
+
+  // Assim como na pilha, os inputs/botões de gerenciamento ficam bloqueados
+  // enquanto houver uma simulação em andamento (mesmo no último passo, antes
+  // de "Encerrar Simulação" ser clicado) — não usamos `isAnimating` aqui
+  // porque ele é desligado antes do usuário encerrar explicitamente.
+  const isSimulating = currentStep !== -1;
   const handleEndSimulation = async () => {
     try {
       // Aplicar o estado final e persistir
@@ -9942,10 +10456,10 @@ function VectorControls({
     type: "text",
     id: "input",
     required: true,
-    disabled: isAnimating,
+    disabled: isSimulating,
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'text'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input",
@@ -9962,11 +10476,11 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleCreateVector,
-    disabled: isAnimating,
+    disabled: isSimulating,
     className: "control-button",
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'pointer'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
     }
   }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
@@ -9980,10 +10494,10 @@ function VectorControls({
     type: "text",
     id: "input-id",
     required: true,
-    disabled: isAnimating,
+    disabled: isSimulating,
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'text'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input-id",
@@ -10002,10 +10516,10 @@ function VectorControls({
     type: "text",
     id: "input-value",
     required: true,
-    disabled: isAnimating,
+    disabled: isSimulating,
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'text'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: "input-id",
@@ -10022,11 +10536,11 @@ function VectorControls({
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handleInsertVectorValue,
-    disabled: isAnimating,
+    disabled: isSimulating,
     className: "control-button",
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'pointer'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
     }
   }, "Inserir Valor no \xCDndice")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
@@ -10036,10 +10550,10 @@ function VectorControls({
     className: "control-selector",
     value: states.vectorType,
     onChange: e => states.setVectorType(e.target.value),
-    disabled: isAnimating,
+    disabled: isSimulating,
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'pointer'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
     value: "int"
@@ -10049,66 +10563,29 @@ function VectorControls({
     style: {
       height: '20px'
     }
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
-    style: {
-      margin: '0 0 10px 0',
-      fontSize: '14px'
-    }
-  }, "Simula\xE7\xE3o (Sort)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginBottom: '10px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: vector.handleInsertionSort
-    // Desabilita apenas se estiver animando no modo Passo a Passo
-    ,
-    disabled: isAnimating && currentStep !== -1,
-    className: "control-button",
+    onClick: vector.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
     style: {
-      opacity: isAnimating && currentStep !== -1 ? 0.6 : 1,
-      cursor: isAnimating && currentStep !== -1 ? 'not-allowed' : 'pointer'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
     }
-  }, isAnimating && currentStep === -1 ? '⏹ Cancelar Animação' : '▶ Iniciar Automático')), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginTop: '8px'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    style: {
-      fontSize: '11px'
-    }
-  }, "Velocidade: ", animationSpeed, "ms"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    type: "range",
-    min: "100",
-    max: "2000",
-    step: "100",
-    value: animationSpeed,
-    onChange: e => setAnimationSpeed(Number(e.target.value)),
-    style: {
-      width: '100%'
-    },
-    disabled: isAnimating
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      textAlign: 'center',
-      margin: '10px 0',
-      fontSize: '12px',
-      color: '#666'
-    }
-  }, "\u2014 OU \u2014"), currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+  }, "Limpar"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: vector.handlePrepareStepByStep,
-    disabled: isAnimating,
+    disabled: isSimulating,
     className: "control-button",
     style: {
-      opacity: isAnimating ? 0.6 : 1,
-      cursor: isAnimating ? 'not-allowed' : 'pointer'
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
     }
   }, "Simular Passo a Passo")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
@@ -10318,6 +10795,114 @@ function ListNode({
 
 /***/ },
 
+/***/ "./frontend/custom_node/stackNode.js"
+/*!*******************************************!*\
+  !*** ./frontend/custom_node/stackNode.js ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+function StackNode({
+  data
+}) {
+  const {
+    values = [],
+    top = -1,
+    highlighted = [],
+    activeValue,
+    codeId
+  } = data;
+  const rawLabels = data.labels || values.map((_, i) => String(i));
+  const labels = rawLabels.map(l => String(l).split(':')[0].trim());
+  const size = values.length;
+  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_VALUE';
+  const valorDisplay = activeValue !== undefined && activeValue !== null ? activeValue : '—';
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: '11px',
+      lineHeight: 1.6,
+      color: '#00ff88',
+      background: '#1b2530',
+      border: '1px solid #34495e',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      marginBottom: '10px',
+      whiteSpace: 'pre',
+      textAlign: 'left'
+    }
+  }, `tamanho: ${size}\ntopo: ${top}\nvalor: ${valorDisplay}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column-reverse',
+      border: '2px solid #34495e',
+      borderRadius: '8px',
+      background: '#2c3e50',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+      overflow: 'hidden',
+      minHeight: `${size * 60}px`,
+      width: '140px'
+    }
+  }, values.map((value, index) => {
+    const isHighlighted = highlighted.includes(index);
+    const isTop = index === top;
+    const hasValue = value !== null && value !== undefined && value !== '';
+    let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
+    if (isHighlighted && isMutatingStep) {
+      backgroundColor = '#4CAF50';
+    } else if (isHighlighted) {
+      backgroundColor = '#FF9800';
+    }
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderTop: index < size - 1 ? '1px solid #34495e' : 'none',
+        height: '60px'
+      }
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      style: {
+        width: '28px',
+        textAlign: 'center',
+        fontSize: '11px',
+        fontWeight: '600',
+        color: '#bdc3c7'
+      }
+    }, labels[index]), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      style: {
+        flex: 1,
+        height: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: backgroundColor,
+        color: hasValue ? '#fff' : '#2c3e50',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        borderRight: isTop ? '4px solid #e74c3c' : 'none',
+        transition: 'background 0.3s ease'
+      }
+    }, hasValue ? value : ''));
+  })));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (StackNode);
+
+/***/ },
+
 /***/ "./frontend/custom_node/vectorNode.js"
 /*!********************************************!*\
   !*** ./frontend/custom_node/vectorNode.js ***!
@@ -10334,61 +10919,39 @@ __webpack_require__.r(__webpack_exports__);
 function VectorNode({
   data
 }) {
-  // const values = data.values || [];
   const {
     values = [],
-    activeKey,
     comparing,
-    swapped
+    swapped,
+    iValue,
+    jValue,
+    activeKey
   } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const size = values.length;
+  const display = val => val !== undefined && val !== null ? val : '—';
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      display: 'flex',
-      flexDirection: 'column'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      height: '80px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center'
     }
-  }, activeKey !== undefined && activeKey !== null ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      fontSize: '10px',
-      fontWeight: 'bold',
-      color: '#7f8c8d'
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: '11px',
+      lineHeight: 1.6,
+      color: '#00ff88',
+      background: '#1b2530',
+      border: '1px solid #34495e',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      marginBottom: '10px',
+      whiteSpace: 'pre',
+      textAlign: 'left'
     }
-  }, "CHAVE (KEY)"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      width: '40px',
-      height: '40px',
-      backgroundColor: '#e74c3c',
-      // Cor de destaque (vermelho/laranja)
-      color: 'white',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: '4px',
-      fontWeight: 'bold',
-      boxShadow: '0 4px 10px rgba(231, 76, 60, 0.4)',
-      border: '2px solid #c0392b',
-      marginBottom: '5px'
-    }
-  }, activeKey), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      fontSize: '12px',
-      color: '#e74c3c'
-    }
-  }, "\u2193 Comparando...")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      height: '60px'
-    }
-  }) // Espaçador para não pular o layout
-  ), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, `n: ${size}\nj: ${display(iValue)}\ni: ${display(jValue)}\nchave: ${display(activeKey)}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'row',
@@ -10402,8 +10965,8 @@ function VectorNode({
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      color: '#000000',
-      fontSize: '12px',
+      color: '#bdc3c7',
+      fontSize: '11px',
       fontWeight: '600'
     }
   }, lab))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -10416,14 +10979,11 @@ function VectorNode({
       boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
       overflow: 'hidden',
       minWidth: `${size * 60}px`,
-      // Largura baseada no tamanho
       height: '60px'
     }
   }, values.map((value, index) => {
-    const isComparing = data.comparing?.includes(index);
-    const isSwapped = data.swapped?.includes(index);
-
-    // Verifica se tem valor (inclusive 0, mas não null/undefined)
+    const isComparing = comparing?.includes(index);
+    const isSwapped = swapped?.includes(index);
     const hasValue = value !== null && value !== undefined && value !== '';
     let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
     if (isSwapped) {
@@ -10487,9 +11047,198 @@ const useSLLHandlers = states => {
     (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes // ← Passa os nós atuais
     );
   };
+
+  // Limpa a lista por completo, como se ela nunca tivesse sido usada
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.clearSLL)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setNodeLabel('');
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Lista limpa com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar lista: ' + err.message);
+    }
+  };
   return {
     handleAddNode,
+    handleClear,
     fetchData: currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes)
+  };
+};
+
+/***/ },
+
+/***/ "./frontend/handlers/stack_handle.js"
+/*!*******************************************!*\
+  !*** ./frontend/handlers/stack_handle.js ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   useStackHandlers: () => (/* binding */ useStackHandlers)
+/* harmony export */ });
+/* harmony import */ var _api_api_stack__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../api/api_stack */ "./frontend/api/api_stack.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+
+
+const useStackHandlers = states => {
+  const {
+    stackSize,
+    setStackSize,
+    stackValue,
+    setStackValue,
+    stackType,
+    setStackType,
+    setNodes,
+    setEdges,
+    setNodeCount,
+    nodes,
+    isAnimating,
+    setIsAnimating,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep,
+    setStackOperation
+  } = states;
+  const handleCreateStack = () => {
+    (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.createStack)(stackSize, setStackSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.fetchStackData)(setNodes, setEdges, setNodeCount));
+  };
+  const validateStackValue = () => {
+    if (stackType === 'int') {
+      if (!/^-?\d+$/.test(stackValue)) {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Apenas números inteiros são permitidos nesta pilha.');
+        return null;
+      }
+      return Number(stackValue);
+    }
+    if (/\d/.test(stackValue)) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Números não são permitidos em pilhas de texto.');
+      return null;
+    }
+    if (!stackValue.trim()) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Digite um valor para empilhar.');
+      return null;
+    }
+    return stackValue.toUpperCase();
+  };
+
+  // Dispara a simulação passo a passo do método push()
+  const handlePush = async () => {
+    const value = validateStackValue();
+    if (value === null) return;
+    try {
+      const result = await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.fetchPushSteps)(value);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setStackOperation('push');
+      setStackValue('');
+      (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(result.steps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao empilhar: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método pop()
+  const handlePop = async () => {
+    try {
+      const result = await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.fetchPopSteps)();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setStackOperation('pop');
+      (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(result.steps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao desempilhar: ' + err.message);
+    }
+  };
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[nextIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(nextIndex);
+      }
+      if (nextIndex === steps.length - 1) {
+        // Não resetamos `stackOperation` nem `currentStep` aqui: o painel de
+        // simulação (com o título "Empilhando"/"Desempilhando" e o botão
+        // "Encerrar Simulação") continua visível até o usuário encerrar
+        // explicitamente, mesmo já no último passo.
+        setTimeout(async () => {
+          try {
+            await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.persistStackState)(nodes);
+          } catch (err) {
+            console.error('Erro ao persistir pilha no último passo:', err);
+          }
+        }, 500);
+      }
+    }
+  };
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[prevIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(prevIndex);
+      }
+    }
+  };
+  const handleEndSimulation = async () => {
+    try {
+      await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyAndPersistFinalState)(steps, nodes, setNodes);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Simulação encerrada e pilha atualizada para o estado final!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao salvar estado da pilha: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setStackOperation(null);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
+    }
+  };
+
+  // Limpa a pilha por completo, como se ela nunca tivesse sido criada
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.clearStack)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setStackSize('');
+      setStackValue('');
+      setStackType('int');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setStackOperation(null);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Pilha limpa com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar pilha: ' + err.message);
+    }
+  };
+  return {
+    handleCreateStack,
+    handlePush,
+    handlePop,
+    handleNextStep,
+    handlePrevStep,
+    handleEndSimulation,
+    handleClear,
+    fetchData: () => (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.fetchStackData)(setNodes, setEdges, setNodeCount, nodes)
   };
 };
 
@@ -10521,14 +11270,13 @@ const useVectorHandlers = states => {
     setEdges,
     setNodeCount,
     nodes,
-    isAnimating,
     setIsAnimating,
-    animationSpeed,
     steps,
     setSteps,
     currentStep,
     setCurrentStep,
-    vectorType
+    vectorType,
+    setVectorType
   } = states;
   const handleCreateVector = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.createVector)(vectorSize, setVectorSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
@@ -10550,17 +11298,8 @@ const useVectorHandlers = states => {
     }
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.insertVectorValue)(vectorId, finalValue, setVectorId, setVectorValue, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
-  const handleInsertionSort = async () => {
-    if (isAnimating && currentStep === -1) {
-      // Importante usar o await aqui para que o estado final seja garantido
-      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.cancelAutomaticAnimation)(setIsAnimating, setNodes, setEdges, nodes);
-    } else if (!isAnimating) {
-      // Se não está animando, iniciar
-      (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.startInsertionSort)(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
-    }
-  };
 
-  // Inicia o modo manual buscando os passos
+  // Inicia o modo de simulação passo a passo buscando os passos do insertion sort
   const handlePrepareStepByStep = async () => {
     try {
       const allSteps = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchSortSteps)();
@@ -10586,16 +11325,18 @@ const useVectorHandlers = states => {
         window.electronAPI.updateChildStep(nextIndex);
       }
 
-      // Se for o ÚLTIMO passo da lista, persistir o vetor e encerrar modo de animação
+      // Se for o ÚLTIMO passo da lista, persistir o vetor.
+      // Não resetamos `isAnimating`/`currentStep` aqui: o painel de
+      // simulação (com "Voltar"/"Próximo" e "Encerrar Simulação") continua
+      // visível e os inputs de criação/inserção continuam bloqueados até o
+      // usuário encerrar explicitamente, mesmo já no último passo.
       if (nextIndex === steps.length - 1) {
         setTimeout(async () => {
           try {
             // Persistir o estado final do vetor
             await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.persistVectorState)(nodes);
-            setIsAnimating(false);
           } catch (err) {
             console.error('Erro ao persistir vetor no último passo:', err);
-            setIsAnimating(false);
           }
         }, 500);
       }
@@ -10611,13 +11352,33 @@ const useVectorHandlers = states => {
       }
     }
   };
+
+  // Limpa o vetor por completo, como se ele nunca tivesse sido criado
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.clearVector)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setVectorSize('');
+      setVectorId('');
+      setVectorValue('');
+      setVectorType('int');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Vetor limpo com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar vetor: ' + err.message);
+    }
+  };
   return {
     handleCreateVector,
     handleInsertVectorValue,
-    handleInsertionSort,
     handlePrepareStepByStep,
     handleNextStep,
     handlePrevStep,
+    handleClear,
     fetchData: () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount, nodes)
   };
 };
@@ -10638,10 +11399,18 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs");
 /* harmony import */ var _api_api_vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../api/api_vector */ "./frontend/api/api_vector.js");
-/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
-/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
-/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
-/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+/* harmony import */ var _api_api_stack__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../api/api_stack */ "./frontend/api/api_stack.js");
+/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
+/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
+/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
+/* harmony import */ var _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/pseudocodigo */ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/java */ "./frontend/code_view_data/stack/stack_push/java.js");
+/* harmony import */ var _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/python */ "./frontend/code_view_data/stack/stack_push/python.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/pseudocodigo */ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/java */ "./frontend/code_view_data/stack/stack_pop/java.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/python */ "./frontend/code_view_data/stack/stack_pop/python.js");
+/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+
 
 
 
@@ -10652,13 +11421,29 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
+
+
+
+
 // CodeView exibe o código do algoritmo com destaque na linha ativa.
 // A lógica de mapeamento de passos para código está concentrada neste componente.
 // Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
 const codeSnippets = {
-  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_3__.pseudocodigoLines,
-  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_4__.javaLines,
-  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_5__.pythonLines
+  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_4__.pseudocodigoLines,
+  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_5__.javaLines,
+  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_6__.pythonLines
+};
+const stackPushSnippets = {
+  pseudocódigo: _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_7__.stackPushPseudocodigoLines,
+  java: _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_8__.stackPushJavaLines,
+  python: _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_9__.stackPushPythonLines
+};
+const stackPopSnippets = {
+  pseudocódigo: _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_10__.stackPopPseudocodigoLines,
+  java: _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_11__.stackPopJavaLines,
+  python: _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_12__.stackPopPythonLines
 };
 function CodeView({
   activeStep: propActiveStep = 'INIT_LOOP'
@@ -10671,9 +11456,10 @@ function CodeView({
   const [stepIndex, setStepIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(stepParam ? Number(stepParam) : -1);
   const [activeStep, setActiveStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(propActiveStep);
   const [lang, setLang] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('pseudocódigo');
+  const [stackOp, setStackOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
 
-  // Seleciona o array de código correto ou retorna um array vazio se não for viewType 'vector'
-  const codeLines = viewType === 'vector' ? codeSnippets[lang] : [];
+  // Seleciona o array de código correto conforme o tipo de estrutura visualizada
+  const codeLines = viewType === 'vector' ? codeSnippets[lang] : viewType === 'stack' ? stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang] : [];
 
   // Map a backend step object to a code line id using heuristics,
   // but prefer an explicit `code_id` when the backend provides it.
@@ -10747,6 +11533,61 @@ function CodeView({
       }
     };
   }, [viewType, steps]);
+
+  // Carrega os últimos passos de push/pop gerados pelo backend para a pilha.
+  // Diferente do vetor, os passos da pilha já trazem `code_id` explícito em
+  // todo passo, então não é preciso nenhuma heurística de mapeamento.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const loadStackSteps = async () => {
+      if (viewType !== 'stack') return;
+      try {
+        const result = await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_3__.fetchStackSteps)();
+        setSteps(result.steps || []);
+        setStackOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadStackSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Empilhar/Desempilhar
+  // e Voltar/Próximo). Reconsulta /stack_steps a cada evento para não dessincronizar
+  // o `stackOp` caso o usuário troque de operação (push -> pop ou vice-versa).
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'stack') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      setStepIndex(idx);
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+      try {
+        const result = await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_3__.fetchStackSteps)();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setStackOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
   const buttonStyle = active => ({
     background: active ? '#0f766e' : '#111',
     color: active ? '#fff' : '#cfcfcf',
@@ -10786,6 +11627,48 @@ function CodeView({
       boxSizing: 'border-box'
     }
   }, viewType === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      padding: '0 12px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
+  }))), viewType === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      margin: '0 0 8px',
+      padding: '0 12px',
+      fontSize: 12,
+      color: '#9aa0a6'
+    }
+  }, stackOp === 'pop' ? 'Simulando: pop() — Desempilhar' : 'Simulando: push() — Empilhar'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -10934,11 +11817,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _css_view_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../css/view.css */ "./frontend/css/view.css");
 /* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
 /* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
-/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
-/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
-/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
-/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
-/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
+/* harmony import */ var _handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../handlers/stack_handle */ "./frontend/handlers/stack_handle.js");
+/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
+/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
+/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../custom_node/stackNode */ "./frontend/custom_node/stackNode.js");
+/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
+/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
 // views/View.js
 
 
@@ -10954,10 +11839,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
 const NODE_TYPES = {
-  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_10__["default"],
-  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_11__["default"],
-  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_12__["default"]
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_11__["default"],
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_12__["default"],
+  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_13__["default"],
+  stack: _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_14__["default"]
 };
 const DEFAULT_EDGE_OPTIONS = {
   markerEnd: {
@@ -10980,7 +11868,6 @@ function View() {
   const [edges, setEdges, onEdgesChange] = (0,_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.useEdgesState)([]);
   const [nodeCount, setNodeCount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
   const [isAnimating, setIsAnimating] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
-  const [animationSpeed, setAnimationSpeed] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(1000);
   const [steps, setSteps] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
   const [currentStep, setCurrentStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(-1);
   const [rfInstance, setRfInstance] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
@@ -10993,6 +11880,9 @@ function View() {
   const [vectorType, setVectorType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
   const [queueValue, setQueueValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [stackValue, setStackValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [stackSize, setStackSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [stackType, setStackType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
+  const [stackOperation, setStackOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const sharedStates = {
     nodes,
     setNodes,
@@ -11002,8 +11892,6 @@ function View() {
     setNodeCount,
     isAnimating,
     setIsAnimating,
-    animationSpeed,
-    setAnimationSpeed,
     nodeLabel,
     setNodeLabel,
     vectorSize,
@@ -11021,7 +11909,13 @@ function View() {
     queueValue,
     setQueueValue,
     stackValue,
-    setStackValue
+    setStackValue,
+    stackSize,
+    setStackSize,
+    stackType,
+    setStackType,
+    stackOperation,
+    setStackOperation
   };
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__.useVectorHandlers)(sharedStates);
@@ -11031,7 +11925,7 @@ function View() {
       sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Informe um valor para enfileirar');
       return;
     }
-    (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.enqueueQueue)(value, setNodeLabel, setNodes, setEdges, setNodeCount, nodes).then(() => setQueueValue(''));
+    (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.enqueueQueue)(value, setNodeLabel, setNodes, setEdges, setNodeCount, nodes).then(() => setQueueValue(''));
   };
   const handleDequeue = async () => {
     if (!nodes.length) {
@@ -11039,20 +11933,30 @@ function View() {
       return;
     }
     try {
-      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.dequeueQueue)(setNodes, setEdges, setNodeCount, nodes);
+      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.dequeueQueue)(setNodes, setEdges, setNodeCount, nodes);
     } catch (error) {
       sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao desenfileirar: ' + error.message);
     }
   };
+  const handleClearQueue = async () => {
+    try {
+      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.clearQueue)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setQueueValue('');
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Fila limpa com sucesso!');
+    } catch (error) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao limpar fila: ' + error.message);
+    }
+  };
   const queue = {
     handleEnqueue,
-    handleDequeue
+    handleDequeue,
+    handleClear: handleClearQueue
   };
-  const stack = {
-    handlePush: () => {},
-    handlePop: () => {}
-  };
-  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : {
+  const stack = (0,_handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__.useStackHandlers)(sharedStates);
+  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : {
     fetchData: () => {}
   };
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
@@ -11070,11 +11974,18 @@ function View() {
       handlers.fetchData([]);
       return;
     }
+    if (type === 'stack') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      handlers.fetchData([]);
+      return;
+    }
     if (type === 'queue') {
       setNodes([]);
       setEdges([]);
       setNodeCount(0);
-      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_14__.fetchQueueData)(setNodes, setEdges, setNodeCount, []);
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.fetchQueueData)(setNodes, setEdges, setNodeCount, []);
       return;
     }
     setNodes([]);
@@ -11226,7 +12137,7 @@ function View() {
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {
     position: "center-right",
     className: "app-side-panel"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_13__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_15__["default"], {
     props: {
       type,
       nodeLabel,
@@ -11396,6 +12307,14 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.input-container {
  color: #fff;
 }
 
+.control-button-danger {
+  color: #c0392b;
+}
+
+.control-button-danger::before {
+  background-image: linear-gradient(to right, #c0392b 0%, #e74c3c 50%, #c0392b 100%);
+}
+
 .control-selector{
   width: 100%;
   font-family: inherit;
@@ -11404,7 +12323,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.input-container {
 }
 
 .control-selector option{
-}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,cAAc;EAChB;;AAEF;EACE,kBAAkB;EAClB,SAAS;EACT,OAAO;EACP,WAAW;EACX,WAAW;EACX,yBAAyB;EACzB,oBAAoB;EACpB,yBAAyB;AAC3B;;AAEA;;EAEE,oBAAoB,CAAC;;AAEvB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ;;AAEA;EACE,WAAW;EACX,oBAAoB;EACpB,mBAAmB;EACnB,eAAe;AACjB;;AAEA;AACA","sourcesContent":[".input-container {\r\n    position: relative;\r\n    width: 100%;\r\n  }\r\n\r\n  .input-container input[type=\"text\"] {\r\n    font-size: 12px;\r\n    font-family: inherit;\r\n    width: 100%;\r\n    border: none;\r\n    border-bottom: 2px solid #ccc;\r\n    padding: 5px 0;\r\n    background-color: transparent;\r\n    outline: none;\r\n  }\r\n\r\n  .input-container .label {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    color: #ccc;\r\n    transition: all 0.3s ease;\r\n    pointer-events: none;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .label,\r\n  .input-container input[type=\"text\"]:valid ~ .label {\r\n    top: -10px;\r\n    font-size: 12px;\r\n    color: #1e427C;\r\n  }\r\n\r\n.input-container .underline {\r\n  position: absolute;\r\n  bottom: 0;\r\n  left: 0;\r\n  height: 2px;\r\n  width: 100%;\r\n  background-color: #1e427C;\r\n  transform: scaleX(0);\r\n  transition: all 0.3s ease;\r\n}\r\n\r\n.input-container input[type=\"text\"]:focus ~ .underline,\r\n.input-container input[type=\"text\"]:valid ~ .underline {\r\n  transform: scaleX(1);}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n color: #1e427C;\r\n transition: color .3s ease;\r\n}\r\n\r\n.control-button::before {\r\n content: '';\r\n width: 100%;\r\n height: 100%;\r\n border-radius: 15em;\r\n position: absolute;\r\n top: 0;\r\n left: 0;\r\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\r\n transform: scaleX(0);\r\n transform-origin: center;\r\n transition: transform .5s ease;\r\n display: block;\r\n z-index: -1;\r\n}\r\n\r\n.control-button:hover::before {\r\n transform: scaleX(1);\r\n}\r\n\r\n.control-button:hover {\r\n color: #fff;\r\n}\r\n\r\n.control-selector{\r\n  width: 100%;\r\n  font-family: inherit;\r\n  border-radius: 15em;\r\n  font-size: 12px;\r\n}\r\n\r\n.control-selector option{\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,cAAc;EAChB;;AAEF;EACE,kBAAkB;EAClB,SAAS;EACT,OAAO;EACP,WAAW;EACX,WAAW;EACX,yBAAyB;EACzB,oBAAoB;EACpB,yBAAyB;AAC3B;;AAEA;;EAEE,oBAAoB,CAAC;;AAEvB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ;;AAEA;EACE,cAAc;AAChB;;AAEA;EACE,kFAAkF;AACpF;;AAEA;EACE,WAAW;EACX,oBAAoB;EACpB,mBAAmB;EACnB,eAAe;AACjB;;AAEA;AACA","sourcesContent":[".input-container {\r\n    position: relative;\r\n    width: 100%;\r\n  }\r\n\r\n  .input-container input[type=\"text\"] {\r\n    font-size: 12px;\r\n    font-family: inherit;\r\n    width: 100%;\r\n    border: none;\r\n    border-bottom: 2px solid #ccc;\r\n    padding: 5px 0;\r\n    background-color: transparent;\r\n    outline: none;\r\n  }\r\n\r\n  .input-container .label {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    color: #ccc;\r\n    transition: all 0.3s ease;\r\n    pointer-events: none;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .label,\r\n  .input-container input[type=\"text\"]:valid ~ .label {\r\n    top: -10px;\r\n    font-size: 12px;\r\n    color: #1e427C;\r\n  }\r\n\r\n.input-container .underline {\r\n  position: absolute;\r\n  bottom: 0;\r\n  left: 0;\r\n  height: 2px;\r\n  width: 100%;\r\n  background-color: #1e427C;\r\n  transform: scaleX(0);\r\n  transition: all 0.3s ease;\r\n}\r\n\r\n.input-container input[type=\"text\"]:focus ~ .underline,\r\n.input-container input[type=\"text\"]:valid ~ .underline {\r\n  transform: scaleX(1);}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n color: #1e427C;\r\n transition: color .3s ease;\r\n}\r\n\r\n.control-button::before {\r\n content: '';\r\n width: 100%;\r\n height: 100%;\r\n border-radius: 15em;\r\n position: absolute;\r\n top: 0;\r\n left: 0;\r\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\r\n transform: scaleX(0);\r\n transform-origin: center;\r\n transition: transform .5s ease;\r\n display: block;\r\n z-index: -1;\r\n}\r\n\r\n.control-button:hover::before {\r\n transform: scaleX(1);\r\n}\r\n\r\n.control-button:hover {\r\n color: #fff;\r\n}\r\n\r\n.control-button-danger {\r\n  color: #c0392b;\r\n}\r\n\r\n.control-button-danger::before {\r\n  background-image: linear-gradient(to right, #c0392b 0%, #e74c3c 50%, #c0392b 100%);\r\n}\r\n\r\n.control-selector{\r\n  width: 100%;\r\n  font-family: inherit;\r\n  border-radius: 15em;\r\n  font-size: 12px;\r\n}\r\n\r\n.control-selector option{\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 

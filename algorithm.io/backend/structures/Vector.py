@@ -12,6 +12,11 @@ class Vector:
         self.nodes = []
         self.edges = []
 
+    def clear(self):
+        """Reseta o vetor para o estado inicial, como se nunca tivesse sido criado."""
+        self.nodes = []
+        self.edges = []
+
     def create_vector(self, size, position=None):
         if len(self.nodes) != 0:
             self.nodes.clear()

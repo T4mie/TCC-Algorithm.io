@@ -57,6 +57,11 @@ export const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNode
   }
 };
 
+// Limpa a lista no backend, como se ela nunca tivesse sido usada
+export const clearSLL = async () => {
+  return postJson('/clear_sll', {});
+};
+
 export const addNode = async (
   nodeLabel,
   setNodeLabel,

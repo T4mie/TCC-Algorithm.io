@@ -9,15 +9,17 @@ import '../css/view.css';
 
 import { useSLLHandlers } from '../handlers/sll_handle';
 import { useVectorHandlers } from '../handlers/vector_handle';
+import { useStackHandlers } from '../handlers/stack_handle';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
+import StackNode from '../custom_node/stackNode';
 import SidePanel from '../components/SidePanel';
-import { enqueueQueue, dequeueQueue, fetchQueueData } from '../api/api_queue';
+import { enqueueQueue, dequeueQueue, fetchQueueData, clearQueue } from '../api/api_queue';
 
 
 
-const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode };
+const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode, stack: StackNode };
 const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2, zIndex: 10 } };
 
 export default function View() {
@@ -28,7 +30,6 @@ export default function View() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [nodeCount, setNodeCount] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(1000);
   const [steps, setSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [rfInstance, setRfInstance] = useState(null);
@@ -41,16 +42,22 @@ export default function View() {
   const [vectorType, setVectorType] = useState('int');
   const [queueValue, setQueueValue] = useState('');
   const [stackValue, setStackValue] = useState('');
+  const [stackSize, setStackSize] = useState('');
+  const [stackType, setStackType] = useState('int');
+  const [stackOperation, setStackOperation] = useState(null);
 
   const sharedStates = {
     nodes, setNodes, edges, setEdges, nodeCount, setNodeCount,
-    isAnimating, setIsAnimating, animationSpeed, setAnimationSpeed,
+    isAnimating, setIsAnimating,
     nodeLabel, setNodeLabel, vectorSize, setVectorSize,
     vectorId, setVectorId, vectorValue, setVectorValue,
     steps, setSteps, currentStep, setCurrentStep,
     vectorType, setVectorType,
     queueValue, setQueueValue,
-    stackValue, setStackValue
+    stackValue, setStackValue,
+    stackSize, setStackSize,
+    stackType, setStackType,
+    stackOperation, setStackOperation
   };
 
   const sll = useSLLHandlers(sharedStates);
@@ -80,15 +87,31 @@ export default function View() {
     }
   };
 
-  const queue = { handleEnqueue, handleDequeue };
-  const stack = { handlePush: () => {}, handlePop: () => {} };
-  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : { fetchData: () => {} };
+  const handleClearQueue = async () => {
+    try {
+      await clearQueue();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setQueueValue('');
+      toast.success('Fila limpa com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao limpar fila: ' + error.message);
+    }
+  };
+
+  const queue = { handleEnqueue, handleDequeue, handleClear: handleClearQueue };
+  const stack = useStackHandlers(sharedStates);
+  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : { fetchData: () => {} };
 
   useEffect(() => {
     if (type === 'sll') {
       setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
     }
     if (type === 'vector') {
+      setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
+    }
+    if (type === 'stack') {
       setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
     }
     if (type === 'queue') {

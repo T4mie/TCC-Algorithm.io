@@ -18,6 +18,16 @@ class Queue:
         self.node_counter = 0
         self.list_node = ListNode(head=None, tail=None, size=0)
 
+    def clear(self):
+        """Reseta a fila para o estado inicial, como se nunca tivesse sido usada."""
+        self.nodes = {}
+        self.edges = []
+        self.head = None
+        self.tail = None
+        self.size = 0
+        self.node_counter = 0
+        self.list_node = ListNode(head=None, tail=None, size=0)
+
     def enqueue(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
         new_id = f"q{self.node_counter}"
         self.node_counter += 1

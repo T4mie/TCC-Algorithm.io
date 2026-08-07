@@ -95,6 +95,14 @@
  color: #fff;
 }
 
+.control-button-danger {
+  color: #c0392b;
+}
+
+.control-button-danger::before {
+  background-image: linear-gradient(to right, #c0392b 0%, #e74c3c 50%, #c0392b 100%);
+}
+
 .control-selector{
   width: 100%;
   font-family: inherit;

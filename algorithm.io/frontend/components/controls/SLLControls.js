@@ -3,7 +3,7 @@ import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
 
-export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, handleRemoveNode, centerView}) 
+export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, handleRemoveNode, handleClear, centerView})
 {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleAddNode();
@@ -41,6 +41,21 @@ export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, han
               className="control-button"
             >
               Desenfileirar
+            </button>
+          </motion.div>
+        </>
+      )}
+
+      {handleClear && (
+        <>
+          <div style={{ height: '12px' }} />
+
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <button
+              onClick={handleClear}
+              className="control-button control-button-danger"
+            >
+              Limpar
             </button>
           </motion.div>
         </>

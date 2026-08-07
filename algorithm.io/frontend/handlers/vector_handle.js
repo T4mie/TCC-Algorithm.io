@@ -1,17 +1,17 @@
-import { startInsertionSort, createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState, cancelAutomaticAnimation } from '../api/api_vector';
+import { createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState, clearVector } from '../api/api_vector';
 import {toast} from 'sonner'
 export const useVectorHandlers = (states) => {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId,
     vectorValue, setVectorValue, setNodes, setEdges,
-    setNodeCount, nodes, isAnimating, setIsAnimating,
-    animationSpeed, steps, setSteps, currentStep, setCurrentStep,
-    vectorType
+    setNodeCount, nodes, setIsAnimating,
+    steps, setSteps, currentStep, setCurrentStep,
+    vectorType, setVectorType
   } = states;
 
   const handleCreateVector = () => {
     createVector(
-      vectorSize, setVectorSize, setNodes, setEdges, 
+      vectorSize, setVectorSize, setNodes, setEdges,
       setNodeCount, () => fetchVectorData(setNodes, setEdges, setNodeCount)
     );
   };
@@ -39,17 +39,7 @@ export const useVectorHandlers = (states) => {
     );
   };
 
-  const handleInsertionSort = async () => {
-    if (isAnimating && currentStep === -1) {
-      // Importante usar o await aqui para que o estado final seja garantido
-      await cancelAutomaticAnimation(setIsAnimating, setNodes, setEdges, nodes);
-    } else if (!isAnimating) {
-      // Se não está animando, iniciar
-      startInsertionSort(isAnimating, setIsAnimating, nodes, setNodes, setEdges, animationSpeed);
-    }
-  };
-
-  // Inicia o modo manual buscando os passos
+  // Inicia o modo de simulação passo a passo buscando os passos do insertion sort
   const handlePrepareStepByStep = async () => {
     try {
       const allSteps = await fetchSortSteps();
@@ -74,17 +64,19 @@ export const useVectorHandlers = (states) => {
       if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
         window.electronAPI.updateChildStep(nextIndex);
       }
-      
-      // Se for o ÚLTIMO passo da lista, persistir o vetor e encerrar modo de animação
+
+      // Se for o ÚLTIMO passo da lista, persistir o vetor.
+      // Não resetamos `isAnimating`/`currentStep` aqui: o painel de
+      // simulação (com "Voltar"/"Próximo" e "Encerrar Simulação") continua
+      // visível e os inputs de criação/inserção continuam bloqueados até o
+      // usuário encerrar explicitamente, mesmo já no último passo.
       if (nextIndex === steps.length - 1) {
         setTimeout(async () => {
           try {
             // Persistir o estado final do vetor
             await persistVectorState(nodes);
-            setIsAnimating(false);
           } catch (err) {
             console.error('Erro ao persistir vetor no último passo:', err);
-            setIsAnimating(false);
           }
         }, 500);
       }
@@ -102,13 +94,33 @@ export const useVectorHandlers = (states) => {
   }
 };
 
-  return { 
-    handleCreateVector, 
-    handleInsertVectorValue, 
-    handleInsertionSort,
+  // Limpa o vetor por completo, como se ele nunca tivesse sido criado
+  const handleClear = async () => {
+    try {
+      await clearVector();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setVectorSize('');
+      setVectorId('');
+      setVectorValue('');
+      setVectorType('int');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      toast.success('Vetor limpo com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao limpar vetor: ' + err.message);
+    }
+  };
+
+  return {
+    handleCreateVector,
+    handleInsertVectorValue,
     handlePrepareStepByStep,
     handleNextStep,
     handlePrevStep,
+    handleClear,
     fetchData: () => fetchVectorData(setNodes, setEdges, setNodeCount, nodes)
   };
 };

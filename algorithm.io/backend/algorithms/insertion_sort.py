@@ -18,11 +18,16 @@ class InsertionSort:
         self.nodes = copy.deepcopy(vector.nodes)
         self.steps = []
 
-    def capture_state(self, comparing_indices=None, swapped_indices=None, key_value=None, code_id=None):
+    def capture_state(self, comparing_indices=None, swapped_indices=None, key_value=None, code_id=None,
+                       i_value=None, j_value=None):
         """Captura o estado atual do vetor para animação
 
         Agora aceita `code_id` indicando qual linha do pseudocódigo/implementação
         corresponde a este passo — isso permite highlight 1:1 no CodeView.
+
+        `i_value`/`j_value` expõem os índices de controle do laço (mesmo
+        princípio do `top` na pilha), para o painel de variáveis importantes
+        do frontend (n, i, j, chave).
         """
         state = {
             "nodes": [node.to_dict() for node in self.nodes],
@@ -30,7 +35,10 @@ class InsertionSort:
             "comparing": comparing_indices or [],
             "swapped": swapped_indices or [],
             "activeKey": key_value,
-            "code_id": code_id
+            "code_id": code_id,
+            "n": len(self.nodes),
+            "iValue": i_value,
+            "jValue": j_value
         }
         return state
         
@@ -57,26 +65,26 @@ class InsertionSort:
             key_index = all_indices[i]
             key_value = self.nodes[key_index].value
 
-            self.steps.append(self.capture_state(code_id='INIT_LOOP'))
-            self.steps.append(self.capture_state(comparing_indices=[i], key_value=key_value, code_id='SET_KEY'))
-            
+            self.steps.append(self.capture_state(code_id='INIT_LOOP', i_value=i))
+            self.steps.append(self.capture_state(comparing_indices=[i], key_value=key_value, code_id='SET_KEY', i_value=i))
+
             j = i - 1
 
-            self.steps.append(self.capture_state(code_id='INIT_I', key_value=key_value))
+            self.steps.append(self.capture_state(code_id='INIT_I', key_value=key_value, i_value=i, j_value=j))
 
             # Usamos while True para garantir que o WHILE_COND seja capturado
             # MESMO quando a condição j >= 0 falhar.
             # ... (seu código antes do while)
             while True:
                 # Dispara o highlight na linha do while
-                self.steps.append(self.capture_state(comparing_indices=[j] if j >= 0 else [], key_value=key_value, code_id='WHILE_COND'))
-                
+                self.steps.append(self.capture_state(comparing_indices=[j] if j >= 0 else [], key_value=key_value, code_id='WHILE_COND', i_value=i, j_value=j))
+
                 if j < 0:
-                    break 
-                    
+                    break
+
                 current_index = all_indices[j]
                 current_value = self.nodes[current_index].value
-                
+
                 # --- INÍCIO DA COMPARAÇÃO BLINDADA ---
                 is_current_greater = False
 
@@ -94,17 +102,17 @@ class InsertionSort:
                 if is_current_greater:
                     shift_target = all_indices[j + 1]
                     self.nodes[shift_target].value = current_value
-                    
+
                     # Agora SIM o SHIFT e DECREMENT_I serão marcados
-                    self.steps.append(self.capture_state(swapped_indices=[j + 1], key_value=key_value, code_id='SHIFT'))
-                    self.steps.append(self.capture_state(key_value=key_value, code_id='DECREMENT_I'))
+                    self.steps.append(self.capture_state(swapped_indices=[j + 1], key_value=key_value, code_id='SHIFT', i_value=i, j_value=j))
+                    self.steps.append(self.capture_state(key_value=key_value, code_id='DECREMENT_I', i_value=i, j_value=j))
                     j -= 1
                 else:
                     break
-            
+
             insert_target = all_indices[j + 1]
             self.nodes[insert_target].value = key_value
-            self.steps.append(self.capture_state(key_value=None, code_id='INSERT'))
+            self.steps.append(self.capture_state(key_value=None, code_id='INSERT', i_value=i, j_value=j))
 
         # passo final
         self.steps.append(self.capture_state(comparing_indices=[], swapped_indices=[], key_value=None, code_id='END_FUNC'))

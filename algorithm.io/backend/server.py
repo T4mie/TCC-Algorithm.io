@@ -2,7 +2,9 @@ from flask import Flask, jsonify, request
 from structures.SLL import SLL
 from structures.Vector import Vector
 from structures.Queue import Queue
+from structures.Stack import Stack
 from algorithms.insertion_sort import InsertionSort
+from algorithms.stack_operations import StackOperations
 from services.utils import is_single_char, is_integer
 
 # ===== CONFIGURAÇÃO DA APLICAÇÃO =====
@@ -10,6 +12,11 @@ app = Flask(__name__)
 storageSLL = SLL()
 storageVector = Vector()
 storageQueue = Queue()
+storageStack = Stack()
+
+# Guarda os últimos passos gerados (push ou pop) para que a janela filha do
+# CodeView possa buscá-los via GET sem precisar reenviar o valor empilhado.
+last_stack_steps = {"op": None, "steps": []}
 
 
 def json_error(message, status=400):
@@ -68,6 +75,12 @@ def get_all_data():
     """Retorna toda a estrutura (nós + edges)"""
     return jsonify(storageSLL.to_dict())
 
+@app.route("/clear_sll", methods=["POST"])
+def clear_sll():
+    """Limpa a lista, como se ela nunca tivesse sido usada"""
+    storageSLL.clear()
+    return jsonify({"message": "Lista limpa com sucesso"}), 200
+
 # ===== ROTAS PARA GERENCIAR A FILA =====
 
 @app.route("/queue_enqueue", methods=["POST"])
@@ -104,6 +117,12 @@ def queue_dequeue():
 @app.route("/queue_data", methods=["GET"])
 def get_queue_data():
     return jsonify(storageQueue.to_dict())
+
+@app.route("/clear_queue", methods=["POST"])
+def clear_queue():
+    """Limpa a fila, como se ela nunca tivesse sido usada"""
+    storageQueue.clear()
+    return jsonify({"message": "Fila limpa com sucesso"}), 200
 
 # ===== ROTAS PARA GERENCIAR NÓS VECTOR ===== #
 
@@ -175,6 +194,12 @@ def insert_value():
 def get_vector_data():
     """Retorna toda a estrutura do vetor (nós + edges)"""
     return jsonify(storageVector.to_dict())
+
+@app.route("/clear_vector", methods=["POST"])
+def clear_vector():
+    """Limpa o vetor, como se ele nunca tivesse sido criado (inclusive o tamanho)"""
+    storageVector.clear()
+    return jsonify({"message": "Vetor limpo com sucesso"}), 200
 
 @app.route("/update_vector", methods=["POST"])
 def update_vector():
@@ -256,6 +281,133 @@ def insertion_sort():
             "success": False,
             "error": "Erro inesperado no servidor"
         }), 500
+
+
+#  ===== ROTAS PARA GERENCIAR A PILHA =====
+
+@app.route("/create_stack", methods=["POST"])
+def create_stack():
+    data = request.json
+    if not data or "value" not in data:
+        return json_error("Campo 'value' é obrigatório")
+
+    try:
+        size = parse_int(data.get("value"), name='value')
+    except ValueError as exc:
+        return json_error(str(exc))
+
+    nodes = storageStack.create_stack(
+        size=size,
+        position=data.get("position")
+    )
+
+    global last_stack_steps
+    last_stack_steps = {"op": None, "steps": []}
+
+    return jsonify([node.to_dict() for node in nodes]), 201
+
+@app.route("/stack_data", methods=["GET"])
+def get_stack_data():
+    """Retorna toda a estrutura da pilha (nós + edges + topo)"""
+    return jsonify(storageStack.to_dict())
+
+@app.route("/clear_stack", methods=["POST"])
+def clear_stack():
+    """Limpa a pilha, como se ela nunca tivesse sido criada (inclusive o tamanho)"""
+    storageStack.clear()
+
+    global last_stack_steps
+    last_stack_steps = {"op": None, "steps": []}
+
+    return jsonify({"message": "Pilha limpa com sucesso"}), 200
+
+@app.route("/stack_push_steps", methods=["POST"])
+def stack_push_steps():
+    """Executa push e retorna todos os passos para a simulação passo a passo"""
+    data = request.json
+    if not data or "value" not in data:
+        return jsonify({"success": False, "error": "Campo 'value' é obrigatório"}), 400
+
+    if not storageStack.nodes:
+        return jsonify({"success": False, "error": "Nenhuma pilha foi criada. Chame /create_stack primeiro."}), 400
+
+    value = data.get("value")
+    value_type = None
+
+    if is_integer(value):
+        value = int(value)
+        value_type = 'int'
+    elif is_single_char(value):
+        value = str(value).upper()
+        value_type = 'string'
+    else:
+        return jsonify({"success": False, "error": "O valor deve ser uma única letra ou um inteiro"}), 400
+
+    current_type = storageStack.get_stack_data_type()
+    if current_type and current_type != value_type:
+        return jsonify({
+            "success": False,
+            "error": f"A pilha já contém valores do tipo '{current_type}'. Esvazie-a para trocar de tipo."
+        }), 400
+
+    if storageStack.top == len(storageStack.nodes) - 1:
+        return jsonify({"success": False, "error": "Pilha cheia (Stack Overflow)"}), 400
+
+    try:
+        ops = StackOperations(storageStack)
+        steps = ops.push(value)
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+
+    global last_stack_steps
+    last_stack_steps = {"op": "push", "steps": steps}
+
+    return jsonify({"success": True, "steps": steps, "data": ops.final_state()}), 200
+
+@app.route("/stack_pop_steps", methods=["POST"])
+def stack_pop_steps():
+    """Executa pop e retorna todos os passos para a simulação passo a passo"""
+    if not storageStack.nodes:
+        return jsonify({"success": False, "error": "Nenhuma pilha foi criada. Chame /create_stack primeiro."}), 400
+
+    if storageStack.top == -1:
+        return jsonify({"success": False, "error": "Pilha vazia (Stack Underflow)"}), 400
+
+    try:
+        ops = StackOperations(storageStack)
+        steps = ops.pop()
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+
+    global last_stack_steps
+    last_stack_steps = {"op": "pop", "steps": steps}
+
+    return jsonify({"success": True, "steps": steps, "data": ops.final_state()}), 200
+
+@app.route("/stack_steps", methods=["GET"])
+def get_stack_steps():
+    """Retorna os últimos passos gerados (push ou pop), usado pela janela do CodeView"""
+    return jsonify(last_stack_steps), 200
+
+@app.route("/update_stack", methods=["POST"])
+def update_stack():
+    """Atualiza a pilha com o estado final (após push/pop)"""
+    data = request.json
+    if not data or "nodes" not in data:
+        return jsonify({"error": "Campo 'nodes' é obrigatório"}), 400
+
+    try:
+        nodes_data = data.get("nodes", [])
+        for idx, node_data in enumerate(nodes_data):
+            if idx < len(storageStack.nodes):
+                storageStack.nodes[idx].value = node_data.get("value")
+
+        if "top" in data:
+            storageStack.top = data.get("top")
+
+        return jsonify({"message": "Pilha atualizada com sucesso", "data": storageStack.to_dict()}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == "__main__":

@@ -20,7 +20,16 @@ class SLL:
         self.size = 0
         self.node_counter = 0
         self.list_node = ListNode(head=None, tail=None, size=0)
-        
+
+    def clear(self):
+        """Reseta a lista para o estado inicial, como se nunca tivesse sido usada."""
+        self.nodes = {}
+        self.edges = []
+        self.head = None
+        self.tail = None
+        self.size = 0
+        self.node_counter = 0
+        self.list_node = ListNode(head=None, tail=None, size=0)
 
     def add_node_last(self, value, position=None, label=None, node_type=None, node_id=None, metadata=None):
         new_id = f"n{self.node_counter}"

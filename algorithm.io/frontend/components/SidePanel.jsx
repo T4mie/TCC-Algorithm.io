@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SLLControls from '../components/controls/SLLControls';
 import VectorControls from '../components/controls/VectorControls';
+import StackControls from '../components/controls/StackControls';
 import '../css/sideBar.css';
 import { motion} from 'framer-motion';
 import HelpWidget from './HelpWidget';
@@ -24,7 +25,7 @@ export default function SidePanel({ props }) {
     : props.type === 'queue'
       ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e use o botão "Enfileirar" para adicionar um elemento. O botão "Desenfileirar" remove o elemento da frente da fila e reorganiza os demais.`
       : props.type === 'stack'
-        ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nNesta versão, a visualização foi criada para seleção e entrada, enquanto a lógica interna ainda está em desenvolvimento.`
+        ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.`
         : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
 
   return (
@@ -71,43 +72,26 @@ export default function SidePanel({ props }) {
         >
           {/* Conteúdo Dinâmico */}
           {props.type === 'sll' && (
-            <SLLControls 
-            nodeLabel={props.nodeLabel} 
+            <SLLControls
+            nodeLabel={props.nodeLabel}
             setNodeLabel={props.setNodeLabel}
-            handleAddNode={props.sll.handleAddNode} 
+            handleAddNode={props.sll.handleAddNode}
+            handleClear={props.sll.handleClear}
             centerView={props.centerView}
             />
           )}
           {props.type === 'queue' && (
-            <SLLControls 
-            nodeLabel={props.sharedStates.queueValue} 
-            setNodeLabel={props.sharedStates.setQueueValue} 
-            handleAddNode={props.queue.handleEnqueue} 
-            handleRemoveNode={props.queue.handleDequeue} 
-            centerView={props.centerView} 
+            <SLLControls
+            nodeLabel={props.sharedStates.queueValue}
+            setNodeLabel={props.sharedStates.setQueueValue}
+            handleAddNode={props.queue.handleEnqueue}
+            handleRemoveNode={props.queue.handleDequeue}
+            handleClear={props.queue.handleClear}
+            centerView={props.centerView}
             />
           )}
           {props.type === 'stack' && (
-            <div>
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <button onClick={() => props.centerView && props.centerView()} className='control-button'>Centralizar</button>
-              </motion.div>
-              <div style={{ height: '20px' }} />
-              <div className='input-container'>
-                <input value={props.sharedStates.stackValue} onChange={(e) => props.sharedStates.setStackValue(e.target.value)} type='text' id='stack-input' required />
-                <label htmlFor='stack-input' className='label'>Valor da Pilha</label>
-                <div className='underline' />
-              </div>
-              <div style={{ height: '12px' }} />
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <button disabled className='control-button'>Empilhar</button>
-              </motion.div>
-              <div style={{ height: '12px' }} />
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <button disabled className='control-button'>Remover do Topo</button>
-              </motion.div>
-              <p style={{ fontSize: '12px', color: '#666', marginTop: '12px' }}>A visualização da pilha foi criada para entrada e seleção nesta versão.</p>
-            </div>
+            <StackControls states={props.sharedStates} handlers={props.stack} centerView={props.centerView} />
           )}
           {props.type === 'vector' && (
             <VectorControls states={props.sharedStates} handlers={props.vector} centerView={props.centerView} />

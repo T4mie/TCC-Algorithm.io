@@ -1,44 +1,21 @@
-// components/VectorControls.js
+// components/StackControls.js
 import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
-import { persistVectorState, applyAndPersistFinalState } from '../../api/api_vector';
-import { toast } from 'sonner';
 
-export default function VectorControls({ states, handlers, centerView }) {
+export default function StackControls({ states, handlers, centerView }) {
   const {
-    vectorSize, setVectorSize, vectorId, setVectorId, vectorValue, setVectorValue,
-    currentStep, steps, setIsAnimating, setCurrentStep, nodes
+    stackSize, setStackSize, stackValue, setStackValue,
+    currentStep, steps, stackOperation
   } = states;
 
-  const vector = handlers;
+  const stack = handlers;
 
-  // Assim como na pilha, os inputs/botões de gerenciamento ficam bloqueados
-  // enquanto houver uma simulação em andamento (mesmo no último passo, antes
-  // de "Encerrar Simulação" ser clicado) — não usamos `isAnimating` aqui
-  // porque ele é desligado antes do usuário encerrar explicitamente.
   const isSimulating = currentStep !== -1;
-
-  const handleEndSimulation = async () => {
-    try {
-      // Aplicar o estado final e persistir
-      await applyAndPersistFinalState(states.steps, states.nodes, states.setNodes);
-      toast.success('Simulação encerrada e vetor atualizado para o estado final!');
-    } catch (err) {
-      toast.error('Erro ao salvar estado do vetor: ' + err.message);
-    } finally {
-      // Resetar os estados
-      setCurrentStep(-1);
-      setIsAnimating(false);
-      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-        window.electronAPI.updateChildStep(-1);
-      }
-    }
-  };
 
   return (
     <div>
-      {/* Seção de Gerenciamento: Criar e Inserir */}
+      {/* Seção de Gerenciamento: Criar e Empilhar/Desempilhar */}
       <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
         <motion.div whileTap={{ scale: 0.95 }}>
           <button onClick={() => centerView && centerView()} className="control-button">Centralizar</button>
@@ -46,72 +23,47 @@ export default function VectorControls({ states, handlers, centerView }) {
         <div style={{ height: '20px' }} />
         <div className="input-container">
           <input
-            value={vectorSize}
-            onChange={(e) => setVectorSize(e.target.value)}
+            value={stackSize}
+            onChange={(e) => setStackSize(e.target.value)}
             type="text"
-            id="input"
+            id="stack-size-input"
             required
             disabled={isSimulating}
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
           />
-          <label htmlFor="input" className="label">Tamanho do Vetor</label>
+          <label htmlFor="stack-size-input" className="label">Tamanho da Pilha</label>
           <div className="underline" />
         </div>
         <div style={{ height: '12px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={vector.handleCreateVector}
+            onClick={stack.handleCreateStack}
             disabled={isSimulating}
             className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Criar Vetor
+            Criar Pilha
           </button>
         </motion.div>
         <div style={{ height: '20px' }} />
         <div className="input-container">
           <input
-            value={vectorId}
-            onChange={(e) => setVectorId(e.target.value)}
+            value={stackValue}
+            onChange={(e) => setStackValue(e.target.value)}
             type="text"
-            id="input-id"
+            id="stack-value-input"
             required
             disabled={isSimulating}
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
           />
-          <label htmlFor="input-id" className="label">Índice</label>
+          <label htmlFor="stack-value-input" className="label">Valor</label>
           <div className="underline" />
         </div>
         <div style={{ height: '12px' }} />
-        <div className="input-container">
-          <input
-            value={vectorValue}
-            onChange={(e) => setVectorValue(e.target.value)}
-            type="text"
-            id="input-value"
-            required
-            disabled={isSimulating}
-            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
-          />
-          <label htmlFor="input-id" className="label">Valor</label>
-          <div className="underline" />
-        </div>
-        <div style={{ height: '12px' }} />
-        <motion.div whileTap={{ scale: 0.95 }}>
-          <button
-            onClick={vector.handleInsertVectorValue}
-            disabled={isSimulating}
-            className="control-button"
-            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
-          >
-            Inserir Valor no Índice
-          </button>
-        </motion.div>
-        <div style={{ height: '20px' }} />
         <select
           className='control-selector'
-          value={states.vectorType}
-          onChange={(e) => states.setVectorType(e.target.value)}
+          value={states.stackType}
+          onChange={(e) => states.setStackType(e.target.value)}
           disabled={isSimulating}
           style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
         >
@@ -121,7 +73,29 @@ export default function VectorControls({ states, handlers, centerView }) {
         <div style={{ height: '20px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={vector.handleClear}
+            onClick={stack.handlePush}
+            disabled={isSimulating}
+            className="control-button"
+            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
+          >
+            Empilhar
+          </button>
+        </motion.div>
+        <div style={{ height: '12px' }} />
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <button
+            onClick={stack.handlePop}
+            disabled={isSimulating}
+            className="control-button"
+            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
+          >
+            Remover do Topo
+          </button>
+        </motion.div>
+        <div style={{ height: '12px' }} />
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <button
+            onClick={stack.handleClear}
             disabled={isSimulating}
             className="control-button control-button-danger"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
@@ -131,30 +105,19 @@ export default function VectorControls({ states, handlers, centerView }) {
         </motion.div>
       </div>
 
-      {/* Seção Educativa: Simulação Passo a Passo do Insertion Sort */}
-      <div>
-        {currentStep === -1 ? (
-          <motion.div whileTap={{ scale: 0.95 }}>
-            <button
-              onClick={vector.handlePrepareStepByStep}
-              disabled={isSimulating}
-              className='control-button'
-              style={{
-                opacity: isSimulating ? 0.6 : 1,
-                cursor: isSimulating ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Simular Passo a Passo
-            </button>
-          </motion.div>
-        ) : (
+      {/* Seção Educativa: Simulação Passo a Passo */}
+      {isSimulating && (
+        <div>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
+            Simulação: {stackOperation === 'pop' ? 'Desempilhando' : 'Empilhando'}
+          </h4>
           <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
             <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '10px' }}>
               Passo: <strong>{currentStep + 1} / {steps.length}</strong>
             </p>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button
-                onClick={vector.handlePrevStep}
+                onClick={stack.handlePrevStep}
                 disabled={currentStep === 0}
                 className='control-button'
                 style={{
@@ -165,7 +128,7 @@ export default function VectorControls({ states, handlers, centerView }) {
                 ◀ Voltar
               </button>
               <button
-                onClick={vector.handleNextStep}
+                onClick={stack.handleNextStep}
                 disabled={currentStep === steps.length - 1}
                 className='control-button'
                 style={{
@@ -178,7 +141,7 @@ export default function VectorControls({ states, handlers, centerView }) {
             </div>
             <motion.div whileTap={{ scale: 0.95 }}>
               <button
-                onClick={handleEndSimulation}
+                onClick={stack.handleEndSimulation}
                 className='control-button'
                 style={{ marginTop: '5px' }}
               >
@@ -186,8 +149,8 @@ export default function VectorControls({ states, handlers, centerView }) {
               </button>
             </motion.div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

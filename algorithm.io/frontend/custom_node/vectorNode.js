@@ -1,41 +1,31 @@
 import React from 'react';
 
 function VectorNode({ data }) {
-  // const values = data.values || [];
-  const { values = [], activeKey, comparing, swapped } = data;
+  const { values = [], comparing, swapped, iValue, jValue, activeKey } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const size = values.length;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+  const display = (val) => (val !== undefined && val !== null ? val : '—');
 
-      {/* EXIBIÇÃO DA CHAVE (Área Educativa) */}
-      <div style={{ height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {activeKey !== undefined && activeKey !== null ? (
-          <>
-            <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#7f8c8d' }}>CHAVE (KEY)</span>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: '#e74c3c', // Cor de destaque (vermelho/laranja)
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderRadius: '4px',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 10px rgba(231, 76, 60, 0.4)',
-              border: '2px solid #c0392b',
-              marginBottom: '5px'
-            }}>
-              {activeKey}
-            </div>
-            <div style={{ fontSize: '12px', color: '#e74c3c' }}>↓ Comparando...</div>
-          </>
-        ) : (
-          <div style={{ height: '60px' }} /> // Espaçador para não pular o layout
-        )}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+      {/* Painel com as variáveis importantes do insertion sort (n, i, j, chave) */}
+      <div style={{
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        fontSize: '11px',
+        lineHeight: 1.6,
+        color: '#00ff88',
+        background: '#1b2530',
+        border: '1px solid #34495e',
+        borderRadius: '6px',
+        padding: '8px 12px',
+        marginBottom: '10px',
+        whiteSpace: 'pre',
+        textAlign: 'left'
+      }}>
+        {`n: ${size}\nj: ${display(iValue)}\ni: ${display(jValue)}\nchave: ${display(activeKey)}`}
       </div>
 
       {/* Row de índices (labels) */}
@@ -48,8 +38,8 @@ function VectorNode({ data }) {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              color: '#000000',
-              fontSize: '12px',
+              color: '#bdc3c7',
+              fontSize: '11px',
               fontWeight: '600'
             }}
           >
@@ -58,7 +48,7 @@ function VectorNode({ data }) {
         ))}
       </div>
 
-      {/* Row de valores (caixas) */}
+      {/* Row de valores (caixas): o vetor fica deitado, crescendo da esquerda para a direita */}
       <div
         style={{
           display: 'flex',
@@ -68,15 +58,14 @@ function VectorNode({ data }) {
           background: '#2c3e50',
           boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
           overflow: 'hidden',
-          minWidth: `${size * 60}px`, // Largura baseada no tamanho
+          minWidth: `${size * 60}px`,
           height: '60px',
         }}
       >
         {values.map((value, index) => {
-          const isComparing = data.comparing?.includes(index);
-          const isSwapped = data.swapped?.includes(index);
+          const isComparing = comparing?.includes(index);
+          const isSwapped = swapped?.includes(index);
 
-          // Verifica se tem valor (inclusive 0, mas não null/undefined)
           const hasValue = value !== null && value !== undefined && value !== '';
           let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
 
@@ -94,9 +83,9 @@ function VectorNode({ data }) {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-              borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
+                borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
                 background: backgroundColor,
-              color: hasValue ? '#fff' : '#2c3e50',
+                color: hasValue ? '#fff' : '#2c3e50',
                 fontSize: '14px',
                 fontWeight: 'bold',
                 transition: 'background 0.3s ease',
