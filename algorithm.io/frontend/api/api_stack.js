@@ -1,8 +1,10 @@
 // ===== API para operações de pilha (push/pop) e simulação passo a passo =====
 
-import { toast } from "sonner";
-import { fetchJson, postJson } from "./api_client";
+import { toast } from 'sonner';
+import { fetchJson, postJson } from './api_client';
 
+// Transforma os dados da pilha retornados pelo backend em um único nó visual
+// (React Flow), já que a pilha é renderizada como um bloco só, não nó a nó.
 export const transformStackData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return { reactFlowNodes: [], reactFlowEdges: [], dataNodesCount: 0 };
@@ -28,6 +30,7 @@ export const transformStackData = (data, currentNodes = []) => {
   return { reactFlowNodes: [stackNode], reactFlowEdges: [], dataNodesCount: 1 };
 };
 
+// Busca o estado atual da pilha no backend e atualiza nós/arestas/contador.
 export const fetchStackData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
     const data = await fetchJson('/stack_data');
@@ -41,6 +44,7 @@ export const fetchStackData = async (setNodes, setEdges, setNodeCount, currentNo
   }
 };
 
+// Cria a pilha no backend com o tamanho informado, validando que é um inteiro positivo até 15.
 export const createStack = async (size, setStackSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
     toast.error('Digite um tamanho de pilha válido (um inteiro positivo).');

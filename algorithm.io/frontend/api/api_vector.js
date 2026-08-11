@@ -1,8 +1,10 @@
 // ===== API para operações de vetor e simulação passo a passo do insertion sort =====
 
-import { toast } from "sonner";
-import { fetchJson, postJson } from "./api_client";
+import { toast } from 'sonner';
+import { fetchJson, postJson } from './api_client';
 
+// Transforma os dados do vetor retornados pelo backend em um único nó visual
+// (React Flow), já que o vetor é renderizado como um bloco só, não nó a nó.
 export const transformVectorData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return { reactFlowNodes: [], reactFlowEdges: [], dataNodesCount: 0 };
@@ -27,6 +29,7 @@ export const transformVectorData = (data, currentNodes = []) => {
   return { reactFlowNodes: [vectorNode], reactFlowEdges: [], dataNodesCount: 1 };
 };
 
+// Busca o estado atual do vetor no backend e atualiza nós/arestas/contador.
 export const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
     const data = await fetchJson('/vector_data');
@@ -40,6 +43,7 @@ export const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentN
   }
 };
 
+// Cria o vetor no backend com o tamanho informado, validando que é um inteiro positivo até 15.
 export const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
     toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
@@ -67,6 +71,7 @@ export const createVector = async (size, setVectorSize, setNodes, setEdges, setN
   }
 };
 
+// Insere um valor em uma posição específica do vetor no backend.
 export const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
   const idStr = String(nodeId).trim();
   const valStr = String(value).trim();
@@ -86,7 +91,7 @@ export const insertVectorValue = async (nodeId, value, setVectorId, setVectorVal
     setVectorId('');
     setVectorValue('');
 
-      // Se o vetor foi resetado, mostrar aviso
+    // Se o vetor foi resetado, mostrar aviso
     if (result.reset) {
       toast.warning(result.info || 'Vetor foi resetado');
     } else {

@@ -1,10 +1,13 @@
 class ListNode:
-    """Nó especial que representa a metadata da lista ligada"""
-    def __init__(self, head=None, tail=None, size=0):
+    """Nó especial que representa a metadata da lista ligada (ou da fila)"""
+
+    def __init__(self, head=None, tail=None, size=0, label="Lista Simplesmente Ligada"):
+        """Cria o nó de metadata com os ponteiros head/tail e o tamanho
+        atual da estrutura."""
         self.id = "list"
         self.value = f"N={size}"
-        self.position = {"x": 200, "y": 250}
-        self.label = f"Lista Simplesmente Ligada"
+        self.position = {"x": 100, "y": 20}
+        self.label = label
         self.type = "list"
         self.head = head
         self.tail = tail
@@ -16,6 +19,7 @@ class ListNode:
         }
 
     def to_dict(self):
+        """Serializa o nó de metadata para o formato consumido pelo frontend."""
         return {
             "id": self.id,
             "value": self.value,
@@ -26,15 +30,17 @@ class ListNode:
         }
 
     def update(self, head=None, tail=None, size=None):
-        """Atualiza os valores do nó Lista"""
-        if head is not None:
-            self.head = head
-            self.metadata["head"] = head
-        if tail is not None:
-            self.tail = tail
-            self.metadata["tail"] = tail
+        """Atualiza os valores do nó Lista.
+
+        head/tail são sempre sobrescritos (incluindo None, quando a
+        lista/fila fica vazia) para que a metadata nunca fique presa a um
+        nó que já foi removido.
+        """
+        self.head = head
+        self.metadata["head"] = head
+        self.tail = tail
+        self.metadata["tail"] = tail
         if size is not None:
             self.size = size
             self.value = f"N={size}"
-            self.label = f"Lista Simplesmente Ligada"
             self.metadata["size"] = size

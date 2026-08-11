@@ -1,6 +1,11 @@
 class ReactFlowSerializer:
+    """Converte uma estrutura de dados (nós + edges) para o formato esperado
+    pelo React Flow no frontend."""
+
     @staticmethod
     def serialize(structure):
+        """Serializa `structure` (que expõe `nodes` como dict e `edges` como
+        lista) em um dicionário com listas de nós e edges já em `to_dict`."""
         return {
             "nodes": [
                 {

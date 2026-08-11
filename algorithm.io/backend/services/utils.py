@@ -4,6 +4,7 @@ Este módulo contém funções de validação que podem ser reutilizadas por
 rotas e serviços sem duplicar lógica no aplicativo.
 """
 
+
 def is_single_char(value):
     """Verifica se o valor é um único caractere válido.
 
@@ -14,6 +15,7 @@ def is_single_char(value):
         return False
     # aceitar apenas letras (a-z, A-Z)
     return len(value) == 1 and value.isalnum()
+
 
 def is_integer(value):
     """Verifica se o valor é um inteiro válido"""

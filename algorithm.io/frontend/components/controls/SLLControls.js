@@ -3,10 +3,17 @@ import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
 
-export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, handleRemoveNode, handleClear, centerView})
-{
+// Controles laterais da Lista Simplesmente Ligada: campo de valor do nó e
+// botões para adicionar/remover no início ou no fim, além de limpar a lista.
+export default function SLLControls({
+  nodeLabel, setNodeLabel,
+  handleAddNodeLast, handleAddNodeFirst,
+  handleRemoveFirst, handleRemoveLast,
+  handleClear, centerView
+}) {
+  // Permite adicionar o nó no fim da lista pressionando Enter no campo de valor
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleAddNode();
+    if (e.key === 'Enter') handleAddNodeLast();
   };
 
   return (
@@ -23,43 +30,38 @@ export default function SLLControls({nodeLabel, setNodeLabel, handleAddNode, han
       <div style={{ height: '12px' }} />
 
       <motion.div whileTap={{ scale: 0.95 }}>
-        <button
-          onClick={handleAddNode}
-          className="control-button"
-        >
-          {handleRemoveNode ? "Enfileirar" : "Adicionar Nó"}
+        <button onClick={handleAddNodeLast} className="control-button">
+          Adicionar no Fim
         </button>
       </motion.div>
+      <div style={{ height: '12px' }} />
 
-      {handleRemoveNode && (
-        <>
-          <div style={{ height: '12px' }} />
+      <motion.div whileTap={{ scale: 0.95 }}>
+        <button onClick={handleAddNodeFirst} className="control-button">
+          Adicionar no Início
+        </button>
+      </motion.div>
+      <div style={{ height: '20px' }} />
 
-          <motion.div whileTap={{ scale: 0.95 }}>
-            <button
-              onClick={handleRemoveNode}
-              className="control-button"
-            >
-              Desenfileirar
-            </button>
-          </motion.div>
-        </>
-      )}
+      <motion.div whileTap={{ scale: 0.95 }}>
+        <button onClick={handleRemoveFirst} className="control-button control-button-danger">
+          Remover do Início
+        </button>
+      </motion.div>
+      <div style={{ height: '12px' }} />
 
-      {handleClear && (
-        <>
-          <div style={{ height: '12px' }} />
+      <motion.div whileTap={{ scale: 0.95 }}>
+        <button onClick={handleRemoveLast} className="control-button control-button-danger">
+          Remover do Fim
+        </button>
+      </motion.div>
+      <div style={{ height: '20px' }} />
 
-          <motion.div whileTap={{ scale: 0.95 }}>
-            <button
-              onClick={handleClear}
-              className="control-button control-button-danger"
-            >
-              Limpar
-            </button>
-          </motion.div>
-        </>
-      )}
+      <motion.div whileTap={{ scale: 0.95 }}>
+        <button onClick={handleClear} className="control-button control-button-danger">
+          Limpar
+        </button>
+      </motion.div>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import React from 'react';
 
+// Nó customizado que renderiza a pilha como uma coluna de caixas (índice 0 embaixo),
+// destacando o topo e os índices envolvidos no passo atual da simulação.
 function StackNode({ data }) {
   const { values = [], top = -1, highlighted = [], activeValue, codeId } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));
@@ -30,59 +32,65 @@ function StackNode({ data }) {
         {`tamanho: ${size}\ntopo: ${top}\nvalor: ${valorDisplay}`}
       </div>
 
-      {/* Coluna de caixas: índice 0 embaixo, cresce para cima */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column-reverse',
-          border: '2px solid #34495e',
-          borderRadius: '8px',
-          background: '#2c3e50',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-          overflow: 'hidden',
-          minHeight: `${size * 60}px`,
-          width: '140px',
-        }}
-      >
-        {values.map((value, index) => {
-          const isHighlighted = highlighted.includes(index);
-          const isTop = index === top;
-          const hasValue = value !== null && value !== undefined && value !== '';
+      {/* Linha com a coluna de índices (sem fundo, igual ao vetor) e a coluna de caixas */}
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
 
-          let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
-          if (isHighlighted && isMutatingStep) {
-            backgroundColor = '#4CAF50';
-          } else if (isHighlighted) {
-            backgroundColor = '#FF9800';
-          }
-
-          return (
+        {/* Coluna de índices: índice 0 embaixo, alinhada com as caixas ao lado */}
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', marginRight: '6px', minHeight: `${size * 60}px` }}>
+          {labels.map((lab, idx) => (
             <div
-              key={index}
+              key={`label-${idx}`}
               style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderTop: index < size - 1 ? '1px solid #34495e' : 'none',
+                width: '20px',
                 height: '60px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: '#bdc3c7',
+                fontSize: '11px',
+                fontWeight: '600'
               }}
             >
-              <div style={{
-                width: '28px',
-                textAlign: 'center',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: '#bdc3c7'
-              }}>
-                {labels[index]}
-              </div>
+              {lab}
+            </div>
+          ))}
+        </div>
+
+        {/* Coluna de caixas: índice 0 embaixo, cresce para cima */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column-reverse',
+            border: '2px solid #34495e',
+            borderRadius: '8px',
+            background: '#2c3e50',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
+            minHeight: `${size * 60}px`,
+            width: '112px',
+          }}
+        >
+          {values.map((value, index) => {
+            const isHighlighted = highlighted.includes(index);
+            const isTop = index === top;
+            const hasValue = value !== null && value !== undefined && value !== '';
+
+            let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
+            if (isHighlighted && isMutatingStep) {
+              backgroundColor = '#4CAF50';
+            } else if (isHighlighted) {
+              backgroundColor = '#FF9800';
+            }
+
+            return (
               <div
+                key={index}
                 style={{
-                  flex: 1,
-                  height: '100%',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  borderTop: index < size - 1 ? '1px solid #34495e' : 'none',
+                  height: '60px',
                   background: backgroundColor,
                   color: hasValue ? '#fff' : '#2c3e50',
                   fontSize: '14px',
@@ -93,9 +101,9 @@ function StackNode({ data }) {
               >
                 {hasValue ? value : ''}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

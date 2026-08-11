@@ -1,11 +1,12 @@
 from models.node import Node
 from models.edge import Edge
 
-class Stack:
 
+class Stack:
     """Representa uma pilha em memória usando um modelo semelhante ao Vector."""
 
     def __init__(self):
+        """Inicializa uma pilha vazia (sem tamanho definido)."""
         self.nodes = []
         self.edges = []
         self.top = -1
@@ -17,6 +18,8 @@ class Stack:
         self.top = -1
 
     def create_stack(self, size, position=None):
+        """Cria uma pilha vazia com `size` posições (slots), descartando o
+        conteúdo anterior. Retorna a lista de nós criados."""
         if len(self.nodes) != 0:
             self.nodes.clear()
             self.edges.clear()
@@ -42,6 +45,8 @@ class Stack:
         return None
 
     def to_dict(self):
+        """Serializa a pilha (nós, edges e o índice `top`) para o formato
+        consumido pelo frontend."""
         return {
             "nodes": [node.to_dict() for node in self.nodes],
             "edges": [edge.to_dict() for edge in self.edges],

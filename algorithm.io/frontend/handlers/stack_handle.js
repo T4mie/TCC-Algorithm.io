@@ -5,10 +5,11 @@ export const useStackHandlers = (states) => {
   const {
     stackSize, setStackSize, stackValue, setStackValue, stackType, setStackType,
     setNodes, setEdges, setNodeCount, nodes,
-    isAnimating, setIsAnimating, steps, setSteps, currentStep, setCurrentStep,
+    setIsAnimating, steps, setSteps, currentStep, setCurrentStep,
     setStackOperation
   } = states;
 
+  // Cria a pilha no backend com o tamanho informado pelo usuário
   const handleCreateStack = () => {
     createStack(
       stackSize, setStackSize, setNodes, setEdges,
@@ -16,6 +17,7 @@ export const useStackHandlers = (states) => {
     );
   };
 
+  // Valida o valor a empilhar conforme o tipo da pilha (inteiro ou texto)
   const validateStackValue = () => {
     if (stackType === 'int') {
       if (!/^-?\d+$/.test(stackValue)) {
@@ -74,6 +76,7 @@ export const useStackHandlers = (states) => {
     }
   };
 
+  // Avança para o próximo passo da simulação; ao atingir o último passo, persiste a pilha
   const handleNextStep = () => {
     if (currentStep < steps.length - 1) {
       const nextIndex = currentStep + 1;
@@ -99,6 +102,7 @@ export const useStackHandlers = (states) => {
     }
   };
 
+  // Volta para o passo anterior da simulação atual
   const handlePrevStep = () => {
     if (currentStep > 0) {
       const prevIndex = currentStep - 1;
@@ -110,6 +114,7 @@ export const useStackHandlers = (states) => {
     }
   };
 
+  // Encerra a simulação: aplica e persiste o estado final da pilha e fecha o painel
   const handleEndSimulation = async () => {
     try {
       await applyAndPersistFinalState(steps, nodes, setNodes);

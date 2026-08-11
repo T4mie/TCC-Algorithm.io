@@ -1,6 +1,7 @@
 from models.node import Node
 from models.edge import Edge
 
+
 class Vector:
     """Representa um vetor indexado como uma coleção de nós para visualização.
 
@@ -9,6 +10,7 @@ class Vector:
     """
 
     def __init__(self):
+        """Inicializa um vetor vazio (sem tamanho definido)."""
         self.nodes = []
         self.edges = []
 
@@ -18,6 +20,8 @@ class Vector:
         self.edges = []
 
     def create_vector(self, size, position=None):
+        """Cria um vetor vazio com `size` posições (slots), descartando o
+        conteúdo anterior. Retorna a lista de nós criados."""
         if len(self.nodes) != 0:
             self.nodes.clear()
             self.edges.clear()
@@ -25,12 +29,12 @@ class Vector:
         for i in range(size):
             node = Node(value=None, position=position, label=str(i), node_type='list', node_id=str(i))
             self.nodes.append(node)
-        
+
         for j in range(len(self.nodes) - 1):
             self.edges.append(Edge(self.nodes[j].id, self.nodes[j+1].id, "next"))
-            
+
         return self.nodes
-            
+
     def get_vector_data_type(self):
         """Retorna o tipo de dados do vetor: 'int', 'string', ou None se vazio"""
         for node in self.nodes:
@@ -42,14 +46,18 @@ class Vector:
         return None
 
     def insert_value(self, node_id, value):
+        """Insere `value` na posição `node_id` (índice do vetor). Levanta
+        `ValueError` se o índice estiver fora do alcance."""
         index = int(node_id)
         if 0 <= index < len(self.nodes):
             self.nodes[index].value = value
             self.nodes[index].label = f"{index}: {value}" if value is not None else str(index)
         else:
             raise ValueError("Índice fora do alcance")
-        
+
     def read_value(self, node_id):
+        """Lê o valor na posição `node_id` (índice do vetor). Levanta
+        `ValueError` se o índice estiver fora do alcance."""
         index = int(node_id)
         if 0 <= index < len(self.nodes):
             return self.nodes[index].value
@@ -57,23 +65,30 @@ class Vector:
             raise ValueError("Índice fora do alcance")
 
     def to_dict(self):
+        """Serializa o vetor (nós e edges) para o formato consumido pelo
+        frontend."""
         return {
             "nodes": [node.to_dict() for node in self.nodes],
             "edges": [edge.to_dict() for edge in self.edges]
         }
-        
-# Não utilizar por enquanto
+
+    # ===== MÉTODOS AUXILIARES (NÃO USAR POR ENQUANTO) =====
 
     def get_node(self, node_id):
+        """Retorna o nó com o id informado, ou `None` se não existir."""
         return self.nodes.get(node_id)
 
     def get_all_nodes(self):
+        """Retorna todos os nós do vetor."""
         return list(self.nodes.values())
 
     def get_all_edges(self):
+        """Retorna todas as edges do vetor."""
         return self.edges
 
     def delete_node(self, node_id):
+        """Remove o nó `node_id` do vetor. Levanta `ValueError` se o nó não
+        existir."""
         if node_id not in self.nodes:
             raise ValueError("Nó não existe")
 

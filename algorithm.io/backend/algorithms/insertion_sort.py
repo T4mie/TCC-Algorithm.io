@@ -10,9 +10,12 @@ class InsertionSort:
     """
 
     def __init__(self, vector):
-        # Mantemos referência ao vetor original, mas operamos sobre
-        # uma cópia profunda dos nós para não alterar o estado do
-        # `storageVector` antes de termos todos os steps registrados.
+        """Inicializa o sorter a partir de um `Vector`, copiando seus nós.
+
+        Mantemos referência ao vetor original, mas operamos sobre uma cópia
+        profunda dos nós para não alterar o estado do `storageVector` antes
+        de termos todos os steps registrados.
+        """
         self.vector = vector
         self.original_nodes = copy.deepcopy(vector.nodes)
         self.nodes = copy.deepcopy(vector.nodes)
@@ -41,23 +44,23 @@ class InsertionSort:
             "jValue": j_value
         }
         return state
-        
+
     def sort(self):
-        """Insertion sort atualizado: inclui espaços vazios na ordenação e mapeia 100% dos steps"""
-        
-        # Estado inicial do algoritmo para animação.
-        # A depuração de valores diretos deve ser feita com logging externo,
-        # não com prints embutidos neste método.
-        
+        """Executa o Insertion Sort sobre a cópia dos nós, registrando um
+        passo a cada operação relevante (comparação, shift, inserção).
+
+        Inclui espaços vazios (valor `None`) na ordenação e mapeia 100% dos
+        passos para o highlight de código no CodeView.
+        """
         all_indices = list(range(len(self.nodes)))
-        
+
         if len(all_indices) <= 1:
             self.steps.append(self.capture_state(code_id='END_FUNC'))
             return self.steps
 
         # estado inicial
         self.steps.append(self.capture_state(code_id='SIGNATURE'))
-        
+
         # Etapa faltante para acender a linha 'n = len(A)' (Python/Java)
         self.steps.append(self.capture_state(code_id='INIT_SIZE'))
 

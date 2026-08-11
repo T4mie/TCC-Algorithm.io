@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { fetchSortSteps } from '../api/api_vector';
 import { fetchStackSteps } from '../api/api_stack';
+import { fetchQueueSteps } from '../api/api_queue';
 
 // Importando os dados dos arquivos separados
 import { pseudocodigoLines } from '../code_view_data/insertion_sort/pseudocodigo';
@@ -13,30 +14,53 @@ import { stackPushPythonLines } from '../code_view_data/stack/stack_push/python'
 import { stackPopPseudocodigoLines } from '../code_view_data/stack/stack_pop/pseudocodigo';
 import { stackPopJavaLines } from '../code_view_data/stack/stack_pop/java';
 import { stackPopPythonLines } from '../code_view_data/stack/stack_pop/python';
+import { queueEnqueuePseudocodigoLines } from '../code_view_data/queue/queue_enqueue/pseudocodigo';
+import { queueEnqueueJavaLines } from '../code_view_data/queue/queue_enqueue/java';
+import { queueEnqueuePythonLines } from '../code_view_data/queue/queue_enqueue/python';
+import { queueDequeuePseudocodigoLines } from '../code_view_data/queue/queue_dequeue/pseudocodigo';
+import { queueDequeueJavaLines } from '../code_view_data/queue/queue_dequeue/java';
+import { queueDequeuePythonLines } from '../code_view_data/queue/queue_dequeue/python';
 
 import '../css/codeView.css';
 
-// CodeView exibe o código do algoritmo com destaque na linha ativa.
-// A lógica de mapeamento de passos para código está concentrada neste componente.
-// Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
+// Objeto de mapeamento para extrair dinamicamente a linguagem escolhida (insertion sort / vetor)
 const codeSnippets = {
   pseudocódigo: pseudocodigoLines,
   java: javaLines,
   python: pythonLines
 };
 
+// Snippets do método push() da pilha, por linguagem.
 const stackPushSnippets = {
   pseudocódigo: stackPushPseudocodigoLines,
   java: stackPushJavaLines,
   python: stackPushPythonLines
 };
 
+// Snippets do método pop() da pilha, por linguagem.
 const stackPopSnippets = {
   pseudocódigo: stackPopPseudocodigoLines,
   java: stackPopJavaLines,
   python: stackPopPythonLines
 };
 
+// Snippets do método enqueue() da fila, por linguagem.
+const queueEnqueueSnippets = {
+  pseudocódigo: queueEnqueuePseudocodigoLines,
+  java: queueEnqueueJavaLines,
+  python: queueEnqueuePythonLines
+};
+
+// Snippets do método dequeue() da fila, por linguagem.
+const queueDequeueSnippets = {
+  pseudocódigo: queueDequeuePseudocodigoLines,
+  java: queueDequeueJavaLines,
+  python: queueDequeuePythonLines
+};
+
+// CodeView exibe o código do algoritmo/método (pseudocódigo, Java ou Python) com destaque
+// na linha ativa, mantendo-se sincronizado com o passo atual da simulação em View.jsx
+// (via query string na primeira carga e via IPC do Electron para atualizações ao vivo).
 export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
   const location = useLocation();
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -49,16 +73,20 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
 
   const [lang, setLang] = useState('pseudocódigo');
   const [stackOp, setStackOp] = useState(null);
+  const [queueOp, setQueueOp] = useState(null);
 
   // Seleciona o array de código correto conforme o tipo de estrutura visualizada
   const codeLines = viewType === 'vector'
     ? codeSnippets[lang]
     : viewType === 'stack'
       ? (stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang])
-      : [];
+      : viewType === 'queue'
+        ? (queueOp === 'dequeue' ? queueDequeueSnippets[lang] : queueEnqueueSnippets[lang])
+        : [];
 
-  // Map a backend step object to a code line id using heuristics,
-  // but prefer an explicit `code_id` when the backend provides it.
+  // Mapeia um objeto de passo vindo do backend para o id de uma linha de código,
+  // usando heurísticas; prefere o `code_id` explícito quando o backend o fornece
+  // (caso da pilha e da fila). Usado apenas como fallback para o vetor.
   const mapStepToCodeId = (step, prevStep) => {
     if (step && step.code_id) return step.code_id;
     if (!step) return propActiveStep || 'INIT_LOOP';
@@ -96,7 +124,8 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
     loadSteps();
   }, [stepParam, viewType]);
 
-  // register live updates from parent window (when user steps in View)
+  // Registra atualizações ao vivo vindas da janela principal (quando o usuário
+  // avança/volta passos em View.jsx) para manter o destaque do vetor sincronizado.
   useEffect(() => {
     if (viewType !== 'vector') return;
     if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
@@ -106,7 +135,7 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
       setStepIndex(idx);
 
       if (idx < 0) {
-        // clear highlight when simulation ended
+        // limpa o destaque quando a simulação termina
         setActiveStep(null);
         return;
       }
@@ -123,7 +152,7 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
         } catch (e) {
-          // Ignore fetch failures on live update
+          // Ignora falhas de busca em atualizações ao vivo
         }
       }
     };
@@ -195,6 +224,65 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
     };
   }, [viewType]);
 
+  // Carrega os últimos passos de enqueue/dequeue gerados pelo backend para a fila.
+  // Assim como a pilha, cada passo já traz `code_id` explícito.
+  useEffect(() => {
+    const loadQueueSteps = async () => {
+      if (viewType !== 'queue') return;
+      try {
+        const result = await fetchQueueSteps();
+        setSteps(result.steps || []);
+        setQueueOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadQueueSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Enfileirar/Desenfileirar
+  // e Voltar/Próximo). Reconsulta /queue_steps a cada evento para não dessincronizar
+  // o `queueOp` caso o usuário troque de operação (enqueue -> dequeue ou vice-versa).
+  useEffect(() => {
+    if (viewType !== 'queue') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+
+    const handler = async (payload) => {
+      const idx = (payload && typeof payload.step !== 'undefined') ? Number(payload.step) : -1;
+      setStepIndex(idx);
+
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+
+      try {
+        const result = await fetchQueueSteps();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setQueueOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
+  // Gera o estilo do botão de seleção de linguagem, destacando o idioma ativo.
   const buttonStyle = (active) => ({
     background: active ? '#0f766e' : '#111',
     color: active ? '#fff' : '#cfcfcf',
@@ -262,6 +350,39 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
           <>
             <p style={{ margin: '0 0 8px', padding: '0 12px', fontSize: 12, color: '#9aa0a6' }}>
               {stackOp === 'pop' ? 'Simulando: pop() — Desempilhar' : 'Simulando: push() — Empilhar'}
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
+              <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
+              <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>
+              <button style={buttonStyle(lang === 'python')} onClick={() => setLang('python')}>Python</button>
+            </div>
+
+            <div style={{ margin: 0, whiteSpace: 'pre', fontSize: 14, lineHeight: 1.6 }}>
+              {codeLines.map((line, index) => {
+                const isHighlighted = activeStep === line.id;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0 12px',
+                      backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+                      borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+                      color: isHighlighted ? '#ffffff' : '#00ff88',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {viewType === 'queue' && (
+          <>
+            <p style={{ margin: '0 0 8px', padding: '0 12px', fontSize: 12, color: '#9aa0a6' }}>
+              {queueOp === 'dequeue' ? 'Simulando: dequeue() — Desenfileirar' : 'Simulando: enqueue() — Enfileirar'}
             </p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
               <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>

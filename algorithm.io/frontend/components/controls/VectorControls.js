@@ -2,13 +2,17 @@
 import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
-import { persistVectorState, applyAndPersistFinalState } from '../../api/api_vector';
+import { applyAndPersistFinalState } from '../../api/api_vector';
 import { toast } from 'sonner';
 
+// Controles laterais do Vetor: criação do vetor (tamanho e tipo), inserção
+// de valores por índice, e a seção de simulação passo a passo do algoritmo
+// de ordenação (insertion sort) exibida enquanto uma operação está em
+// andamento.
 export default function VectorControls({ states, handlers, centerView }) {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId, vectorValue, setVectorValue,
-    currentStep, steps, setIsAnimating, setCurrentStep, nodes
+    currentStep, steps, setIsAnimating, setCurrentStep
   } = states;
 
   const vector = handlers;
@@ -19,6 +23,8 @@ export default function VectorControls({ states, handlers, centerView }) {
   // porque ele é desligado antes do usuário encerrar explicitamente.
   const isSimulating = currentStep !== -1;
 
+  // Finaliza a simulação passo a passo: aplica e persiste o estado final do
+  // vetor no backend e reseta os estados de simulação (local e do Electron)
   const handleEndSimulation = async () => {
     try {
       // Aplicar o estado final e persistir

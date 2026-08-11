@@ -1,5 +1,7 @@
 import React from 'react';
 
+// Nó customizado que renderiza o vetor como uma fileira de caixas, destacando
+// os índices em comparação e em troca durante a simulação do insertion sort.
 function VectorNode({ data }) {
   const { values = [], comparing, swapped, iValue, jValue, activeKey } = data;
   const rawLabels = data.labels || values.map((_, i) => String(i));

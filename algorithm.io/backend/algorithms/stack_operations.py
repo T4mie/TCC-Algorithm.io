@@ -11,12 +11,16 @@ class StackOperations:
     """
 
     def __init__(self, stack):
+        """Inicializa a operação a partir de uma `Stack`, copiando seus nós
+        e o índice `top` para trabalhar isoladamente."""
         self.stack = stack
         self.nodes = copy.deepcopy(stack.nodes)
         self.top = stack.top
         self.steps = []
 
     def capture_state(self, highlighted=None, active_value=None, code_id=None):
+        """Captura o estado atual da pilha para um passo da animação,
+        associado à linha `code_id` do CodeView."""
         return {
             "nodes": [node.to_dict() for node in self.nodes],
             "edges": [edge.to_dict() for edge in self.stack.edges],
@@ -27,6 +31,9 @@ class StackOperations:
         }
 
     def push(self, value):
+        """Empilha `value` no topo, registrando um passo para cada etapa
+        (checagem de overflow, incremento do topo, atribuição do valor).
+        Levanta `ValueError` se a pilha estiver cheia."""
         size = len(self.nodes)
 
         self.steps.append(self.capture_state(code_id='SIGNATURE'))
@@ -52,6 +59,9 @@ class StackOperations:
         return self.steps
 
     def pop(self):
+        """Remove e retorna o valor do topo da pilha, registrando um passo
+        para cada etapa (checagem de underflow, leitura, limpeza do slot,
+        decremento do topo). Levanta `ValueError` se a pilha estiver vazia."""
         self.steps.append(self.capture_state(code_id='SIGNATURE'))
 
         self.steps.append(self.capture_state(
@@ -77,6 +87,8 @@ class StackOperations:
         return self.steps
 
     def final_state(self):
+        """Retorna o estado final (nodes/edges/top) calculado pela cópia,
+        sem alterar a `Stack` original."""
         return {
             "nodes": [n.to_dict() for n in self.nodes],
             "edges": [e.to_dict() for e in self.stack.edges],

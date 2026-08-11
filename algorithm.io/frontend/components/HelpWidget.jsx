@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 
+// Botão flutuante de ajuda ("?") que, ao ser clicado, abre um modal com o
+// texto explicativo (`label`) sobre a estrutura de dados em uso. Pode ser
+// renderizado inline (ao lado de outro elemento) ou fixo no canto da tela.
 export default function HelpWidget({ label = 'Texto', inline = false, sizeScale = 1 }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Tamanho do botão circular, escalado pelo fator `sizeScale`
   const btnSize = Math.round(48 * sizeScale);
 
+  // Botão "?" que abre o modal de ajuda
   const ButtonElement = (
     <button
       aria-label="Ajuda"
@@ -29,7 +34,7 @@ export default function HelpWidget({ label = 'Texto', inline = false, sizeScale 
     </button>
   );
 
-  // Modal portal (shared for inline and non-inline)
+  // Modal de ajuda, renderizado via portal (compartilhado entre os modos inline e fixo)
   const Modal = isOpen ? ReactDOM.createPortal(
     <div
       role="dialog"
@@ -72,7 +77,7 @@ export default function HelpWidget({ label = 'Texto', inline = false, sizeScale 
       </button>
 
       <div style={{ marginTop: '28px', fontSize: '18px' }}>
-          <div style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{label}</div>
+        <div style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{label}</div>
       </div>
     </div>,
     document.body
@@ -87,7 +92,7 @@ export default function HelpWidget({ label = 'Texto', inline = false, sizeScale 
     );
   }
 
-  // non-inline: render fixed button at top-right via portal
+  // Modo não-inline: renderiza o botão fixo no canto superior direito via portal
   const fixedContainer = (
     <div style={{ position: 'fixed', top: `${16 * sizeScale}px`, right: `${16 * sizeScale}px`, zIndex: 10000 }}>
       {ButtonElement}
@@ -101,4 +106,3 @@ export default function HelpWidget({ label = 'Texto', inline = false, sizeScale 
     </>
   );
 }
-

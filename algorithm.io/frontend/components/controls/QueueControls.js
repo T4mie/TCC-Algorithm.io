@@ -1,25 +1,26 @@
-// components/StackControls.js
+// components/QueueControls.js
 import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
 
-// Controles laterais da Pilha: criação da pilha (tamanho e tipo), campo de
-// valor, botões de empilhar/desempilhar/limpar, e a seção de simulação
-// passo a passo exibida enquanto uma operação está em andamento.
-export default function StackControls({ states, handlers, centerView }) {
-  const {
-    stackSize, setStackSize, stackValue, setStackValue,
-    currentStep, steps, stackOperation
-  } = states;
-
-  const stack = handlers;
+// Controles laterais da Fila: campo de valor, botões de enfileirar/
+// desenfileirar/limpar, e a seção de simulação passo a passo exibida
+// enquanto uma operação está em andamento.
+export default function QueueControls({ states, handlers, centerView }) {
+  const { queueValue, setQueueValue, currentStep, steps, queueOperation } = states;
+  const queue = handlers;
 
   // Indica se há uma simulação passo a passo em andamento
   const isSimulating = currentStep !== -1;
 
+  // Permite disparar o enfileiramento pressionando Enter no campo de valor
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') queue.handleEnqueue();
+  };
+
   return (
     <div>
-      {/* Seção de Gerenciamento: Criar e Empilhar/Desempilhar */}
+      {/* Seção de Gerenciamento: Enfileirar/Desenfileirar */}
       <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
         <motion.div whileTap={{ scale: 0.95 }}>
           <button onClick={() => centerView && centerView()} className="control-button">Centralizar</button>
@@ -27,79 +28,44 @@ export default function StackControls({ states, handlers, centerView }) {
         <div style={{ height: '20px' }} />
         <div className="input-container">
           <input
-            value={stackSize}
-            onChange={(e) => setStackSize(e.target.value)}
+            value={queueValue}
+            onChange={(e) => setQueueValue(e.target.value)}
+            onKeyPress={handleKeyPress}
             type="text"
-            id="stack-size-input"
+            id="queue-value-input"
             required
             disabled={isSimulating}
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
           />
-          <label htmlFor="stack-size-input" className="label">Tamanho da Pilha</label>
+          <label htmlFor="queue-value-input" className="label">Valor</label>
           <div className="underline" />
         </div>
         <div style={{ height: '12px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={stack.handleCreateStack}
+            onClick={queue.handleEnqueue}
             disabled={isSimulating}
             className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Criar Pilha
-          </button>
-        </motion.div>
-        <div style={{ height: '20px' }} />
-        <div className="input-container">
-          <input
-            value={stackValue}
-            onChange={(e) => setStackValue(e.target.value)}
-            type="text"
-            id="stack-value-input"
-            required
-            disabled={isSimulating}
-            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
-          />
-          <label htmlFor="stack-value-input" className="label">Valor</label>
-          <div className="underline" />
-        </div>
-        <div style={{ height: '12px' }} />
-        <select
-          className='control-selector'
-          value={states.stackType}
-          onChange={(e) => states.setStackType(e.target.value)}
-          disabled={isSimulating}
-          style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
-        >
-          <option value="int">Inteiros</option>
-          <option value="string">Texto</option>
-        </select>
-        <div style={{ height: '20px' }} />
-        <motion.div whileTap={{ scale: 0.95 }}>
-          <button
-            onClick={stack.handlePush}
-            disabled={isSimulating}
-            className="control-button"
-            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
-          >
-            Empilhar
+            Enfileirar
           </button>
         </motion.div>
         <div style={{ height: '12px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={stack.handlePop}
+            onClick={queue.handleDequeue}
             disabled={isSimulating}
             className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Remover do Topo
+            Desenfileirar
           </button>
         </motion.div>
         <div style={{ height: '12px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={stack.handleClear}
+            onClick={queue.handleClear}
             disabled={isSimulating}
             className="control-button control-button-danger"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
@@ -113,7 +79,7 @@ export default function StackControls({ states, handlers, centerView }) {
       {isSimulating && (
         <div>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
-            Simulação: {stackOperation === 'pop' ? 'Desempilhando' : 'Empilhando'}
+            Simulação: {queueOperation === 'dequeue' ? 'Desenfileirando' : 'Enfileirando'}
           </h4>
           <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
             <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '10px' }}>
@@ -121,7 +87,7 @@ export default function StackControls({ states, handlers, centerView }) {
             </p>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button
-                onClick={stack.handlePrevStep}
+                onClick={queue.handlePrevStep}
                 disabled={currentStep === 0}
                 className='control-button'
                 style={{
@@ -132,7 +98,7 @@ export default function StackControls({ states, handlers, centerView }) {
                 ◀ Voltar
               </button>
               <button
-                onClick={stack.handleNextStep}
+                onClick={queue.handleNextStep}
                 disabled={currentStep === steps.length - 1}
                 className='control-button'
                 style={{
@@ -145,7 +111,7 @@ export default function StackControls({ states, handlers, centerView }) {
             </div>
             <motion.div whileTap={{ scale: 0.95 }}>
               <button
-                onClick={stack.handleEndSimulation}
+                onClick={queue.handleEndSimulation}
                 className='control-button'
                 style={{ marginTop: '5px' }}
               >

@@ -8725,6 +8725,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Componente raiz: define as rotas da aplicação (tela de seleção,
+// visualização de estrutura e janela de código) usando HashRouter.
 function App() {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.HashRouter, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Routes, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Route, {
     path: "/",
@@ -8756,12 +8759,18 @@ const API_BASE_URL = 'http://localhost:5000';
 const defaultHeaders = {
   'Content-Type': 'application/json'
 };
+
+// Monta a URL final da requisição: mantém URLs absolutas como estão e
+// prefixa caminhos relativos com a base da API.
 const resolveUrl = url => {
   if (typeof url !== 'string') {
     throw new TypeError('URL deve ser uma string');
   }
   return url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
 };
+
+// Faz a requisição HTTP, decodifica o corpo como JSON (se houver) e lança
+// erro com a mensagem do backend quando a resposta não for bem-sucedida.
 const fetchJson = async (url, options = {}) => {
   const response = await fetch(resolveUrl(url), {
     headers: {
@@ -8778,6 +8787,8 @@ const fetchJson = async (url, options = {}) => {
   }
   return data;
 };
+
+// Atalho para requisições POST com corpo em JSON.
 const postJson = async (path, body = {}) => {
   return fetchJson(path, {
     method: 'POST',
@@ -8796,86 +8807,159 @@ const postJson = async (path, body = {}) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyQueueStep: () => (/* binding */ applyQueueStep),
 /* harmony export */   clearQueue: () => (/* binding */ clearQueue),
-/* harmony export */   dequeueQueue: () => (/* binding */ dequeueQueue),
-/* harmony export */   enqueueQueue: () => (/* binding */ enqueueQueue),
-/* harmony export */   fetchQueueData: () => (/* binding */ fetchQueueData)
+/* harmony export */   fetchDequeueSteps: () => (/* binding */ fetchDequeueSteps),
+/* harmony export */   fetchEnqueueSteps: () => (/* binding */ fetchEnqueueSteps),
+/* harmony export */   fetchQueueData: () => (/* binding */ fetchQueueData),
+/* harmony export */   fetchQueueSteps: () => (/* binding */ fetchQueueSteps)
 /* harmony export */ });
 /* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
-/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
 
 
+
+
+// Transforma os dados da fila retornados pelo backend em nós e arestas para o React Flow.
 const transformQueueData = (data, currentNodes = []) => {
   const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
-  const reactFlowNodes = data.nodes.filter(node => node.id !== "list").map((node, index) => ({
+  const listNodeData = data.nodes.find(node => node.id === 'list');
+  const headId = listNodeData?.metadata?.head ?? null;
+  const tailId = listNodeData?.metadata?.tail ?? null;
+  const reactFlowNodes = data.nodes.filter(node => node.id !== 'list').map((node, index) => ({
     id: node.id,
-    type: "SLL",
-    position: {
+    type: 'SLL',
+    // Preferir a posição que o próprio nó já carrega (calculada uma
+    // única vez na criação) em vez de recalcular pelo índice: como
+    // nós removidos do início deslocam os índices dos remanescentes,
+    // recalcular por índice fazia nós novos colidirem com o último
+    // nó existente depois de um dequeue.
+    position: positionMap.get(node.id) || node.position || {
       x: 100 + index * 120,
       y: 140
     },
     data: {
       label: node.label || node.value,
-      type: "queue",
+      type: 'queue',
       state: null,
-      metadata: node.metadata
+      metadata: node.metadata,
+      isHead: node.id === headId,
+      isTail: node.id === tailId,
+      highlighted: (data.highlighted || []).includes(node.id),
+      activeValue: data.activeValue,
+      codeId: data.code_id
     }
   }));
-  const reactFlowEdges = data.edges.map(edge => ({
-    id: `${edge.source}-${edge.target}-${edge.type}`,
-    source: edge.source,
-    target: edge.target,
-    type: 'default'
-  }));
+
+  // Objeto Fila (mesmo painel padronizado usado na Lista Ligada)
+  if (listNodeData) {
+    reactFlowNodes.unshift({
+      id: 'list',
+      type: 'list',
+      position: positionMap.get('list') || listNodeData.position,
+      data: {
+        label: listNodeData.label,
+        type: 'list',
+        state: null,
+        metadata: listNodeData.metadata,
+        activeValue: data.activeValue,
+        codeId: data.code_id
+      }
+    });
+  }
+  const reactFlowEdges = data.edges.map(edge => {
+    const baseEdge = {
+      id: `${edge.source}-${edge.target}-${edge.type}`,
+      source: edge.source,
+      target: edge.target
+    };
+    if (edge.type === 'head' || edge.type === 'tail') {
+      const color = edge.type === 'head' ? '#2ecc71' : '#e67e22';
+      baseEdge.sourceHandle = edge.type;
+      baseEdge.targetHandle = 'ptr';
+      baseEdge.style = {
+        stroke: color,
+        strokeWidth: 2
+      };
+      baseEdge.markerEnd = {
+        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_1__.MarkerType.ArrowClosed,
+        color
+      };
+    } else {
+      baseEdge.sourceHandle = 'next';
+      baseEdge.targetHandle = 'prev';
+    }
+    return baseEdge;
+  });
   return {
     reactFlowNodes,
     reactFlowEdges
   };
 };
+
+// Busca o estado atual da fila no backend e atualiza nós/arestas/contador.
 const fetchQueueData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
-    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/queue_data');
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.fetchJson)('/queue_data');
     const {
       reactFlowNodes,
       reactFlowEdges
     } = transformQueueData(data, currentNodes);
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
-    setNodeCount(reactFlowNodes.length);
+    setNodeCount(reactFlowNodes.filter(n => n.data.type !== 'list').length);
   } catch (err) {
     console.error('Erro ao carregar fila:', err);
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao carregar fila do backend');
   }
 };
-const enqueueQueue = async (value, setNodeLabel, setNodes, setEdges, setNodeCount, currentNodes = []) => {
-  try {
-    const payload = {
-      value,
-      label: value,
-      position: {
-        x: 100 + currentNodes.length * 120,
-        y: 140
-      },
-      type: 'queue'
-    };
-    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/queue_enqueue', payload);
-    await fetchQueueData(setNodes, setEdges, setNodeCount, currentNodes);
-  } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao enfileirar: ' + err.message);
-  }
+
+// Executa o enqueue no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchEnqueueSteps = async (value, currentNodes = []) => {
+  const dataNodes = currentNodes.filter(n => n.data?.type !== 'list');
+  // Posição baseada no x mais à direita já ocupado, não na contagem de nós:
+  // depois de um dequeue os ids remanescentes mantêm sua posição real, então
+  // contar "quantos nós existem hoje" para decidir o próximo x pode colidir
+  // com o último nó existente.
+  const maxX = dataNodes.length ? Math.max(...dataNodes.map(n => n.position.x)) : 100 - 120;
+  const position = {
+    x: maxX + 120,
+    y: 140
+  };
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/queue_enqueue_steps', {
+    value,
+    label: value,
+    position,
+    type: 'queue'
+  });
 };
-const dequeueQueue = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
-  try {
-    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/queue_dequeue', {});
-    await fetchQueueData(setNodes, setEdges, setNodeCount, currentNodes);
-  } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao desenfileirar: ' + err.message);
-  }
+
+// Executa o dequeue no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchDequeueSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/queue_dequeue_steps', {});
+};
+
+// Busca os últimos passos gerados (enqueue ou dequeue), usado pela janela do CodeView
+const fetchQueueSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.fetchJson)('/queue_steps');
+};
+
+// Aplica um passo da simulação (enqueue/dequeue) ao estado visual da fila.
+// Reaproveita o mesmo transform usado pelo fetch completo, já que o passo
+// carrega o mesmo formato de nós/edges do backend.
+const applyQueueStep = (step, currentNodes, setNodes, setEdges) => {
+  const {
+    reactFlowNodes,
+    reactFlowEdges
+  } = transformQueueData(step, currentNodes);
+  setNodes(reactFlowNodes);
+  setEdges(reactFlowEdges);
 };
 
 // Limpa a fila no backend, como se ela nunca tivesse sido usada
 const clearQueue = async () => {
-  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_queue', {});
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/clear_queue', {});
 };
 
 /***/ },
@@ -8889,12 +8973,17 @@ const clearQueue = async () => {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   addNode: () => (/* binding */ addNode),
+/* harmony export */   addNodeFirst: () => (/* binding */ addNodeFirst),
 /* harmony export */   clearSLL: () => (/* binding */ clearSLL),
 /* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
+/* harmony export */   removeFirstNode: () => (/* binding */ removeFirstNode),
+/* harmony export */   removeLastNode: () => (/* binding */ removeLastNode),
 /* harmony export */   transformBackendData: () => (/* binding */ transformBackendData)
 /* harmony export */ });
 /* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
-/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+
 
 
 
@@ -8902,6 +8991,9 @@ __webpack_require__.r(__webpack_exports__);
 const transformBackendData = (data, currentNodes = []) => {
   // Criar mapa das posições atuais
   const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+  const listNodeData = data.nodes.find(node => node.type === 'list');
+  const headId = listNodeData?.metadata?.head ?? null;
+  const tailId = listNodeData?.metadata?.tail ?? null;
 
   // Converter nós do backend, mas preservar posições
   const reactFlowNodes = data.nodes.map(node => ({
@@ -8912,21 +9004,35 @@ const transformBackendData = (data, currentNodes = []) => {
       label: node.label,
       type: node.type,
       state: null,
-      metadata: node.metadata
+      metadata: node.metadata,
+      isHead: node.id === headId,
+      isTail: node.id === tailId
     }
   }));
 
-  // Converter edges E usar o type como sourceHandle quando necessário
+  // Converter edges: ligações "next" fluem esquerda->direita, ligações
+  // "head"/"tail" saem do objeto Lista já identificadas por cor.
   const reactFlowEdges = data.edges.map(edge => {
     const baseEdge = {
       id: `${edge.source}-${edge.target}-${edge.type}`,
       source: edge.source,
       target: edge.target
     };
-
-    // Se a edge for do tipo "head" ou "tail", usar como handle
-    if (edge.type === "head" || edge.type === "tail") {
+    if (edge.type === 'head' || edge.type === 'tail') {
+      const color = edge.type === 'head' ? '#2ecc71' : '#e67e22';
       baseEdge.sourceHandle = edge.type;
+      baseEdge.targetHandle = 'ptr';
+      baseEdge.style = {
+        stroke: color,
+        strokeWidth: 2
+      };
+      baseEdge.markerEnd = {
+        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_1__.MarkerType.ArrowClosed,
+        color
+      };
+    } else {
+      baseEdge.sourceHandle = 'next';
+      baseEdge.targetHandle = 'prev';
     }
     return baseEdge;
   });
@@ -8937,9 +9043,11 @@ const transformBackendData = (data, currentNodes = []) => {
     dataNodesCount
   };
 };
+
+// Busca o estado atual da lista ligada no backend e atualiza nós/arestas/contador.
 const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
   try {
-    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/SLL_data');
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.fetchJson)('/SLL_data');
     const {
       reactFlowNodes,
       reactFlowEdges,
@@ -8955,8 +9063,10 @@ const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
 
 // Limpa a lista no backend, como se ela nunca tivesse sido usada
 const clearSLL = async () => {
-  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_sll', {});
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/clear_sll', {});
 };
+
+// Insere um nó no final da lista (tail), calculando sua posição no grid visual.
 const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
 ) => {
   if (!nodeLabel.trim()) {
@@ -8981,7 +9091,7 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
     type: 'SLL'
   };
   try {
-    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/nodes_last', newNodeData);
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_last', newNodeData);
     setNodeLabel('');
     setNodeCount(nodeCount + 1);
 
@@ -8990,6 +9100,49 @@ const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNode
   } catch (err) {
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
   }
+};
+
+// Insere um nó no início da lista (head), distinto da inserção no final acima.
+const addNodeFirst = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes) => {
+  if (!nodeLabel.trim()) {
+    console.error('Digite um rótulo para o nó');
+    return;
+  }
+  const basePosition = {
+    x: 100,
+    y: 139
+  };
+  const horizontalSpacing = 200;
+  const verticalSpacing = 90;
+  const nodesPerRow = 5;
+  const newPosition = {
+    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
+    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
+  };
+  const newNodeData = {
+    value: nodeLabel,
+    label: nodeLabel,
+    position: newPosition,
+    type: 'SLL'
+  };
+  try {
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_first', newNodeData);
+    setNodeLabel('');
+    setNodeCount(nodeCount + 1);
+    fetchDataCallback(currentNodes);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
+  }
+};
+
+// Remove o nó do início (head) da lista
+const removeFirstNode = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_remove_first', {});
+};
+
+// Remove o nó do final (tail) da lista
+const removeLastNode = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_remove_last', {});
 };
 
 /***/ },
@@ -9020,6 +9173,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Transforma os dados da pilha retornados pelo backend em um único nó visual
+// (React Flow), já que a pilha é renderizada como um bloco só, não nó a nó.
 const transformStackData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return {
@@ -9052,6 +9208,8 @@ const transformStackData = (data, currentNodes = []) => {
     dataNodesCount: 1
   };
 };
+
+// Busca o estado atual da pilha no backend e atualiza nós/arestas/contador.
 const fetchStackData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
     const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/stack_data');
@@ -9067,6 +9225,8 @@ const fetchStackData = async (setNodes, setEdges, setNodeCount, currentNodes = [
     console.error('Erro ao carregar dados da pilha:', err);
   }
 };
+
+// Cria a pilha no backend com o tamanho informado, validando que é um inteiro positivo até 15.
 const createStack = async (size, setStackSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um tamanho de pilha válido (um inteiro positivo).');
@@ -9226,6 +9386,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Transforma os dados do vetor retornados pelo backend em um único nó visual
+// (React Flow), já que o vetor é renderizado como um bloco só, não nó a nó.
 const transformVectorData = (data, currentNodes = []) => {
   if (!data.nodes || data.nodes.length === 0) {
     return {
@@ -9257,6 +9420,8 @@ const transformVectorData = (data, currentNodes = []) => {
     dataNodesCount: 1
   };
 };
+
+// Busca o estado atual do vetor no backend e atualiza nós/arestas/contador.
 const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
     const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/vector_data');
@@ -9272,6 +9437,8 @@ const fetchVectorData = async (setNodes, setEdges, setNodeCount, currentNodes = 
     console.error('Erro ao carregar dados do vetor:', err);
   }
 };
+
+// Cria o vetor no backend com o tamanho informado, validando que é um inteiro positivo até 15.
 const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
   if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
@@ -9298,6 +9465,8 @@ const createVector = async (size, setVectorSize, setNodes, setEdges, setNodeCoun
     sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar vetor: ' + err.message);
   }
 };
+
+// Insere um valor em uma posição específica do vetor no backend.
 const insertVectorValue = async (nodeId, value, setVectorId, setVectorValue, fetchDataCallback) => {
   const idStr = String(nodeId).trim();
   const valStr = String(value).trim();
@@ -9556,6 +9725,228 @@ const pythonLines = [{
 
 /***/ },
 
+/***/ "./frontend/code_view_data/queue/queue_dequeue/java.js"
+/*!*************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_dequeue/java.js ***!
+  \*************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueDequeueJavaLines: () => (/* binding */ queueDequeueJavaLines)
+/* harmony export */ });
+const queueDequeueJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public int dequeue() {'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if (head == null) {'
+}, {
+  id: 'EMPTY',
+  text: '        throw new RuntimeException("Fila vazia");'
+}, {
+  id: 'END_CHECK_EMPTY',
+  text: '    }'
+}, {
+  id: 'READ_VALUE',
+  text: '    int valor = head.valor;'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    head = head.proximo;'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    if (head == null) { tail = null; }'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor;'
+}, {
+  id: 'END_BRACE',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/queue/queue_dequeue/pseudocodigo.js"
+/*!*********************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_dequeue/pseudocodigo.js ***!
+  \*********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueDequeuePseudocodigoLines: () => (/* binding */ queueDequeuePseudocodigoLines)
+/* harmony export */ });
+const queueDequeuePseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'DESENFILEIRAR(F)'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    se F.head == nulo'
+}, {
+  id: 'EMPTY',
+  text: '        erro "Fila vazia"'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = F.head.valor'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    F.head = F.head.proximo'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    se F.head == nulo, F.tail = nulo'
+}, {
+  id: 'END_FUNC',
+  text: '    retorna valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/queue/queue_dequeue/python.js"
+/*!***************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_dequeue/python.js ***!
+  \***************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueDequeuePythonLines: () => (/* binding */ queueDequeuePythonLines)
+/* harmony export */ });
+const queueDequeuePythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def dequeue(fila):'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if fila.head is None:'
+}, {
+  id: 'EMPTY',
+  text: '        raise Exception("Fila vazia")'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = fila.head.valor'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    fila.head = fila.head.proximo'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    if fila.head is None: fila.tail = None'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/queue/queue_enqueue/java.js"
+/*!*************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_enqueue/java.js ***!
+  \*************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueEnqueueJavaLines: () => (/* binding */ queueEnqueueJavaLines)
+/* harmony export */ });
+const queueEnqueueJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public void enqueue(int valor) {'
+}, {
+  id: 'CREATE_NODE',
+  text: '    No novoNo = new No(valor);'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    if (tail != null) {'
+}, {
+  id: 'LINK_NEXT',
+  text: '        tail.proximo = novoNo;'
+}, {
+  id: 'END_CHECK_TAIL',
+  text: '    } else {'
+}, {
+  id: 'SET_HEAD',
+  text: '        head = novoNo;'
+}, {
+  id: 'END_ELSE_TAIL',
+  text: '    }'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    tail = novoNo;'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/queue/queue_enqueue/pseudocodigo.js"
+/*!*********************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_enqueue/pseudocodigo.js ***!
+  \*********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueEnqueuePseudocodigoLines: () => (/* binding */ queueEnqueuePseudocodigoLines)
+/* harmony export */ });
+const queueEnqueuePseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'ENFILEIRAR(F, valor)'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novoNo = criarNo(valor)'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    se F.tail != nulo'
+}, {
+  id: 'LINK_NEXT',
+  text: '        F.tail.proximo = novoNo'
+}, {
+  id: 'ELSE_TAIL',
+  text: '    senão'
+}, {
+  id: 'SET_HEAD',
+  text: '        F.head = novoNo'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    F.tail = novoNo'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/queue/queue_enqueue/python.js"
+/*!***************************************************************!*\
+  !*** ./frontend/code_view_data/queue/queue_enqueue/python.js ***!
+  \***************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   queueEnqueuePythonLines: () => (/* binding */ queueEnqueuePythonLines)
+/* harmony export */ });
+const queueEnqueuePythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def enqueue(fila, valor):'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novo_no = No(valor)'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    if fila.tail is not None:'
+}, {
+  id: 'LINK_NEXT',
+  text: '        fila.tail.proximo = novo_no'
+}, {
+  id: 'ELSE_TAIL',
+  text: '    else:'
+}, {
+  id: 'SET_HEAD',
+  text: '        fila.head = novo_no'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    fila.tail = novo_no'
+}];
+
+/***/ },
+
 /***/ "./frontend/code_view_data/stack/stack_pop/java.js"
 /*!*********************************************************!*\
   !*** ./frontend/code_view_data/stack/stack_pop/java.js ***!
@@ -9772,13 +10163,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
 
 
+
+// Botão flutuante de ajuda ("?") que, ao ser clicado, abre um modal com o
+// texto explicativo (`label`) sobre a estrutura de dados em uso. Pode ser
+// renderizado inline (ao lado de outro elemento) ou fixo no canto da tela.
 function HelpWidget({
   label = 'Texto',
   inline = false,
   sizeScale = 1
 }) {
   const [isOpen, setIsOpen] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+
+  // Tamanho do botão circular, escalado pelo fator `sizeScale`
   const btnSize = Math.round(48 * sizeScale);
+
+  // Botão "?" que abre o modal de ajuda
   const ButtonElement = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     "aria-label": "Ajuda",
     onClick: () => setIsOpen(true),
@@ -9798,7 +10197,7 @@ function HelpWidget({
     }
   }, "?");
 
-  // Modal portal (shared for inline and non-inline)
+  // Modal de ajuda, renderizado via portal (compartilhado entre os modos inline e fixo)
   const Modal = isOpen ? /*#__PURE__*/react_dom__WEBPACK_IMPORTED_MODULE_1__.createPortal(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     role: "dialog",
     "aria-modal": "true",
@@ -9854,7 +10253,7 @@ function HelpWidget({
     }, ButtonElement, Modal);
   }
 
-  // non-inline: render fixed button at top-right via portal
+  // Modo não-inline: renderiza o botão fixo no canto superior direito via portal
   const fixedContainer = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       position: 'fixed',
@@ -9887,6 +10286,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Card clicável usado na tela inicial para navegar até uma estrutura de
+// dados (lista ligada, vetor, fila, pilha). Ao passar o mouse, o texto do
+// rótulo desliza para cima revelando o ícone por trás.
 function SelectorBox({
   props
 }) {
@@ -9896,7 +10299,7 @@ function SelectorBox({
       y: 0
     },
     hover: {
-      y: "-100%"
+      y: '-100%'
     } // Sobe 100% da altura para mostrar o texto
   };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
@@ -9911,15 +10314,15 @@ function SelectorBox({
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__.Link, {
     to: props.path,
     style: {
-      textDecoration: "none"
+      textDecoration: 'none'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     className: "content-wrapper",
     whileHover: "hover",
     variants: slideVariants,
     transition: {
-      type: "tween",
-      ease: "easeInOut",
+      type: 'tween',
+      ease: 'easeInOut',
       duration: 0.2
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -9929,10 +10332,7 @@ function SelectorBox({
     alt: props.label
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "box-section text-section"
-  }, props.label))))
-  //    
-  // 
-;
+  }, props.label))));
 }
 
 /***/ },
@@ -9952,9 +10352,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../components/controls/SLLControls */ "./frontend/components/controls/SLLControls.js");
 /* harmony import */ var _components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../components/controls/VectorControls */ "./frontend/components/controls/VectorControls.js");
 /* harmony import */ var _components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../components/controls/StackControls */ "./frontend/components/controls/StackControls.js");
-/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
-/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
-/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+/* harmony import */ var _components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../components/controls/QueueControls */ "./frontend/components/controls/QueueControls.js");
+/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
 
 
 
@@ -9962,10 +10363,17 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
+// Painel lateral retrátil que contém os controles da estrutura de dados
+// atualmente selecionada (SLL, fila, pilha ou vetor), além do botão de
+// abrir/fechar o painel e o widget de ajuda contextual.
 function SidePanel({
   props
 }) {
   const [isOpen, setIsOpen] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+
+  // Variantes de animação do painel (aberto/fechado) usadas pelo framer-motion
   const panelVariants = {
     closed: {
       x: '105%',
@@ -9984,10 +10392,13 @@ function SidePanel({
       }
     }
   };
-  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nPara utilizar a Lista Simplesmente Ligada, insira um valor de caractere único e clique no botão "Adicionar Nó".\n\nO nó será adicionado à lista sendo indicado se ele é o primeiro da lista (head) ou o último (tail).` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e use o botão "Enfileirar" para adicionar um elemento. O botão "Desenfileirar" remove o elemento da frente da fila e reorganiza os demais.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_5__.motion.div, {
+
+  // Texto de ajuda exibido no HelpWidget, escolhido de acordo com o tipo
+  // de estrutura de dados atualmente exibida (sll, queue, stack ou vector)
+  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nInsira um valor de caractere único e escolha onde inserir: "Adicionar no Fim" (após o tail) ou "Adicionar no Início" (antes do head).\n\nUse "Remover do Início" ou "Remover do Fim" para tirar o nó correspondente. O nó atual do head e do tail é sempre indicado por cor.` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e clique em "Enfileirar" ou "Desenfileirar" para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_6__.motion.div, {
     initial: "closed",
-    animate: isOpen ? "open" : "closed",
+    animate: isOpen ? 'open' : 'closed',
     variants: panelVariants,
     style: {
       display: 'flex',
@@ -10017,7 +10428,7 @@ function SidePanel({
       top: '0px',
       zIndex: 2
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_7__["default"], {
     label: helpText,
     inline: true,
     sizeScale: 0.6
@@ -10026,15 +10437,15 @@ function SidePanel({
   }, props.type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
     nodeLabel: props.nodeLabel,
     setNodeLabel: props.setNodeLabel,
-    handleAddNode: props.sll.handleAddNode,
+    handleAddNodeLast: props.sll.handleAddNode,
+    handleAddNodeFirst: props.sll.handleAddNodeFirst,
+    handleRemoveFirst: props.sll.handleRemoveFirst,
+    handleRemoveLast: props.sll.handleRemoveLast,
     handleClear: props.sll.handleClear,
     centerView: props.centerView
-  }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    nodeLabel: props.sharedStates.queueValue,
-    setNodeLabel: props.sharedStates.setQueueValue,
-    handleAddNode: props.queue.handleEnqueue,
-    handleRemoveNode: props.queue.handleDequeue,
-    handleClear: props.queue.handleClear,
+  }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_4__["default"], {
+    states: props.sharedStates,
+    handlers: props.queue,
     centerView: props.centerView
   }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__["default"], {
     states: props.sharedStates,
@@ -10045,6 +10456,188 @@ function SidePanel({
     handlers: props.vector,
     centerView: props.centerView
   }))));
+}
+
+/***/ },
+
+/***/ "./frontend/components/controls/QueueControls.js"
+/*!*******************************************************!*\
+  !*** ./frontend/components/controls/QueueControls.js ***!
+  \*******************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ QueueControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _css_controls_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../css/controls.css */ "./frontend/css/controls.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+// components/QueueControls.js
+
+
+
+
+// Controles laterais da Fila: campo de valor, botões de enfileirar/
+// desenfileirar/limpar, e a seção de simulação passo a passo exibida
+// enquanto uma operação está em andamento.
+function QueueControls({
+  states,
+  handlers,
+  centerView
+}) {
+  const {
+    queueValue,
+    setQueueValue,
+    currentStep,
+    steps,
+    queueOperation
+  } = states;
+  const queue = handlers;
+
+  // Indica se há uma simulação passo a passo em andamento
+  const isSimulating = currentStep !== -1;
+
+  // Permite disparar o enfileiramento pressionando Enter no campo de valor
+  const handleKeyPress = e => {
+    if (e.key === 'Enter') queue.handleEnqueue();
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    className: "control-button"
+  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: queueValue,
+    onChange: e => setQueueValue(e.target.value),
+    onKeyPress: handleKeyPress,
+    type: "text",
+    id: "queue-value-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "queue-value-input",
+    className: "label"
+  }, "Valor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handleEnqueue,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Enfileirar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handleDequeue,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Desenfileirar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Limpar"))), isSimulating && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o: ", queueOperation === 'dequeue' ? 'Desenfileirando' : 'Enfileirando'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handlePrevStep,
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: queue.handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },
@@ -10067,16 +10660,22 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Controles laterais da Lista Simplesmente Ligada: campo de valor do nó e
+// botões para adicionar/remover no início ou no fim, além de limpar a lista.
 function SLLControls({
   nodeLabel,
   setNodeLabel,
-  handleAddNode,
-  handleRemoveNode,
+  handleAddNodeLast,
+  handleAddNodeFirst,
+  handleRemoveFirst,
+  handleRemoveLast,
   handleClear,
   centerView
 }) {
+  // Permite adicionar o nó no fim da lista pressionando Enter no campo de valor
   const handleKeyPress = e => {
-    if (e.key === 'Enter') handleAddNode();
+    if (e.key === 'Enter') handleAddNodeLast();
   };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
@@ -10112,9 +10711,9 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleAddNode,
+    onClick: handleAddNodeLast,
     className: "control-button"
-  }, handleRemoveNode ? "Enfileirar" : "Adicionar Nó")), handleRemoveNode && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, "Adicionar no Fim")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '12px'
     }
@@ -10123,11 +10722,33 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleRemoveNode,
+    onClick: handleAddNodeFirst,
     className: "control-button"
-  }, "Desenfileirar"))), handleClear && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, "Adicionar no In\xEDcio")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleRemoveFirst,
+    className: "control-button control-button-danger"
+  }, "Remover do In\xEDcio")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleRemoveLast,
+    className: "control-button control-button-danger"
+  }, "Remover do Fim")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
@@ -10136,7 +10757,7 @@ function SLLControls({
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: handleClear,
     className: "control-button control-button-danger"
-  }, "Limpar"))));
+  }, "Limpar")));
 }
 
 /***/ },
@@ -10159,6 +10780,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Controles laterais da Pilha: criação da pilha (tamanho e tipo), campo de
+// valor, botões de empilhar/desempilhar/limpar, e a seção de simulação
+// passo a passo exibida enquanto uma operação está em andamento.
 function StackControls({
   states,
   handlers,
@@ -10174,6 +10799,8 @@ function StackControls({
     stackOperation
   } = states;
   const stack = handlers;
+
+  // Indica se há uma simulação passo a passo em andamento
   const isSimulating = currentStep !== -1;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
@@ -10390,6 +11017,11 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Controles laterais do Vetor: criação do vetor (tamanho e tipo), inserção
+// de valores por índice, e a seção de simulação passo a passo do algoritmo
+// de ordenação (insertion sort) exibida enquanto uma operação está em
+// andamento.
 function VectorControls({
   states,
   handlers,
@@ -10405,8 +11037,7 @@ function VectorControls({
     currentStep,
     steps,
     setIsAnimating,
-    setCurrentStep,
-    nodes
+    setCurrentStep
   } = states;
   const vector = handlers;
 
@@ -10415,6 +11046,9 @@ function VectorControls({
   // de "Encerrar Simulação" ser clicado) — não usamos `isAnimating` aqui
   // porque ele é desligado antes do usuário encerrar explicitamente.
   const isSimulating = currentStep !== -1;
+
+  // Finaliza a simulação passo a passo: aplica e persiste o estado final do
+  // vetor no backend e reseta os estados de simulação (local e do Electron)
   const handleEndSimulation = async () => {
     try {
       // Aplicar o estado final e persistir
@@ -10655,18 +11289,53 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Nó customizado do React Flow que representa uma célula da lista simplesmente ligada,
+// destacando head/tail por cor/etiqueta e expondo os handles de encadeamento (next).
 function LinkedListNode({
-  data,
-  isConnected
+  data
 }) {
-  // Determinar cor baseado no estado
-  let backgroundColor = '#777'; // cor padrão
-  let borderColor = '#777';
-  let borderWidth = '1px';
-  if (data.type === 'head' || data.type === 'tail') {
-    backgroundColor = '#555';
-  }
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_3__.motion.div, {
+  const isHead = !!data.isHead;
+  const isTail = !!data.isTail;
+  const isHighlighted = !!data.highlighted;
+  const hasValue = data.label !== undefined && data.label !== null && data.label !== '';
+  let borderColor = '#34495e';
+  if (isHead && isTail) borderColor = '#9b59b6';else if (isHead) borderColor = '#2ecc71';else if (isTail) borderColor = '#e67e22';
+  const boxShadow = isHighlighted ? '0 0 0 3px rgba(255,152,0,0.6), 0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.3)';
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '4px',
+      marginBottom: '4px',
+      minHeight: '15px'
+    }
+  }, isHead && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+    style: {
+      fontSize: '9px',
+      fontWeight: 'bold',
+      color: '#fff',
+      background: '#2ecc71',
+      borderRadius: '4px',
+      padding: '1px 6px',
+      lineHeight: 1.5
+    }
+  }, "HEAD"), isTail && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+    style: {
+      fontSize: '9px',
+      fontWeight: 'bold',
+      color: '#fff',
+      background: '#e67e22',
+      borderRadius: '4px',
+      padding: '1px 6px',
+      lineHeight: 1.5
+    }
+  }, "TAIL")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_3__.motion.div, {
     initial: {
       scale: 1,
       opacity: 0
@@ -10679,36 +11348,46 @@ function LinkedListNode({
       }
     },
     whileHover: {
-      scale: 1.1,
+      scale: 1.08,
       transition: {
         duration: 0.05
       }
     },
     style: {
-      width: '50px',
-      height: '50px',
-      borderRadius: '50%',
+      width: '60px',
+      height: '60px',
+      borderRadius: '10px',
       boxSizing: 'border-box',
-      color: 'white',
-      background: backgroundColor,
-      border: `${borderWidth} solid ${borderColor}`,
+      background: hasValue ? '#3498db' : '#ecf0f1',
+      border: `3px solid ${borderColor}`,
+      boxShadow,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      transition: 'all 0.3s ease',
-      boxShadow: data.state ? '0 0 10px rgba(0,0,0,0.3)' : 'none'
+      position: 'relative',
+      transition: 'all 0.3s ease'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", {
     style: {
-      color: '#fff'
+      color: hasValue ? '#fff' : '#2c3e50',
+      fontSize: '14px'
     }
   }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    id: "ptr",
     type: "target",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Top
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Top,
+    style: {
+      background: borderColor
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    id: "prev",
+    type: "target",
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Left
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+    id: "next",
     type: "source",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Bottom
-  }));
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right
+  })));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (LinkedListNode);
 
@@ -10730,64 +11409,75 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
 
 
+
+// Nó customizado que representa o objeto "Lista" em si (metadados): tamanho atual,
+// e os nós de head/tail, com um valor ativo opcional em destaque.
 function ListNode({
   data
 }) {
+  const size = data.metadata?.size ?? 0;
+  const headLabel = data.metadata?.head ? String(data.metadata.head).slice(0, 8) : '—';
+  const tailLabel = data.metadata?.tail ? String(data.metadata.tail).slice(0, 8) : '—';
+  const title = data.label || 'Lista';
+  const hasActiveValue = data.activeValue !== undefined && data.activeValue !== null;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      width: '140px',
-      height: 'auto',
-      borderRadius: '8px',
-      background: '#2c3e50',
-      border: '2px solid #34495e',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '10px',
-      transition: 'all 0.3s ease',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", {
-    style: {
-      color: '#fff',
-      fontSize: '12px',
-      marginBottom: '5px'
-    }
-  }, data.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      fontSize: '11px',
-      textAlign: 'center'
+      position: 'relative'
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      color: 'white'
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: '11px',
+      lineHeight: 1.6,
+      color: '#00ff88',
+      background: '#1b2530',
+      border: '2px solid #34495e',
+      borderRadius: '8px',
+      padding: '10px 14px',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+      minWidth: '160px',
+      textAlign: 'left'
     }
-  }, "Head: ", data.metadata?.head ? data.metadata.head.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      color: 'white'
-    }
-  }, "Tail: ", data.metadata?.tail ? data.metadata.tail.slice(0, 8) : 'None'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    style: {
-      marginTop: '3px',
+      color: '#fff',
       fontWeight: 'bold',
-      color: '#3498db'
+      fontSize: '11px',
+      marginBottom: '4px'
     }
-  }, "Size: ", data.metadata?.size || 0)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
+  }, title), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, `tamanho: ${size}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: '#2ecc71'
+    }
+  }, `head: ${headLabel}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: '#e67e22'
+    }
+  }, `tail: ${tailLabel}`), hasActiveValue && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      color: '#f1c40f'
+    }
+  }, `valor: ${data.activeValue}`)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
     id: "head",
     type: "source",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Bottom,
     style: {
-      background: '#3498db',
-      marginBottom: '12px'
+      left: '30%',
+      background: '#2ecc71',
+      width: 10,
+      height: 10,
+      borderRadius: '50%'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_1__.Handle, {
     id: "tail",
     type: "source",
-    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Right,
+    position: _xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Position.Bottom,
     style: {
-      background: '#3498db',
-      marginTop: '12px'
+      left: '70%',
+      background: '#e67e22',
+      width: 10,
+      height: 10,
+      borderRadius: '50%'
     }
   }));
 }
@@ -10808,6 +11498,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 
+
+// Nó customizado que renderiza a pilha como uma coluna de caixas (índice 0 embaixo),
+// destacando o topo e os índices envolvidos no passo atual da simulação.
 function StackNode({
   data
 }) {
@@ -10846,6 +11539,31 @@ function StackNode({
   }, `tamanho: ${size}\ntopo: ${top}\nvalor: ${valorDisplay}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'stretch'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column-reverse',
+      marginRight: '6px',
+      minHeight: `${size * 60}px`
+    }
+  }, labels.map((lab, idx) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    key: `label-${idx}`,
+    style: {
+      width: '20px',
+      height: '60px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: '#bdc3c7',
+      fontSize: '11px',
+      fontWeight: '600'
+    }
+  }, lab))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
       flexDirection: 'column-reverse',
       border: '2px solid #34495e',
       borderRadius: '8px',
@@ -10853,7 +11571,7 @@ function StackNode({
       boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
       overflow: 'hidden',
       minHeight: `${size * 60}px`,
-      width: '140px'
+      width: '112px'
     }
   }, values.map((value, index) => {
     const isHighlighted = highlighted.includes(index);
@@ -10869,26 +11587,10 @@ function StackNode({
       key: index,
       style: {
         display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderTop: index < size - 1 ? '1px solid #34495e' : 'none',
-        height: '60px'
-      }
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      style: {
-        width: '28px',
-        textAlign: 'center',
-        fontSize: '11px',
-        fontWeight: '600',
-        color: '#bdc3c7'
-      }
-    }, labels[index]), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      style: {
-        flex: 1,
-        height: '100%',
-        display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        borderTop: index < size - 1 ? '1px solid #34495e' : 'none',
+        height: '60px',
         background: backgroundColor,
         color: hasValue ? '#fff' : '#2c3e50',
         fontSize: '14px',
@@ -10896,8 +11598,8 @@ function StackNode({
         borderRight: isTop ? '4px solid #e74c3c' : 'none',
         transition: 'background 0.3s ease'
       }
-    }, hasValue ? value : ''));
-  })));
+    }, hasValue ? value : '');
+  }))));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (StackNode);
 
@@ -10916,6 +11618,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 
+
+// Nó customizado que renderiza o vetor como uma fileira de caixas, destacando
+// os índices em comparação e em troca durante a simulação do insertion sort.
 function VectorNode({
   data
 }) {
@@ -11012,6 +11717,150 @@ function VectorNode({
 
 /***/ },
 
+/***/ "./frontend/handlers/queue_handle.js"
+/*!*******************************************!*\
+  !*** ./frontend/handlers/queue_handle.js ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   useQueueHandlers: () => (/* binding */ useQueueHandlers)
+/* harmony export */ });
+/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+
+
+const useQueueHandlers = states => {
+  const {
+    queueValue,
+    setQueueValue,
+    nodes,
+    setNodes,
+    setEdges,
+    setNodeCount,
+    setIsAnimating,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep,
+    setQueueOperation
+  } = states;
+
+  // Repassa o índice do passo atual para a janela filha (CodeView), se estiver aberta
+  const notifyChildStep = step => {
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(step);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método enqueue()
+  const handleEnqueue = async () => {
+    const value = queueValue.trim();
+    if (!value) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Informe um valor para enfileirar');
+      return;
+    }
+    try {
+      const result = await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.fetchEnqueueSteps)(value, nodes);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setQueueOperation('enqueue');
+      setQueueValue('');
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.applyQueueStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao enfileirar: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método dequeue()
+  const handleDequeue = async () => {
+    if (!nodes.some(n => n.data?.type !== 'list')) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('A fila já está vazia');
+      return;
+    }
+    try {
+      const result = await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.fetchDequeueSteps)();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setQueueOperation('dequeue');
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.applyQueueStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao desenfileirar: ' + err.message);
+    }
+  };
+
+  // Avança para o próximo passo da simulação atual
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.applyQueueStep)(steps[nextIndex], nodes, setNodes, setEdges);
+      notifyChildStep(nextIndex);
+    }
+  };
+
+  // Volta para o passo anterior da simulação atual
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.applyQueueStep)(steps[prevIndex], nodes, setNodes, setEdges);
+      notifyChildStep(prevIndex);
+    }
+  };
+
+  // O backend já efetiva enqueue/dequeue no momento em que os passos são
+  // gerados (a simulação roda sobre uma cópia). Encerrar a simulação só
+  // precisa re-buscar o estado real (limpando highlighted/activeValue) e
+  // fechar o painel.
+  const handleEndSimulation = async () => {
+    try {
+      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.fetchQueueData)(setNodes, setEdges, setNodeCount, nodes);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao atualizar fila: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setQueueOperation(null);
+      notifyChildStep(-1);
+    }
+  };
+
+  // Limpa a fila por completo, como se ela nunca tivesse sido usada
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.clearQueue)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setQueueValue('');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setQueueOperation(null);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Fila limpa com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar fila: ' + err.message);
+    }
+  };
+  return {
+    handleEnqueue,
+    handleDequeue,
+    handleNextStep,
+    handlePrevStep,
+    handleEndSimulation,
+    handleClear,
+    fetchData: currentNodes => (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_0__.fetchQueueData)(setNodes, setEdges, setNodeCount, currentNodes)
+  };
+};
+
+/***/ },
+
 /***/ "./frontend/handlers/sll_handle.js"
 /*!*****************************************!*\
   !*** ./frontend/handlers/sll_handle.js ***!
@@ -11036,16 +11885,54 @@ const useSLLHandlers = states => {
     setEdges,
     nodes // ← Adiciona nodes do estado
   } = states;
-  const handleAddNode = () => {
+
+  // Valida o rótulo digitado: não pode ser vazio e deve ter um único caractere.
+  const validateLabel = () => {
     if (nodeLabel.trim() === '') {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O valor do nó não pode ser vazio!');
-      return;
+      return false;
     } else if (nodeLabel.length > 1) {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('O valor do nó deve ser um único caractere!');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  // Insere no final da lista (comportamento já existente)
+  const handleAddNode = () => {
+    if (!validateLabel()) return;
     (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes // ← Passa os nós atuais
     );
+  };
+
+  // Insere no início da lista (head), distinto da inserção no final acima
+  const handleAddNodeFirst = () => {
+    if (!validateLabel()) return;
+    (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNodeFirst)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes);
+  };
+
+  // Remove o nó do início da lista e atualiza a contagem
+  const handleRemoveFirst = async () => {
+    try {
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.removeFirstNode)();
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, nodes);
+      setNodeCount(Math.max(0, nodeCount - 1));
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Nó removido do início!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao remover do início: ' + err.message);
+    }
+  };
+
+  // Remove o nó do final da lista e atualiza a contagem
+  const handleRemoveLast = async () => {
+    try {
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.removeLastNode)();
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, nodes);
+      setNodeCount(Math.max(0, nodeCount - 1));
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Nó removido do final!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao remover do final: ' + err.message);
+    }
   };
 
   // Limpa a lista por completo, como se ela nunca tivesse sido usada
@@ -11063,6 +11950,9 @@ const useSLLHandlers = states => {
   };
   return {
     handleAddNode,
+    handleAddNodeFirst,
+    handleRemoveFirst,
+    handleRemoveLast,
     handleClear,
     fetchData: currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes)
   };
@@ -11096,7 +11986,6 @@ const useStackHandlers = states => {
     setEdges,
     setNodeCount,
     nodes,
-    isAnimating,
     setIsAnimating,
     steps,
     setSteps,
@@ -11104,9 +11993,13 @@ const useStackHandlers = states => {
     setCurrentStep,
     setStackOperation
   } = states;
+
+  // Cria a pilha no backend com o tamanho informado pelo usuário
   const handleCreateStack = () => {
     (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.createStack)(stackSize, setStackSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.fetchStackData)(setNodes, setEdges, setNodeCount));
   };
+
+  // Valida o valor a empilhar conforme o tipo da pilha (inteiro ou texto)
   const validateStackValue = () => {
     if (stackType === 'int') {
       if (!/^-?\d+$/.test(stackValue)) {
@@ -11162,6 +12055,8 @@ const useStackHandlers = states => {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao desempilhar: ' + err.message);
     }
   };
+
+  // Avança para o próximo passo da simulação; ao atingir o último passo, persiste a pilha
   const handleNextStep = () => {
     if (currentStep < steps.length - 1) {
       const nextIndex = currentStep + 1;
@@ -11185,6 +12080,8 @@ const useStackHandlers = states => {
       }
     }
   };
+
+  // Volta para o passo anterior da simulação atual
   const handlePrevStep = () => {
     if (currentStep > 0) {
       const prevIndex = currentStep - 1;
@@ -11195,6 +12092,8 @@ const useStackHandlers = states => {
       }
     }
   };
+
+  // Encerra a simulação: aplica e persiste o estado final da pilha e fecha o painel
   const handleEndSimulation = async () => {
     try {
       await (0,_api_api_stack__WEBPACK_IMPORTED_MODULE_0__.applyAndPersistFinalState)(steps, nodes, setNodes);
@@ -11278,9 +12177,13 @@ const useVectorHandlers = states => {
     vectorType,
     setVectorType
   } = states;
+
+  // Cria o vetor no backend com o tamanho informado pelo usuário
   const handleCreateVector = () => {
     (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.createVector)(vectorSize, setVectorSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_0__.fetchVectorData)(setNodes, setEdges, setNodeCount));
   };
+
+  // Valida (conforme o tipo do vetor) e insere o valor digitado na posição informada
   const handleInsertVectorValue = () => {
     let finalValue = vectorValue;
     if (vectorType === 'int') {
@@ -11342,6 +12245,8 @@ const useVectorHandlers = states => {
       }
     }
   };
+
+  // Volta para o passo anterior da simulação atual
   const handlePrevStep = () => {
     if (currentStep > 0) {
       const prevIndex = currentStep - 1;
@@ -11400,16 +12305,24 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_router_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs");
 /* harmony import */ var _api_api_vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../api/api_vector */ "./frontend/api/api_vector.js");
 /* harmony import */ var _api_api_stack__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../api/api_stack */ "./frontend/api/api_stack.js");
-/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
-/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
-/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
-/* harmony import */ var _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/pseudocodigo */ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js");
-/* harmony import */ var _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/java */ "./frontend/code_view_data/stack/stack_push/java.js");
-/* harmony import */ var _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/python */ "./frontend/code_view_data/stack/stack_push/python.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/pseudocodigo */ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/java */ "./frontend/code_view_data/stack/stack_pop/java.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/python */ "./frontend/code_view_data/stack/stack_pop/python.js");
-/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
+/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
+/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
+/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
+/* harmony import */ var _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/pseudocodigo */ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/java */ "./frontend/code_view_data/stack/stack_push/java.js");
+/* harmony import */ var _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/python */ "./frontend/code_view_data/stack/stack_push/python.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/pseudocodigo */ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/java */ "./frontend/code_view_data/stack/stack_pop/java.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/python */ "./frontend/code_view_data/stack/stack_pop/python.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/pseudocodigo */ "./frontend/code_view_data/queue/queue_enqueue/pseudocodigo.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/java */ "./frontend/code_view_data/queue/queue_enqueue/java.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/python */ "./frontend/code_view_data/queue/queue_enqueue/python.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/pseudocodigo */ "./frontend/code_view_data/queue/queue_dequeue/pseudocodigo.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/java */ "./frontend/code_view_data/queue/queue_dequeue/java.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/python */ "./frontend/code_view_data/queue/queue_dequeue/python.js");
+/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+
 
 
 
@@ -11427,24 +12340,50 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// CodeView exibe o código do algoritmo com destaque na linha ativa.
-// A lógica de mapeamento de passos para código está concentrada neste componente.
-// Objeto de mapeamento para extrair dinamicamente a linguagem escolhida
+
+
+
+
+
+
+// Objeto de mapeamento para extrair dinamicamente a linguagem escolhida (insertion sort / vetor)
 const codeSnippets = {
-  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_4__.pseudocodigoLines,
-  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_5__.javaLines,
-  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_6__.pythonLines
+  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_5__.pseudocodigoLines,
+  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_6__.javaLines,
+  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_7__.pythonLines
 };
+
+// Snippets do método push() da pilha, por linguagem.
 const stackPushSnippets = {
-  pseudocódigo: _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_7__.stackPushPseudocodigoLines,
-  java: _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_8__.stackPushJavaLines,
-  python: _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_9__.stackPushPythonLines
+  pseudocódigo: _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__.stackPushPseudocodigoLines,
+  java: _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_9__.stackPushJavaLines,
+  python: _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_10__.stackPushPythonLines
 };
+
+// Snippets do método pop() da pilha, por linguagem.
 const stackPopSnippets = {
-  pseudocódigo: _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_10__.stackPopPseudocodigoLines,
-  java: _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_11__.stackPopJavaLines,
-  python: _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_12__.stackPopPythonLines
+  pseudocódigo: _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__.stackPopPseudocodigoLines,
+  java: _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_12__.stackPopJavaLines,
+  python: _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_13__.stackPopPythonLines
 };
+
+// Snippets do método enqueue() da fila, por linguagem.
+const queueEnqueueSnippets = {
+  pseudocódigo: _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__.queueEnqueuePseudocodigoLines,
+  java: _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_15__.queueEnqueueJavaLines,
+  python: _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_16__.queueEnqueuePythonLines
+};
+
+// Snippets do método dequeue() da fila, por linguagem.
+const queueDequeueSnippets = {
+  pseudocódigo: _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__.queueDequeuePseudocodigoLines,
+  java: _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_18__.queueDequeueJavaLines,
+  python: _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_19__.queueDequeuePythonLines
+};
+
+// CodeView exibe o código do algoritmo/método (pseudocódigo, Java ou Python) com destaque
+// na linha ativa, mantendo-se sincronizado com o passo atual da simulação em View.jsx
+// (via query string na primeira carga e via IPC do Electron para atualizações ao vivo).
 function CodeView({
   activeStep: propActiveStep = 'INIT_LOOP'
 }) {
@@ -11457,12 +12396,14 @@ function CodeView({
   const [activeStep, setActiveStep] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(propActiveStep);
   const [lang, setLang] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('pseudocódigo');
   const [stackOp, setStackOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [queueOp, setQueueOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
 
   // Seleciona o array de código correto conforme o tipo de estrutura visualizada
-  const codeLines = viewType === 'vector' ? codeSnippets[lang] : viewType === 'stack' ? stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang] : [];
+  const codeLines = viewType === 'vector' ? codeSnippets[lang] : viewType === 'stack' ? stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang] : viewType === 'queue' ? queueOp === 'dequeue' ? queueDequeueSnippets[lang] : queueEnqueueSnippets[lang] : [];
 
-  // Map a backend step object to a code line id using heuristics,
-  // but prefer an explicit `code_id` when the backend provides it.
+  // Mapeia um objeto de passo vindo do backend para o id de uma linha de código,
+  // usando heurísticas; prefere o `code_id` explícito quando o backend o fornece
+  // (caso da pilha e da fila). Usado apenas como fallback para o vetor.
   const mapStepToCodeId = (step, prevStep) => {
     if (step && step.code_id) return step.code_id;
     if (!step) return propActiveStep || 'INIT_LOOP';
@@ -11498,7 +12439,8 @@ function CodeView({
     loadSteps();
   }, [stepParam, viewType]);
 
-  // register live updates from parent window (when user steps in View)
+  // Registra atualizações ao vivo vindas da janela principal (quando o usuário
+  // avança/volta passos em View.jsx) para manter o destaque do vetor sincronizado.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
     if (viewType !== 'vector') return;
     if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
@@ -11506,7 +12448,7 @@ function CodeView({
       const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
       setStepIndex(idx);
       if (idx < 0) {
-        // clear highlight when simulation ended
+        // limpa o destaque quando a simulação termina
         setActiveStep(null);
         return;
       }
@@ -11522,7 +12464,7 @@ function CodeView({
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
         } catch (e) {
-          // Ignore fetch failures on live update
+          // Ignora falhas de busca em atualizações ao vivo
         }
       }
     };
@@ -11588,6 +12530,62 @@ function CodeView({
       }
     };
   }, [viewType]);
+
+  // Carrega os últimos passos de enqueue/dequeue gerados pelo backend para a fila.
+  // Assim como a pilha, cada passo já traz `code_id` explícito.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const loadQueueSteps = async () => {
+      if (viewType !== 'queue') return;
+      try {
+        const result = await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_4__.fetchQueueSteps)();
+        setSteps(result.steps || []);
+        setQueueOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadQueueSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Enfileirar/Desenfileirar
+  // e Voltar/Próximo). Reconsulta /queue_steps a cada evento para não dessincronizar
+  // o `queueOp` caso o usuário troque de operação (enqueue -> dequeue ou vice-versa).
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'queue') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      setStepIndex(idx);
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+      try {
+        const result = await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_4__.fetchQueueSteps)();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setQueueOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
+  // Gera o estilo do botão de seleção de linguagem, destacando o idioma ativo.
   const buttonStyle = active => ({
     background: active ? '#0f766e' : '#111',
     color: active ? '#fff' : '#cfcfcf',
@@ -11703,6 +12701,48 @@ function CodeView({
         transition: 'all 0.2s ease'
       }
     }, line.text);
+  }))), viewType === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      margin: '0 0 8px',
+      padding: '0 12px',
+      fontSize: 12,
+      color: '#9aa0a6'
+    }
+  }, queueOp === 'dequeue' ? 'Simulando: dequeue() — Desenfileirar' : 'Simulando: enqueue() — Enfileirar'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      padding: '0 12px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
   })))));
 }
 
@@ -11733,6 +12773,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Tela inicial: exibe os cartões de seleção de estrutura de dados
+// (lista ligada, vetor, fila, pilha) e o widget de ajuda geral do projeto.
 function Selector() {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     initial: {
@@ -11818,13 +12861,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
 /* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
 /* harmony import */ var _handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../handlers/stack_handle */ "./frontend/handlers/stack_handle.js");
-/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
-/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
-/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
-/* harmony import */ var _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../custom_node/stackNode */ "./frontend/custom_node/stackNode.js");
-/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
-/* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
-// views/View.js
+/* harmony import */ var _handlers_queue_handle__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../handlers/queue_handle */ "./frontend/handlers/queue_handle.js");
+/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
+/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
+/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../custom_node/stackNode */ "./frontend/custom_node/stackNode.js");
+/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
 
 
 
@@ -11841,12 +12883,15 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Mapeia o tipo de nó do React Flow para o componente customizado que o renderiza.
 const NODE_TYPES = {
-  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_11__["default"],
-  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_12__["default"],
-  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_13__["default"],
-  stack: _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_14__["default"]
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_12__["default"],
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_13__["default"],
+  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_14__["default"],
+  stack: _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_15__["default"]
 };
+// Estilo padrão aplicado a todas as arestas do grafo (seta preta com espessura fixa).
 const DEFAULT_EDGE_OPTIONS = {
   markerEnd: {
     type: _xyflow_react__WEBPACK_IMPORTED_MODULE_3__.MarkerType.ArrowClosed,
@@ -11858,6 +12903,10 @@ const DEFAULT_EDGE_OPTIONS = {
     zIndex: 10
   }
 };
+
+// Página principal de visualização: monta o canvas do React Flow para a estrutura
+// de dados selecionada (SLL, vetor, fila ou pilha) e conecta os controles do
+// SidePanel aos handlers específicos de cada estrutura.
 function View() {
   const {
     type
@@ -11883,6 +12932,7 @@ function View() {
   const [stackSize, setStackSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
   const [stackType, setStackType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
   const [stackOperation, setStackOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [queueOperation, setQueueOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const sharedStates = {
     nodes,
     setNodes,
@@ -11915,50 +12965,20 @@ function View() {
     stackType,
     setStackType,
     stackOperation,
-    setStackOperation
+    setStackOperation,
+    queueOperation,
+    setQueueOperation
   };
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__.useVectorHandlers)(sharedStates);
-  const handleEnqueue = () => {
-    const value = queueValue.trim();
-    if (!value) {
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Informe um valor para enfileirar');
-      return;
-    }
-    (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.enqueueQueue)(value, setNodeLabel, setNodes, setEdges, setNodeCount, nodes).then(() => setQueueValue(''));
-  };
-  const handleDequeue = async () => {
-    if (!nodes.length) {
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('A fila já está vazia');
-      return;
-    }
-    try {
-      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.dequeueQueue)(setNodes, setEdges, setNodeCount, nodes);
-    } catch (error) {
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao desenfileirar: ' + error.message);
-    }
-  };
-  const handleClearQueue = async () => {
-    try {
-      await (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.clearQueue)();
-      setNodes([]);
-      setEdges([]);
-      setNodeCount(0);
-      setQueueValue('');
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Fila limpa com sucesso!');
-    } catch (error) {
-      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao limpar fila: ' + error.message);
-    }
-  };
-  const queue = {
-    handleEnqueue,
-    handleDequeue,
-    handleClear: handleClearQueue
-  };
+  const queue = (0,_handlers_queue_handle__WEBPACK_IMPORTED_MODULE_11__.useQueueHandlers)(sharedStates);
   const stack = (0,_handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__.useStackHandlers)(sharedStates);
-  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : {
+  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : type === 'queue' ? queue : {
     fetchData: () => {}
   };
+
+  // Sempre que o tipo de estrutura (parâmetro de rota) mudar, limpa o canvas
+  // e busca os dados iniciais da estrutura correspondente no backend.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
     if (type === 'sll') {
       setNodes([]);
@@ -11985,23 +13005,29 @@ function View() {
       setNodes([]);
       setEdges([]);
       setNodeCount(0);
-      (0,_api_api_queue__WEBPACK_IMPORTED_MODULE_16__.fetchQueueData)(setNodes, setEdges, setNodeCount, []);
+      handlers.fetchData([]);
       return;
     }
     setNodes([]);
     setEdges([]);
     setNodeCount(0);
   }, [type]);
+
+  // Abre (via Electron/IPC) a janela filha de visualização de código para o
+  // tipo de estrutura atual, sincronizada com o passo atualmente exibido.
   function openWindow() {
     // Passa currentStep para que o CodeView abra com o passo correto destacado.
     const stepToSend = typeof currentStep === 'number' ? currentStep : -1;
     window.electronAPI.openChildWindow(type, stepToSend);
   }
+
+  // Centraliza a viewport do React Flow no conjunto de nós atualmente renderizados,
+  // calculando o bounding box em coordenadas de mundo a partir do DOM e preservando o zoom.
   const centerView = async () => {
     if (!rfInstance) return;
     if (!nodes || nodes.length === 0) return;
 
-    // get current viewport (pan + zoom)
+    // obtém a viewport atual (pan + zoom)
     let currentZoom = 1;
     let currentPanX = 0;
     let currentPanY = 0;
@@ -12014,7 +13040,7 @@ function View() {
       }
     } catch (e) {/* ignore */}
 
-    // container rect to convert screen coords
+    // retângulo do container para converter coordenadas de tela
     const container = document.querySelector('.react-flow') || document.querySelector('.reactflow-wrapper') || document.querySelector('.react-flow__renderer') || document.body;
     const containerRect = container.getBoundingClientRect ? container.getBoundingClientRect() : {
       left: 0,
@@ -12034,7 +13060,7 @@ function View() {
       const domNode = document.querySelector(`.react-flow__node[data-id="${n.id}"]`);
       if (domNode && domNode.getBoundingClientRect) {
         const rect = domNode.getBoundingClientRect();
-        // compute world coords for dom rect edges
+        // calcula as coordenadas de mundo para as bordas do retângulo DOM
         const leftScreen = rect.left;
         const rightScreen = rect.right;
         const topScreen = rect.top;
@@ -12048,7 +13074,7 @@ function View() {
         if (worldRight > maxWorldX) maxWorldX = worldRight;
         if (worldBottom > maxWorldY) maxWorldY = worldBottom;
       } else {
-        // fallback to position-only (assume small node)
+        // alternativa: usa apenas a posição (assume nó pequeno)
         if (pos.x < minWorldX) minWorldX = pos.x;
         if (pos.y < minWorldY) minWorldY = pos.y;
         if (pos.x > maxWorldX) maxWorldX = pos.x;
@@ -12061,13 +13087,13 @@ function View() {
     const width = containerRect.width || window.innerWidth;
     const height = containerRect.height || window.innerHeight;
 
-    // compute viewport pan so that world center maps to screen center, preserving zoom
+    // calcula o pan da viewport para que o centro do mundo mapeie ao centro da tela, preservando o zoom
     const x = width / 2 - centerWorldX * currentZoom;
     let y = height / 2 - centerWorldY * currentZoom;
 
-    // If viewing the vector, shift slightly upward so it appears above center
+    // Ao visualizar o vetor, desloca levemente para cima para que apareça acima do centro
     if (type === 'vector') {
-      const shiftPx = 80; // adjust this value to move more/less
+      const shiftPx = 80; // ajuste este valor para mover mais ou menos
       y -= shiftPx;
     }
     try {
@@ -12078,7 +13104,7 @@ function View() {
           zoom: currentZoom
         });
       } else if (typeof rfInstance.fitView === 'function') {
-        // fallback: call fitView then restore zoom
+        // alternativa: chama fitView e depois restaura o zoom
         await rfInstance.fitView({
           padding: 0.1
         });
@@ -12137,7 +13163,7 @@ function View() {
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {
     position: "center-right",
     className: "app-side-panel"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_15__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_16__["default"], {
     props: {
       type,
       nodeLabel,
@@ -79992,6 +81018,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+// Ponto de entrada do renderer: monta o componente App na div #root
+// dentro do StrictMode do React.
 const container = document.getElementById('root');
 const root = react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot(container);
 root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().StrictMode), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_App__WEBPACK_IMPORTED_MODULE_2__["default"], null)));

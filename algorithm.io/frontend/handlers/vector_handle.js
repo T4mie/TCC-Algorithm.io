@@ -1,5 +1,6 @@
 import { createVector, fetchVectorData, insertVectorValue, fetchSortSteps, applyStepToNodes, persistVectorState, clearVector } from '../api/api_vector';
-import {toast} from 'sonner'
+import { toast } from 'sonner';
+
 export const useVectorHandlers = (states) => {
   const {
     vectorSize, setVectorSize, vectorId, setVectorId,
@@ -9,6 +10,7 @@ export const useVectorHandlers = (states) => {
     vectorType, setVectorType
   } = states;
 
+  // Cria o vetor no backend com o tamanho informado pelo usuário
   const handleCreateVector = () => {
     createVector(
       vectorSize, setVectorSize, setNodes, setEdges,
@@ -16,6 +18,7 @@ export const useVectorHandlers = (states) => {
     );
   };
 
+  // Valida (conforme o tipo do vetor) e insere o valor digitado na posição informada
   const handleInsertVectorValue = () => {
     let finalValue = vectorValue;
 
@@ -83,16 +86,17 @@ export const useVectorHandlers = (states) => {
     }
   };
 
+  // Volta para o passo anterior da simulação atual
   const handlePrevStep = () => {
-  if (currentStep > 0) {
-    const prevIndex = currentStep - 1;
-    setCurrentStep(prevIndex);
-    applyStepToNodes(steps[prevIndex], nodes, setNodes);
-    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
-      window.electronAPI.updateChildStep(prevIndex);
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      applyStepToNodes(steps[prevIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(prevIndex);
+      }
     }
-  }
-};
+  };
 
   // Limpa o vetor por completo, como se ele nunca tivesse sido criado
   const handleClear = async () => {
