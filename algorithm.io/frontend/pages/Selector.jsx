@@ -18,9 +18,11 @@ export default function Selector() {
           <SelectorBox props={{ path: '/view/vector', icon: VectorIcon, label: 'Vetor' }} />
           <SelectorBox props={{ path: '/view/queue', icon: SLLIcon, label: 'Fila' }} />
           <SelectorBox props={{ path: '/view/stack', icon: VectorIcon, label: 'Pilha' }} />
+          <SelectorBox props={{ path: '/view/insertion-sort', icon: VectorIcon, label: 'Insertion Sort' }} />
+          <SelectorBox props={{ path: '/view/merge-sort', icon: VectorIcon, label: 'Merge Sort' }} />
         </div>
       </div>
-      <HelpWidget label={`O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas e Pilhas com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`} sizeScale={0.6} />
+      <HelpWidget label={`O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas, Pilhas, Insertion Sort e Merge Sort, com planos de incluir outras estruturas e algoritmos como listas duplamente ligadas, árvores binárias, etc.`} sizeScale={0.6} />
     </motion.div>
   );
 }

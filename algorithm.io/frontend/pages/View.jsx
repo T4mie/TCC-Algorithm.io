@@ -8,16 +8,20 @@ import '../css/view.css';
 
 import { useSLLHandlers } from '../handlers/sll_handle';
 import { useVectorHandlers } from '../handlers/vector_handle';
+import { useArrayVectorHandlers } from '../handlers/array_vector_handle';
+import { useMergeSortHandlers } from '../handlers/merge_sort_handle';
 import { useStackHandlers } from '../handlers/stack_handle';
 import { useQueueHandlers } from '../handlers/queue_handle';
 import LinkedListNode from '../custom_node/linkedListNode';
 import ListNode from '../custom_node/listNode';
 import VectorNode from '../custom_node/vectorNode';
+import ArrayNode from '../custom_node/arrayNode';
+import MergeSortNode from '../custom_node/mergeSortNode';
 import StackNode from '../custom_node/stackNode';
 import SidePanel from '../components/SidePanel';
 
 // Mapeia o tipo de nó do React Flow para o componente customizado que o renderiza.
-const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode, stack: StackNode };
+const NODE_TYPES = { SLL: LinkedListNode, list: ListNode, vector: VectorNode, array: ArrayNode, 'merge-sort': MergeSortNode, stack: StackNode };
 // Estilo padrão aplicado a todas as arestas do grafo (seta preta com espessura fixa).
 const DEFAULT_EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, color: '#000' }, style: { stroke: '#000000', strokeWidth: 2, zIndex: 10 } };
 
@@ -48,6 +52,16 @@ export default function View() {
   const [stackType, setStackType] = useState('int');
   const [stackOperation, setStackOperation] = useState(null);
   const [queueOperation, setQueueOperation] = useState(null);
+  const [sllOperation, setSllOperation] = useState(null);
+  const [arrayCapacity, setArrayCapacity] = useState('');
+  const [arrayIndex, setArrayIndex] = useState('');
+  const [arrayValue, setArrayValue] = useState('');
+  const [arrayType, setArrayType] = useState('int');
+  const [arrayOperation, setArrayOperation] = useState(null);
+  const [mergeSortSize, setMergeSortSize] = useState('');
+  const [mergeSortId, setMergeSortId] = useState('');
+  const [mergeSortValue, setMergeSortValue] = useState('');
+  const [mergeSortType, setMergeSortType] = useState('int');
 
   const sharedStates = {
     nodes, setNodes, edges, setEdges, nodeCount, setNodeCount,
@@ -61,14 +75,26 @@ export default function View() {
     stackSize, setStackSize,
     stackType, setStackType,
     stackOperation, setStackOperation,
-    queueOperation, setQueueOperation
+    queueOperation, setQueueOperation,
+    sllOperation, setSllOperation,
+    arrayCapacity, setArrayCapacity,
+    arrayIndex, setArrayIndex,
+    arrayValue, setArrayValue,
+    arrayType, setArrayType,
+    arrayOperation, setArrayOperation,
+    mergeSortSize, setMergeSortSize,
+    mergeSortId, setMergeSortId,
+    mergeSortValue, setMergeSortValue,
+    mergeSortType, setMergeSortType
   };
 
   const sll = useSLLHandlers(sharedStates);
   const vector = useVectorHandlers(sharedStates);
+  const array = useArrayVectorHandlers(sharedStates);
+  const mergeSort = useMergeSortHandlers(sharedStates);
   const queue = useQueueHandlers(sharedStates);
   const stack = useStackHandlers(sharedStates);
-  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : type === 'queue' ? queue : { fetchData: () => {} };
+  const handlers = type === 'sll' ? sll : type === 'insertion-sort' ? vector : type === 'vector' ? array : type === 'merge-sort' ? mergeSort : type === 'stack' ? stack : type === 'queue' ? queue : { fetchData: () => {} };
 
   // Sempre que o tipo de estrutura (parâmetro de rota) mudar, limpa o canvas
   // e busca os dados iniciais da estrutura correspondente no backend.
@@ -76,7 +102,13 @@ export default function View() {
     if (type === 'sll') {
       setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
     }
+    if (type === 'insertion-sort') {
+      setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
+    }
     if (type === 'vector') {
+      setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
+    }
+    if (type === 'merge-sort') {
       setNodes([]); setEdges([]); setNodeCount(0); handlers.fetchData([]); return;
     }
     if (type === 'stack') {
@@ -163,8 +195,8 @@ export default function View() {
     const x = width / 2 - centerWorldX * currentZoom;
     let y = height / 2 - centerWorldY * currentZoom;
 
-    // Ao visualizar o vetor, desloca levemente para cima para que apareça acima do centro
-    if (type === 'vector') {
+    // Ao visualizar o insertion sort ou o merge sort, desloca levemente para cima para que apareça acima do centro
+    if (type === 'insertion-sort' || type === 'merge-sort') {
       const shiftPx = 80; // ajuste este valor para mover mais ou menos
       y -= shiftPx;
     }
@@ -212,7 +244,7 @@ export default function View() {
           <MiniMap nodeStrokeWidth={3}/>
         </Panel>
         <Panel position="center-right" className="app-side-panel">
-          <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, queue, stack, sharedStates, centerView }} />
+          <SidePanel props={{ type, nodeLabel, setNodeLabel, sll, vector, array, mergeSort, queue, stack, sharedStates, centerView }} />
         </Panel>
       </ReactFlow>
       

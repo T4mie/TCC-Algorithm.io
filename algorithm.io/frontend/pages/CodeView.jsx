@@ -3,6 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { fetchSortSteps } from '../api/api_vector';
 import { fetchStackSteps } from '../api/api_stack';
 import { fetchQueueSteps } from '../api/api_queue';
+import { fetchSLLSteps } from '../api/api_sll';
+import { fetchArraySteps } from '../api/api_array_vector';
+import { fetchMergeSortSteps } from '../api/api_merge_sort';
 
 // Importando os dados dos arquivos separados
 import { pseudocodigoLines } from '../code_view_data/insertion_sort/pseudocodigo';
@@ -20,6 +23,27 @@ import { queueEnqueuePythonLines } from '../code_view_data/queue/queue_enqueue/p
 import { queueDequeuePseudocodigoLines } from '../code_view_data/queue/queue_dequeue/pseudocodigo';
 import { queueDequeueJavaLines } from '../code_view_data/queue/queue_dequeue/java';
 import { queueDequeuePythonLines } from '../code_view_data/queue/queue_dequeue/python';
+import { sllInsertLastPseudocodigoLines } from '../code_view_data/sll/sll_insert_last/pseudocodigo';
+import { sllInsertLastJavaLines } from '../code_view_data/sll/sll_insert_last/java';
+import { sllInsertLastPythonLines } from '../code_view_data/sll/sll_insert_last/python';
+import { sllInsertFirstPseudocodigoLines } from '../code_view_data/sll/sll_insert_first/pseudocodigo';
+import { sllInsertFirstJavaLines } from '../code_view_data/sll/sll_insert_first/java';
+import { sllInsertFirstPythonLines } from '../code_view_data/sll/sll_insert_first/python';
+import { sllRemoveFirstPseudocodigoLines } from '../code_view_data/sll/sll_remove_first/pseudocodigo';
+import { sllRemoveFirstJavaLines } from '../code_view_data/sll/sll_remove_first/java';
+import { sllRemoveFirstPythonLines } from '../code_view_data/sll/sll_remove_first/python';
+import { sllRemoveLastPseudocodigoLines } from '../code_view_data/sll/sll_remove_last/pseudocodigo';
+import { sllRemoveLastJavaLines } from '../code_view_data/sll/sll_remove_last/java';
+import { sllRemoveLastPythonLines } from '../code_view_data/sll/sll_remove_last/python';
+import { arrayInsertPseudocodigoLines } from '../code_view_data/array/array_insert/pseudocodigo';
+import { arrayInsertJavaLines } from '../code_view_data/array/array_insert/java';
+import { arrayInsertPythonLines } from '../code_view_data/array/array_insert/python';
+import { arrayRemovePseudocodigoLines } from '../code_view_data/array/array_remove/pseudocodigo';
+import { arrayRemoveJavaLines } from '../code_view_data/array/array_remove/java';
+import { arrayRemovePythonLines } from '../code_view_data/array/array_remove/python';
+import { mergeSortPseudocodigoLines } from '../code_view_data/merge_sort/pseudocodigo';
+import { mergeSortJavaLines } from '../code_view_data/merge_sort/java';
+import { mergeSortPythonLines } from '../code_view_data/merge_sort/python';
 
 import '../css/codeView.css';
 
@@ -58,6 +82,63 @@ const queueDequeueSnippets = {
   python: queueDequeuePythonLines
 };
 
+// Snippets do método insert_last() da lista ligada, por linguagem.
+const sllInsertLastSnippets = {
+  pseudocódigo: sllInsertLastPseudocodigoLines,
+  java: sllInsertLastJavaLines,
+  python: sllInsertLastPythonLines
+};
+
+// Snippets do método insert_first() da lista ligada, por linguagem.
+const sllInsertFirstSnippets = {
+  pseudocódigo: sllInsertFirstPseudocodigoLines,
+  java: sllInsertFirstJavaLines,
+  python: sllInsertFirstPythonLines
+};
+
+// Snippets do método remove_first() da lista ligada, por linguagem.
+const sllRemoveFirstSnippets = {
+  pseudocódigo: sllRemoveFirstPseudocodigoLines,
+  java: sllRemoveFirstJavaLines,
+  python: sllRemoveFirstPythonLines
+};
+
+// Snippets do método remove_last() da lista ligada, por linguagem.
+const sllRemoveLastSnippets = {
+  pseudocódigo: sllRemoveLastPseudocodigoLines,
+  java: sllRemoveLastJavaLines,
+  python: sllRemoveLastPythonLines
+};
+
+// Mapeia a operação atual da SLL para o conjunto de snippets correspondente.
+const sllSnippetsByOp = {
+  insert_last: sllInsertLastSnippets,
+  insert_first: sllInsertFirstSnippets,
+  remove_first: sllRemoveFirstSnippets,
+  remove_last: sllRemoveLastSnippets
+};
+
+// Snippets do método insert() do vetor de capacidade fixa, por linguagem.
+const arrayInsertSnippets = {
+  pseudocódigo: arrayInsertPseudocodigoLines,
+  java: arrayInsertJavaLines,
+  python: arrayInsertPythonLines
+};
+
+// Snippets do método remove() do vetor de capacidade fixa, por linguagem.
+const arrayRemoveSnippets = {
+  pseudocódigo: arrayRemovePseudocodigoLines,
+  java: arrayRemoveJavaLines,
+  python: arrayRemovePythonLines
+};
+
+// Snippets do Merge Sort (mergeSort + merge), por linguagem.
+const mergeSortSnippets = {
+  pseudocódigo: mergeSortPseudocodigoLines,
+  java: mergeSortJavaLines,
+  python: mergeSortPythonLines
+};
+
 // CodeView exibe o código do algoritmo/método (pseudocódigo, Java ou Python) com destaque
 // na linha ativa, mantendo-se sincronizado com o passo atual da simulação em View.jsx
 // (via query string na primeira carga e via IPC do Electron para atualizações ao vivo).
@@ -74,15 +155,23 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
   const [lang, setLang] = useState('pseudocódigo');
   const [stackOp, setStackOp] = useState(null);
   const [queueOp, setQueueOp] = useState(null);
+  const [sllOp, setSllOp] = useState(null);
+  const [arrayOp, setArrayOp] = useState(null);
 
   // Seleciona o array de código correto conforme o tipo de estrutura visualizada
-  const codeLines = viewType === 'vector'
+  const codeLines = viewType === 'insertion-sort'
     ? codeSnippets[lang]
     : viewType === 'stack'
       ? (stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang])
       : viewType === 'queue'
         ? (queueOp === 'dequeue' ? queueDequeueSnippets[lang] : queueEnqueueSnippets[lang])
-        : [];
+        : viewType === 'sll'
+          ? (sllSnippetsByOp[sllOp] || sllInsertLastSnippets)[lang]
+          : viewType === 'vector'
+            ? (arrayOp === 'remove' ? arrayRemoveSnippets[lang] : arrayInsertSnippets[lang])
+            : viewType === 'merge-sort'
+              ? mergeSortSnippets[lang]
+              : [];
 
   // Mapeia um objeto de passo vindo do backend para o id de uma linha de código,
   // usando heurísticas; prefere o `code_id` explícito quando o backend o fornece
@@ -105,7 +194,7 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
     // Carrega todos os passos quando a visão é de vetor, para permitir o
     // mapeamento dos passos em linhas de código posteriormente.
     const loadSteps = async () => {
-      if (viewType !== 'vector') return;
+      if (viewType !== 'insertion-sort') return;
       try {
         const all = await fetchSortSteps();
         setSteps(all);
@@ -127,7 +216,7 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
   // Registra atualizações ao vivo vindas da janela principal (quando o usuário
   // avança/volta passos em View.jsx) para manter o destaque do vetor sincronizado.
   useEffect(() => {
-    if (viewType !== 'vector') return;
+    if (viewType !== 'insertion-sort') return;
     if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
 
     const handler = async (payload) => {
@@ -151,6 +240,66 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
           const prev = all[idx - 1] || null;
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
+        } catch (e) {
+          // Ignora falhas de busca em atualizações ao vivo
+        }
+      }
+    };
+
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType, steps]);
+
+  // Carrega todos os passos quando a visão é do Merge Sort. Assim como a
+  // pilha e a fila, cada passo já traz `code_id` explícito (não precisa de
+  // heurística de mapeamento como o Insertion Sort).
+  useEffect(() => {
+    const loadMergeSortSteps = async () => {
+      if (viewType !== 'merge-sort') return;
+      try {
+        const all = await fetchMergeSortSteps();
+        setSteps(all);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = all[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(propActiveStep);
+      }
+    };
+    loadMergeSortSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (quando o usuário
+  // avança/volta passos em View.jsx) para manter o destaque do Merge Sort sincronizado.
+  useEffect(() => {
+    if (viewType !== 'merge-sort') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+
+    const handler = async (payload) => {
+      const idx = (payload && typeof payload.step !== 'undefined') ? Number(payload.step) : -1;
+      setStepIndex(idx);
+
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+
+      if (steps && steps.length > 0) {
+        const current = steps[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } else {
+        try {
+          const all = await fetchMergeSortSteps();
+          setSteps(all);
+          const current = all[idx] || null;
+          setActiveStep(current ? current.code_id : null);
         } catch (e) {
           // Ignora falhas de busca em atualizações ao vivo
         }
@@ -282,6 +431,124 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
     };
   }, [viewType]);
 
+  // Carrega os últimos passos de insert/remove gerados pelo backend para a
+  // lista ligada. Assim como a pilha e a fila, cada passo já traz `code_id`
+  // explícito, mas aqui há 4 operações possíveis em vez de 2.
+  useEffect(() => {
+    const loadSllSteps = async () => {
+      if (viewType !== 'sll') return;
+      try {
+        const result = await fetchSLLSteps();
+        setSteps(result.steps || []);
+        setSllOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadSllSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Inserir/Remover
+  // e Voltar/Próximo). Reconsulta /sll_steps a cada evento para não
+  // dessincronizar o `sllOp` caso o usuário troque de operação.
+  useEffect(() => {
+    if (viewType !== 'sll') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+
+    const handler = async (payload) => {
+      const idx = (payload && typeof payload.step !== 'undefined') ? Number(payload.step) : -1;
+      setStepIndex(idx);
+
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+
+      try {
+        const result = await fetchSLLSteps();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setSllOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
+  // Carrega os últimos passos de insert/remove gerados pelo backend para o
+  // vetor de capacidade fixa. Assim como a pilha, cada passo já traz
+  // `code_id` explícito.
+  useEffect(() => {
+    const loadArraySteps = async () => {
+      if (viewType !== 'vector') return;
+      try {
+        const result = await fetchArraySteps();
+        setSteps(result.steps || []);
+        setArrayOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadArraySteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Inserir/Remover
+  // e Voltar/Próximo). Reconsulta /array_steps a cada evento para não
+  // dessincronizar o `arrayOp` caso o usuário troque de operação.
+  useEffect(() => {
+    if (viewType !== 'vector') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+
+    const handler = async (payload) => {
+      const idx = (payload && typeof payload.step !== 'undefined') ? Number(payload.step) : -1;
+      setStepIndex(idx);
+
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+
+      try {
+        const result = await fetchArraySteps();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setArrayOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
   // Gera o estilo do botão de seleção de linguagem, destacando o idioma ativo.
   const buttonStyle = (active) => ({
     background: active ? '#0f766e' : '#111',
@@ -316,21 +583,21 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
         overflow: 'auto',
         boxSizing: 'border-box'
       }}>
-        {viewType === 'vector' && (
+        {viewType === 'insertion-sort' && (
           <>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
               <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
               <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>
               <button style={buttonStyle(lang === 'python')} onClick={() => setLang('python')}>Python</button>
             </div>
-            
+
             <div style={{ margin: 0, whiteSpace: 'pre', fontSize: 14, lineHeight: 1.6 }}>
               {codeLines.map((line, index) => {
                 const isHighlighted = activeStep === line.id;
-                
+
                 return (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     style={{
                       padding: '0 12px',
                       backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
@@ -384,6 +651,107 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
             <p style={{ margin: '0 0 8px', padding: '0 12px', fontSize: 12, color: '#9aa0a6' }}>
               {queueOp === 'dequeue' ? 'Simulando: dequeue() — Desenfileirar' : 'Simulando: enqueue() — Enfileirar'}
             </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
+              <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
+              <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>
+              <button style={buttonStyle(lang === 'python')} onClick={() => setLang('python')}>Python</button>
+            </div>
+
+            <div style={{ margin: 0, whiteSpace: 'pre', fontSize: 14, lineHeight: 1.6 }}>
+              {codeLines.map((line, index) => {
+                const isHighlighted = activeStep === line.id;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0 12px',
+                      backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+                      borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+                      color: isHighlighted ? '#ffffff' : '#00ff88',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {viewType === 'sll' && (
+          <>
+            <p style={{ margin: '0 0 8px', padding: '0 12px', fontSize: 12, color: '#9aa0a6' }}>
+              {{
+                insert_last: 'Simulando: insert_last() — Inserir no Fim',
+                insert_first: 'Simulando: insert_first() — Inserir no Início',
+                remove_first: 'Simulando: remove_first() — Remover do Início',
+                remove_last: 'Simulando: remove_last() — Remover do Fim'
+              }[sllOp] || 'Simulando: insert_last() — Inserir no Fim'}
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
+              <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
+              <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>
+              <button style={buttonStyle(lang === 'python')} onClick={() => setLang('python')}>Python</button>
+            </div>
+
+            <div style={{ margin: 0, whiteSpace: 'pre', fontSize: 14, lineHeight: 1.6 }}>
+              {codeLines.map((line, index) => {
+                const isHighlighted = activeStep === line.id;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0 12px',
+                      backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+                      borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+                      color: isHighlighted ? '#ffffff' : '#00ff88',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {viewType === 'vector' && (
+          <>
+            <p style={{ margin: '0 0 8px', padding: '0 12px', fontSize: 12, color: '#9aa0a6' }}>
+              {arrayOp === 'remove' ? 'Simulando: remove() — Remover do Índice' : 'Simulando: insert() — Inserir no Índice'}
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
+              <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
+              <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>
+              <button style={buttonStyle(lang === 'python')} onClick={() => setLang('python')}>Python</button>
+            </div>
+
+            <div style={{ margin: 0, whiteSpace: 'pre', fontSize: 14, lineHeight: 1.6 }}>
+              {codeLines.map((line, index) => {
+                const isHighlighted = activeStep === line.id;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0 12px',
+                      backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+                      borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+                      color: isHighlighted ? '#ffffff' : '#00ff88',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {viewType === 'merge-sort' && (
+          <>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 12px' }}>
               <button style={buttonStyle(lang === 'pseudocódigo')} onClick={() => setLang('pseudocódigo')}>pseudocódigo</button>
               <button style={buttonStyle(lang === 'java')} onClick={() => setLang('java')}>Java</button>

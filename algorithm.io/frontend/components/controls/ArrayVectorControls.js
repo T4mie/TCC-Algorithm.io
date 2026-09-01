@@ -1,32 +1,26 @@
-// components/SLLControls.js
+// components/ArrayVectorControls.js
 import React from 'react';
 import '../../css/controls.css';
 import { motion } from 'framer-motion';
 
-// Controles laterais da Lista Simplesmente Ligada: campo de valor do nó,
-// botões para inserir/remover no início ou no fim, e a seção de simulação
-// passo a passo exibida enquanto uma operação está em andamento.
-export default function SLLControls({ states, handlers, centerView }) {
-  const { nodeLabel, setNodeLabel, currentStep, steps, sllOperation } = states;
-  const sll = handlers;
+// Controles laterais do Vetor de capacidade fixa: criação do vetor
+// (capacidade e tipo), campos de índice/valor, botões de inserir/remover
+// por índice, e a seção de simulação passo a passo (com deslocamento real
+// dos elementos) exibida enquanto uma operação está em andamento.
+export default function ArrayVectorControls({ states, handlers, centerView }) {
+  const {
+    arrayCapacity, setArrayCapacity, arrayIndex, setArrayIndex,
+    arrayValue, setArrayValue, currentStep, steps, arrayOperation
+  } = states;
+
+  const array = handlers;
 
   // Indica se há uma simulação passo a passo em andamento
   const isSimulating = currentStep !== -1;
 
-  // Permite disparar a inserção no fim pressionando Enter no campo de valor
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') sll.handleInsertLast();
-  };
-
-  const operationLabels = {
-    insert_last: 'Inserindo no Fim',
-    insert_first: 'Inserindo no Início',
-    remove_first: 'Removendo do Início',
-    remove_last: 'Removendo do Final'
-  };
-
   return (
     <div>
+      {/* Seção de Gerenciamento: Criar e Inserir/Remover por Índice */}
       <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
         <motion.div whileTap={{ scale: 0.95 }}>
           <button onClick={() => centerView && centerView()} className="control-button">Centralizar</button>
@@ -34,71 +28,93 @@ export default function SLLControls({ states, handlers, centerView }) {
         <div style={{ height: '20px' }} />
         <div className="input-container">
           <input
-            value={nodeLabel}
-            onChange={(e) => setNodeLabel(e.target.value)}
-            onKeyPress={handleKeyPress}
+            value={arrayCapacity}
+            onChange={(e) => setArrayCapacity(e.target.value)}
             type="text"
-            id="sll-value-input"
+            id="array-capacity-input"
             required
             disabled={isSimulating}
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
           />
-          <label htmlFor="sll-value-input" className="label">Valor do Nó</label>
+          <label htmlFor="array-capacity-input" className="label">Capacidade do Vetor</label>
           <div className="underline" />
         </div>
         <div style={{ height: '12px' }} />
-
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={sll.handleInsertLast}
+            onClick={array.handleCreateArray}
             disabled={isSimulating}
             className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Inserir no Fim
-          </button>
-        </motion.div>
-        <div style={{ height: '12px' }} />
-
-        <motion.div whileTap={{ scale: 0.95 }}>
-          <button
-            onClick={sll.handleInsertFirst}
-            disabled={isSimulating}
-            className="control-button"
-            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
-          >
-            Inserir no Início
+            Criar Vetor
           </button>
         </motion.div>
         <div style={{ height: '20px' }} />
-
+        <div className="input-container">
+          <input
+            value={arrayIndex}
+            onChange={(e) => setArrayIndex(e.target.value)}
+            type="text"
+            id="array-index-input"
+            required
+            disabled={isSimulating}
+            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
+          />
+          <label htmlFor="array-index-input" className="label">Índice</label>
+          <div className="underline" />
+        </div>
+        <div style={{ height: '12px' }} />
+        <div className="input-container">
+          <input
+            value={arrayValue}
+            onChange={(e) => setArrayValue(e.target.value)}
+            type="text"
+            id="array-value-input"
+            required
+            disabled={isSimulating}
+            style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'text' }}
+          />
+          <label htmlFor="array-value-input" className="label">Valor</label>
+          <div className="underline" />
+        </div>
+        <div style={{ height: '12px' }} />
+        <select
+          className='control-selector'
+          value={states.arrayType}
+          onChange={(e) => states.setArrayType(e.target.value)}
+          disabled={isSimulating}
+          style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
+        >
+          <option value="int">Inteiros</option>
+          <option value="string">Texto</option>
+        </select>
+        <div style={{ height: '20px' }} />
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={sll.handleRemoveFirst}
+            onClick={array.handleInsert}
             disabled={isSimulating}
-            className="control-button control-button-danger"
+            className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Remover do Início
+            Inserir no Índice
           </button>
         </motion.div>
         <div style={{ height: '12px' }} />
-
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={sll.handleRemoveLast}
+            onClick={array.handleRemove}
             disabled={isSimulating}
-            className="control-button control-button-danger"
+            className="control-button"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
           >
-            Remover do Fim
+            Remover do Índice
           </button>
         </motion.div>
         <div style={{ height: '12px' }} />
-
         <motion.div whileTap={{ scale: 0.95 }}>
           <button
-            onClick={sll.handleClear}
+            onClick={array.handleClear}
             disabled={isSimulating}
             className="control-button control-button-danger"
             style={{ opacity: isSimulating ? 0.6 : 1, cursor: isSimulating ? 'not-allowed' : 'pointer' }}
@@ -112,7 +128,7 @@ export default function SLLControls({ states, handlers, centerView }) {
       {isSimulating && (
         <div>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
-            Simulação: {operationLabels[sllOperation] || 'Executando'}
+            Simulação: {arrayOperation === 'remove' ? 'Removendo do Índice' : 'Inserindo no Índice'}
           </h4>
           <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
             <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '10px' }}>
@@ -120,7 +136,7 @@ export default function SLLControls({ states, handlers, centerView }) {
             </p>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button
-                onClick={sll.handlePrevStep}
+                onClick={array.handlePrevStep}
                 disabled={currentStep === 0}
                 className='control-button'
                 style={{
@@ -131,7 +147,7 @@ export default function SLLControls({ states, handlers, centerView }) {
                 ◀ Voltar
               </button>
               <button
-                onClick={sll.handleNextStep}
+                onClick={array.handleNextStep}
                 disabled={currentStep === steps.length - 1}
                 className='control-button'
                 style={{
@@ -144,7 +160,7 @@ export default function SLLControls({ states, handlers, centerView }) {
             </div>
             <motion.div whileTap={{ scale: 0.95 }}>
               <button
-                onClick={sll.handleEndSimulation}
+                onClick={array.handleEndSimulation}
                 className='control-button'
                 style={{ marginTop: '5px' }}
               >

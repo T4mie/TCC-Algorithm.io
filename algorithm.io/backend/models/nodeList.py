@@ -19,14 +19,20 @@ class ListNode:
         }
 
     def to_dict(self):
-        """Serializa o nó de metadata para o formato consumido pelo frontend."""
+        """Serializa o nó de metadata para o formato consumido pelo frontend.
+
+        `metadata` é copiado (não referenciado) para que cada passo de uma
+        simulação capture um retrato independente: como `update()` muta
+        `self.metadata` in-place, snapshots anteriores que guardassem a
+        mesma referência passariam a exibir retroativamente o estado final.
+        """
         return {
             "id": self.id,
             "value": self.value,
             "position": self.position,
             "label": self.label,
             "type": self.type,
-            "metadata": self.metadata
+            "metadata": dict(self.metadata)
         }
 
     def update(self, head=None, tail=None, size=None):

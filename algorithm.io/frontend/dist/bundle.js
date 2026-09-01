@@ -8743,6 +8743,226 @@ function App() {
 
 /***/ },
 
+/***/ "./frontend/api/api_array_vector.js"
+/*!******************************************!*\
+  !*** ./frontend/api/api_array_vector.js ***!
+  \******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyAndPersistFinalState: () => (/* binding */ applyAndPersistFinalState),
+/* harmony export */   applyFinalState: () => (/* binding */ applyFinalState),
+/* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
+/* harmony export */   clearArray: () => (/* binding */ clearArray),
+/* harmony export */   createArray: () => (/* binding */ createArray),
+/* harmony export */   fetchArrayData: () => (/* binding */ fetchArrayData),
+/* harmony export */   fetchArraySteps: () => (/* binding */ fetchArraySteps),
+/* harmony export */   fetchInsertSteps: () => (/* binding */ fetchInsertSteps),
+/* harmony export */   fetchRemoveSteps: () => (/* binding */ fetchRemoveSteps),
+/* harmony export */   persistArrayState: () => (/* binding */ persistArrayState),
+/* harmony export */   transformArrayData: () => (/* binding */ transformArrayData)
+/* harmony export */ });
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+// ===== API para operações do Vetor de capacidade fixa (inserir/remover por índice com deslocamento) e simulação passo a passo =====
+
+
+
+
+// Transforma os dados do vetor retornados pelo backend em um único nó visual
+// (React Flow), já que o vetor é renderizado como uma fileira só, não nó a nó.
+const transformArrayData = (data, currentNodes = []) => {
+  if (!data.nodes || data.nodes.length === 0) {
+    return {
+      reactFlowNodes: [],
+      reactFlowEdges: [],
+      dataNodesCount: 0
+    };
+  }
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+  const values = data.nodes.map(node => node.value);
+  const labels = data.nodes.map(node => node.label);
+  const position = positionMap.get('array') || data.nodes[0]?.position || {
+    x: 100,
+    y: 100
+  };
+  const arrayNode = {
+    id: 'array',
+    type: 'array',
+    position,
+    data: {
+      values,
+      labels,
+      size: typeof data.size === 'number' ? data.size : 0,
+      highlighted: data.highlighted || [],
+      activeValue: data.activeValue,
+      codeId: data.code_id,
+      type: 'array'
+    }
+  };
+  return {
+    reactFlowNodes: [arrayNode],
+    reactFlowEdges: [],
+    dataNodesCount: 1
+  };
+};
+
+// Busca o estado atual do vetor no backend e atualiza nós/arestas/contador.
+const fetchArrayData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/array_data');
+    const {
+      reactFlowNodes,
+      reactFlowEdges,
+      dataNodesCount
+    } = transformArrayData(data, currentNodes);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados do vetor:', err);
+  }
+};
+
+// Cria o vetor no backend com a capacidade informada, validando que é um inteiro positivo até 15.
+const createArray = async (capacity, setArrayCapacity, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
+  if (!String(capacity).trim() || !/^[1-9]\d*$/.test(String(capacity))) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite uma capacidade de vetor válida (um inteiro positivo).');
+    return;
+  }
+  const arrayCapacity = Number(capacity);
+  if (arrayCapacity > 15) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('A capacidade máxima do vetor é 15.');
+    return;
+  }
+  const createData = {
+    value: arrayCapacity,
+    position: {
+      x: 100,
+      y: 100
+    }
+  };
+  try {
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/array_create', createData);
+    setArrayCapacity('');
+    fetchDataCallback();
+    setNodeCount(arrayCapacity);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar vetor: ' + err.message);
+  }
+};
+
+// Executa o insert_at no servidor e retorna { success, steps, data }
+const fetchInsertSteps = async (index, value) => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/array_insert_steps', {
+    index,
+    value
+  });
+};
+
+// Executa o remove_at no servidor e retorna { success, steps, data }
+const fetchRemoveSteps = async index => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/array_remove_steps', {
+    index
+  });
+};
+
+// Busca os últimos passos gerados (insert ou remove), usado pela janela do CodeView
+const fetchArraySteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/array_steps');
+};
+
+// Atualiza o estado visual para um passo específico
+const applyStepToNodes = (step, nodes, setNodes) => {
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'array') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: step.nodes.map(n => n.value),
+          labels: step.nodes.map(n => n.label),
+          size: step.size,
+          highlighted: step.highlighted || [],
+          activeValue: step.activeValue,
+          codeId: step.code_id
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+};
+
+// Aplica o estado final (último passo) dos passos
+const applyFinalState = (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    return;
+  }
+  const finalStep = steps[steps.length - 1];
+  applyStepToNodes(finalStep, nodes, setNodes);
+};
+
+// Aplica o estado final e persiste o estado do vetor.
+// Ao encerrar a simulação, limpa os campos que só existem durante a
+// animação (highlighted/activeValue/codeId) para que nenhum resquício
+// do último passo continue aparecendo depois que a operação já terminou.
+const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    throw new Error('Nenhum passo disponível');
+  }
+  const finalStep = steps[steps.length - 1];
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'array') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: finalStep.nodes.map(n => n.value),
+          labels: finalStep.nodes.map(n => n.label),
+          size: finalStep.size,
+          highlighted: [],
+          activeValue: null,
+          codeId: null
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  await persistArrayState(updatedNodes);
+};
+
+// Limpa o vetor no backend, como se ele nunca tivesse sido criado
+const clearArray = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_array', {});
+};
+
+// Persiste o estado final do vetor no backend
+const persistArrayState = async nodes => {
+  try {
+    const arrayNode = nodes.find(n => n.type === 'array');
+    if (!arrayNode) {
+      throw new Error('Nó do vetor não encontrado');
+    }
+    const values = arrayNode.data.values || [];
+    return await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/update_array', {
+      nodes: values.map((value, index) => ({
+        value,
+        label: value !== null && value !== undefined ? `${index}: ${value}` : String(index)
+      })),
+      size: arrayNode.data.size
+    });
+  } catch (err) {
+    console.error('Erro ao persistir vetor:', err);
+    throw err;
+  }
+};
+
+/***/ },
+
 /***/ "./frontend/api/api_client.js"
 /*!************************************!*\
   !*** ./frontend/api/api_client.js ***!
@@ -8796,6 +9016,240 @@ const postJson = async (path, body = {}) => {
   });
 };
 
+
+/***/ },
+
+/***/ "./frontend/api/api_merge_sort.js"
+/*!****************************************!*\
+  !*** ./frontend/api/api_merge_sort.js ***!
+  \****************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   applyAndPersistFinalState: () => (/* binding */ applyAndPersistFinalState),
+/* harmony export */   applyFinalState: () => (/* binding */ applyFinalState),
+/* harmony export */   applyStepToNodes: () => (/* binding */ applyStepToNodes),
+/* harmony export */   clearMergeSortVector: () => (/* binding */ clearMergeSortVector),
+/* harmony export */   createMergeSortVector: () => (/* binding */ createMergeSortVector),
+/* harmony export */   fetchMergeSortData: () => (/* binding */ fetchMergeSortData),
+/* harmony export */   fetchMergeSortSteps: () => (/* binding */ fetchMergeSortSteps),
+/* harmony export */   insertMergeSortValue: () => (/* binding */ insertMergeSortValue),
+/* harmony export */   persistMergeSortState: () => (/* binding */ persistMergeSortState),
+/* harmony export */   transformMergeSortData: () => (/* binding */ transformMergeSortData)
+/* harmony export */ });
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+// ===== API para o vetor e a simulação passo a passo do Merge Sort =====
+
+
+
+
+// Transforma os dados do vetor retornados pelo backend em um único nó visual
+// (React Flow), já que o vetor é renderizado como um bloco só, não nó a nó.
+const transformMergeSortData = (data, currentNodes = []) => {
+  if (!data.nodes || data.nodes.length === 0) {
+    return {
+      reactFlowNodes: [],
+      reactFlowEdges: [],
+      dataNodesCount: 0
+    };
+  }
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
+  const values = data.nodes.map(node => node.value);
+  const labels = data.nodes.map(node => node.label);
+  const position = positionMap.get('merge-sort') || data.nodes[0]?.position || {
+    x: 100,
+    y: 100
+  };
+  const mergeSortNode = {
+    id: 'merge-sort',
+    type: 'merge-sort',
+    position,
+    data: {
+      values,
+      labels,
+      type: 'merge-sort'
+    }
+  };
+  return {
+    reactFlowNodes: [mergeSortNode],
+    reactFlowEdges: [],
+    dataNodesCount: 1
+  };
+};
+
+// Busca o estado atual do vetor no backend e atualiza nós/arestas/contador.
+const fetchMergeSortData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
+  try {
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/mergesort_data');
+    const {
+      reactFlowNodes,
+      reactFlowEdges,
+      dataNodesCount
+    } = transformMergeSortData(data);
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
+    setNodeCount(dataNodesCount);
+  } catch (err) {
+    console.error('Erro ao carregar dados do vetor:', err);
+  }
+};
+
+// Cria o vetor no backend com o tamanho informado, validando que é um inteiro positivo até 15.
+const createMergeSortVector = async (size, setSize, setNodes, setEdges, setNodeCount, fetchDataCallback) => {
+  if (!String(size).trim() || !/^[1-9]\d*$/.test(String(size))) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um tamanho de vetor válido (um inteiro positivo).');
+    return;
+  }
+  const vectorSize = Number(size);
+  if (vectorSize > 15) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('O tamanho máximo do vetor é 15.');
+    return;
+  }
+  const createData = {
+    value: vectorSize,
+    position: {
+      x: 100,
+      y: 100
+    }
+  };
+  try {
+    await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/mergesort_create', createData);
+    setSize('');
+    fetchDataCallback();
+    setNodeCount(vectorSize);
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar vetor: ' + err.message);
+  }
+};
+
+// Insere um valor em uma posição específica do vetor no backend.
+const insertMergeSortValue = async (nodeId, value, setId, setValue, fetchDataCallback) => {
+  const idStr = String(nodeId).trim();
+  const valStr = String(value).trim();
+  if (!idStr || valStr === '') {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Digite um índice e um valor');
+    return;
+  }
+  try {
+    const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/mergesort_insert', {
+      node_id: nodeId,
+      value
+    });
+    setId('');
+    setValue('');
+    if (result.reset) {
+      sonner__WEBPACK_IMPORTED_MODULE_0__.toast.warning(result.info || 'Vetor foi resetado');
+    } else {
+      sonner__WEBPACK_IMPORTED_MODULE_0__.toast.success('Valor inserido com sucesso');
+    }
+    fetchDataCallback();
+  } catch (err) {
+    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao inserir valor: ' + err.message);
+  }
+};
+
+// Executa o merge sort no servidor e retorna a lista de passos
+const fetchMergeSortSteps = async () => {
+  const result = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/merge-sort');
+  return result.steps;
+};
+
+// Atualiza o estado visual para um passo específico: além dos valores atuais
+// do vetor, carrega o intervalo [left,right]/mid ativo e o buffer de
+// mesclagem (leftArr/rightArr) com os ponteiros i/j/k, para o "split view".
+const applyStepToNodes = (step, nodes, setNodes) => {
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'merge-sort') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: step.nodes.map(n => n.value),
+          left: step.left,
+          right: step.right,
+          mid: step.mid,
+          leftArr: step.leftArr,
+          rightArr: step.rightArr,
+          i: step.i,
+          j: step.j,
+          k: step.k,
+          highlighted: step.highlighted || [],
+          codeId: step.code_id
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+};
+
+// Aplica o estado final (último passo) dos passos
+const applyFinalState = (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    return;
+  }
+  const finalStep = steps[steps.length - 1];
+  applyStepToNodes(finalStep, nodes, setNodes);
+};
+
+// Aplica o estado final e persiste o estado do vetor
+const applyAndPersistFinalState = async (steps, nodes, setNodes) => {
+  if (!steps || steps.length === 0) {
+    throw new Error('Nenhum passo disponível');
+  }
+  const finalStep = steps[steps.length - 1];
+  const updatedNodes = nodes.map(node => {
+    if (node.type === 'merge-sort') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          values: finalStep.nodes.map(n => n.value),
+          left: null,
+          right: null,
+          mid: null,
+          leftArr: null,
+          rightArr: null,
+          i: null,
+          j: null,
+          k: null,
+          highlighted: [],
+          codeId: null
+        }
+      };
+    }
+    return node;
+  });
+  setNodes(updatedNodes);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  await persistMergeSortState(updatedNodes);
+};
+
+// Persiste o estado final do vetor no backend
+const persistMergeSortState = async nodes => {
+  try {
+    const mergeSortNode = nodes.find(n => n.type === 'merge-sort');
+    if (!mergeSortNode) {
+      throw new Error('Nó do vetor não encontrado');
+    }
+    const values = mergeSortNode.data.values || [];
+    return await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/update_mergesort', {
+      nodes: values.map(value => ({
+        value
+      }))
+    });
+  } catch (err) {
+    console.error('Erro ao persistir vetor:', err);
+    throw err;
+  }
+};
+
+// Limpa o vetor no backend, como se ele nunca tivesse sido criado
+const clearMergeSortVector = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_mergesort', {});
+};
 
 /***/ },
 
@@ -8972,46 +9426,64 @@ const clearQueue = async () => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   addNode: () => (/* binding */ addNode),
-/* harmony export */   addNodeFirst: () => (/* binding */ addNodeFirst),
+/* harmony export */   applySLLStep: () => (/* binding */ applySLLStep),
 /* harmony export */   clearSLL: () => (/* binding */ clearSLL),
+/* harmony export */   fetchInsertFirstSteps: () => (/* binding */ fetchInsertFirstSteps),
+/* harmony export */   fetchInsertLastSteps: () => (/* binding */ fetchInsertLastSteps),
+/* harmony export */   fetchRemoveFirstSteps: () => (/* binding */ fetchRemoveFirstSteps),
+/* harmony export */   fetchRemoveLastSteps: () => (/* binding */ fetchRemoveLastSteps),
 /* harmony export */   fetchSLLData: () => (/* binding */ fetchSLLData),
-/* harmony export */   removeFirstNode: () => (/* binding */ removeFirstNode),
-/* harmony export */   removeLastNode: () => (/* binding */ removeLastNode),
-/* harmony export */   transformBackendData: () => (/* binding */ transformBackendData)
+/* harmony export */   fetchSLLSteps: () => (/* binding */ fetchSLLSteps),
+/* harmony export */   transformSLLData: () => (/* binding */ transformSLLData)
 /* harmony export */ });
-/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
-/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
-/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+/* harmony import */ var _xyflow_react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @xyflow/react */ "./node_modules/@xyflow/system/dist/esm/index.js");
+/* harmony import */ var _api_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./api_client */ "./frontend/api/api_client.js");
+// ===== API para operações da Lista Simplesmente Ligada (inserir/remover no início ou fim) e simulação passo a passo =====
 
 
 
 
-// Transforma os dados retornados pelo backend em nós e arestas para o React Flow.
-const transformBackendData = (data, currentNodes = []) => {
-  // Criar mapa das posições atuais
+// Transforma os dados retornados pelo backend (estado completo ou um passo
+// da simulação) em nós e arestas para o React Flow, preservando posições.
+const transformSLLData = (data, currentNodes = []) => {
   const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
   const listNodeData = data.nodes.find(node => node.type === 'list');
   const headId = listNodeData?.metadata?.head ?? null;
   const tailId = listNodeData?.metadata?.tail ?? null;
-
-  // Converter nós do backend, mas preservar posições
-  const reactFlowNodes = data.nodes.map(node => ({
+  const reactFlowNodes = data.nodes.filter(node => node.type !== 'list').map((node, index) => ({
     id: node.id,
-    type: node.type,
-    position: positionMap.get(node.id) || node.position,
+    type: 'SLL',
+    position: positionMap.get(node.id) || node.position || {
+      x: 100 + index * 120,
+      y: 140
+    },
     data: {
       label: node.label,
       type: node.type,
       state: null,
       metadata: node.metadata,
       isHead: node.id === headId,
-      isTail: node.id === tailId
+      isTail: node.id === tailId,
+      highlighted: (data.highlighted || []).includes(node.id),
+      activeValue: data.activeValue,
+      codeId: data.code_id
     }
   }));
-
-  // Converter edges: ligações "next" fluem esquerda->direita, ligações
-  // "head"/"tail" saem do objeto Lista já identificadas por cor.
+  if (listNodeData) {
+    reactFlowNodes.unshift({
+      id: 'list',
+      type: 'list',
+      position: positionMap.get('list') || listNodeData.position,
+      data: {
+        label: listNodeData.label,
+        type: 'list',
+        state: null,
+        metadata: listNodeData.metadata,
+        activeValue: data.activeValue,
+        codeId: data.code_id
+      }
+    });
+  }
   const reactFlowEdges = data.edges.map(edge => {
     const baseEdge = {
       id: `${edge.source}-${edge.target}-${edge.type}`,
@@ -9027,7 +9499,7 @@ const transformBackendData = (data, currentNodes = []) => {
         strokeWidth: 2
       };
       baseEdge.markerEnd = {
-        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_1__.MarkerType.ArrowClosed,
+        type: _xyflow_react__WEBPACK_IMPORTED_MODULE_0__.MarkerType.ArrowClosed,
         color
       };
     } else {
@@ -9045,104 +9517,80 @@ const transformBackendData = (data, currentNodes = []) => {
 };
 
 // Busca o estado atual da lista ligada no backend e atualiza nós/arestas/contador.
-const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
+const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
-    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.fetchJson)('/SLL_data');
+    const data = await (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/SLL_data');
     const {
       reactFlowNodes,
       reactFlowEdges,
       dataNodesCount
-    } = transformBackendData(data, currentNodes);
+    } = transformSLLData(data, currentNodes);
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
     setNodeCount(dataNodesCount);
   } catch (err) {
-    console.error('Erro ao carregar dados de SLL_data:', err);
+    console.error('Erro ao carregar dados da lista:', err);
   }
 };
 
 // Limpa a lista no backend, como se ela nunca tivesse sido usada
 const clearSLL = async () => {
-  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/clear_sll', {});
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/clear_sll', {});
 };
 
-// Insere um nó no final da lista (tail), calculando sua posição no grid visual.
-const addNode = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes // ← Novo parâmetro
-) => {
-  if (!nodeLabel.trim()) {
-    console.error('Digite um rótulo para o nó');
-    return;
-  }
-  const basePosition = {
-    x: 100,
-    y: 139
+// Executa insert_last no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchInsertLastSteps = async (value, currentNodes = []) => {
+  const dataNodes = currentNodes.filter(n => n.data?.type !== 'list');
+  const maxX = dataNodes.length ? Math.max(...dataNodes.map(n => n.position.x)) : 100 - 120;
+  const position = {
+    x: maxX + 120,
+    y: 140
   };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
-  const newPosition = {
-    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-  };
-  const newNodeData = {
-    value: nodeLabel,
-    label: nodeLabel,
-    position: newPosition,
-    type: 'SLL'
-  };
-  try {
-    await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_last', newNodeData);
-    setNodeLabel('');
-    setNodeCount(nodeCount + 1);
-
-    // Passa os nós atuais para preservar posições
-    fetchDataCallback(currentNodes);
-  } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
-  }
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/sll_insert_last_steps', {
+    value,
+    position
+  });
 };
 
-// Insere um nó no início da lista (head), distinto da inserção no final acima.
-const addNodeFirst = async (nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, fetchDataCallback, currentNodes) => {
-  if (!nodeLabel.trim()) {
-    console.error('Digite um rótulo para o nó');
-    return;
-  }
-  const basePosition = {
-    x: 100,
-    y: 139
+// Executa insert_first no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchInsertFirstSteps = async (value, currentNodes = []) => {
+  const dataNodes = currentNodes.filter(n => n.data?.type !== 'list');
+  const minX = dataNodes.length ? Math.min(...dataNodes.map(n => n.position.x)) : 100 + 120;
+  const position = {
+    x: minX - 120,
+    y: 140
   };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
-  const newPosition = {
-    x: basePosition.x + nodeCount % nodesPerRow * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-  };
-  const newNodeData = {
-    value: nodeLabel,
-    label: nodeLabel,
-    position: newPosition,
-    type: 'SLL'
-  };
-  try {
-    await (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_first', newNodeData);
-    setNodeLabel('');
-    setNodeCount(nodeCount + 1);
-    fetchDataCallback(currentNodes);
-  } catch (err) {
-    sonner__WEBPACK_IMPORTED_MODULE_0__.toast.error('Erro ao criar nó: ' + err.message);
-  }
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/sll_insert_first_steps', {
+    value,
+    position
+  });
 };
 
-// Remove o nó do início (head) da lista
-const removeFirstNode = async () => {
-  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_remove_first', {});
+// Executa remove_first no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchRemoveFirstSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/sll_remove_first_steps', {});
 };
 
-// Remove o nó do final (tail) da lista
-const removeLastNode = async () => {
-  return (0,_api_client__WEBPACK_IMPORTED_MODULE_2__.postJson)('/nodes_remove_last', {});
+// Executa remove_last no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+const fetchRemoveLastSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.postJson)('/sll_remove_last_steps', {});
+};
+
+// Busca os últimos passos gerados (insert/remove), usado pela janela do CodeView
+const fetchSLLSteps = async () => {
+  return (0,_api_client__WEBPACK_IMPORTED_MODULE_1__.fetchJson)('/sll_steps');
+};
+
+// Aplica um passo da simulação (insert/remove) ao estado visual da lista.
+// Reaproveita o mesmo transform usado pelo fetch completo, já que o passo
+// carrega o mesmo formato de nós/edges do backend.
+const applySLLStep = (step, currentNodes, setNodes, setEdges) => {
+  const {
+    reactFlowNodes,
+    reactFlowEdges
+  } = transformSLLData(step, currentNodes);
+  setNodes(reactFlowNodes);
+  setEdges(reactFlowEdges);
 };
 
 /***/ },
@@ -9593,6 +10041,309 @@ const clearVector = async () => {
 
 /***/ },
 
+/***/ "./frontend/code_view_data/array/array_insert/java.js"
+/*!************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_insert/java.js ***!
+  \************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayInsertJavaLines: () => (/* binding */ arrayInsertJavaLines)
+/* harmony export */ });
+const arrayInsertJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public void insert(int indice, int valor) {'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    if (indice < 0 || indice > tamanho) {'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        throw new RuntimeException("Índice inválido");'
+}, {
+  id: 'END_CHECK_INDEX',
+  text: '    }'
+}, {
+  id: 'CHECK_FULL',
+  text: '    if (tamanho == capacidade) {'
+}, {
+  id: 'OVERFLOW',
+  text: '        throw new RuntimeException("Vetor cheio (Overflow)");'
+}, {
+  id: 'END_CHECK_FULL',
+  text: '    }'
+}, {
+  id: 'INIT_I',
+  text: '    int i = tamanho;'
+}, {
+  id: 'WHILE_COND',
+  text: '    while (i > indice) {'
+}, {
+  id: 'SHIFT_RIGHT',
+  text: '        vetor[i] = vetor[i - 1];'
+}, {
+  id: 'DECREMENT_I',
+  text: '        i--;'
+}, {
+  id: 'END_WHILE',
+  text: '    }'
+}, {
+  id: 'SET_VALUE',
+  text: '    vetor[indice] = valor;'
+}, {
+  id: 'INCREMENT_SIZE',
+  text: '    tamanho++;'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/array/array_insert/pseudocodigo.js"
+/*!********************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_insert/pseudocodigo.js ***!
+  \********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayInsertPseudocodigoLines: () => (/* binding */ arrayInsertPseudocodigoLines)
+/* harmony export */ });
+const arrayInsertPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'INSERIR(Vetor, indice, valor)'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    se indice < 0 ou indice > Vetor.tamanho'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        erro "Índice inválido"'
+}, {
+  id: 'CHECK_FULL',
+  text: '    se Vetor.tamanho == Vetor.capacidade'
+}, {
+  id: 'OVERFLOW',
+  text: '        erro "Vetor cheio (Overflow)"'
+}, {
+  id: 'INIT_I',
+  text: '    i = Vetor.tamanho'
+}, {
+  id: 'WHILE_COND',
+  text: '    enquanto i > indice'
+}, {
+  id: 'SHIFT_RIGHT',
+  text: '        Vetor[i] = Vetor[i-1]'
+}, {
+  id: 'DECREMENT_I',
+  text: '        i = i - 1'
+}, {
+  id: 'SET_VALUE',
+  text: '    Vetor[indice] = valor'
+}, {
+  id: 'INCREMENT_SIZE',
+  text: '    Vetor.tamanho = Vetor.tamanho + 1'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/array/array_insert/python.js"
+/*!**************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_insert/python.js ***!
+  \**************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayInsertPythonLines: () => (/* binding */ arrayInsertPythonLines)
+/* harmony export */ });
+const arrayInsertPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def insert(vetor, indice, valor):'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    if indice < 0 or indice > vetor.tamanho:'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        raise ValueError("Índice inválido")'
+}, {
+  id: 'CHECK_FULL',
+  text: '    if vetor.tamanho == vetor.capacidade:'
+}, {
+  id: 'OVERFLOW',
+  text: '        raise ValueError("Vetor cheio (Overflow)")'
+}, {
+  id: 'INIT_I',
+  text: '    i = vetor.tamanho'
+}, {
+  id: 'WHILE_COND',
+  text: '    while i > indice:'
+}, {
+  id: 'SHIFT_RIGHT',
+  text: '        vetor[i] = vetor[i - 1]'
+}, {
+  id: 'DECREMENT_I',
+  text: '        i -= 1'
+}, {
+  id: 'SET_VALUE',
+  text: '    vetor[indice] = valor'
+}, {
+  id: 'INCREMENT_SIZE',
+  text: '    vetor.tamanho += 1'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/array/array_remove/java.js"
+/*!************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_remove/java.js ***!
+  \************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayRemoveJavaLines: () => (/* binding */ arrayRemoveJavaLines)
+/* harmony export */ });
+const arrayRemoveJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public int remove(int indice) {'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    if (indice < 0 || indice >= tamanho) {'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        throw new RuntimeException("Índice inválido");'
+}, {
+  id: 'END_CHECK_INDEX',
+  text: '    }'
+}, {
+  id: 'READ_VALUE',
+  text: '    int valor = vetor[indice];'
+}, {
+  id: 'INIT_I',
+  text: '    int i = indice;'
+}, {
+  id: 'WHILE_COND',
+  text: '    while (i < tamanho - 1) {'
+}, {
+  id: 'SHIFT_LEFT',
+  text: '        vetor[i] = vetor[i + 1];'
+}, {
+  id: 'INCREMENT_I',
+  text: '        i++;'
+}, {
+  id: 'END_WHILE',
+  text: '    }'
+}, {
+  id: 'CLEAR_LAST',
+  text: '    vetor[tamanho - 1] = null;'
+}, {
+  id: 'DECREMENT_SIZE',
+  text: '    tamanho--;'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor;'
+}, {
+  id: 'END_FUNC_BRACE',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/array/array_remove/pseudocodigo.js"
+/*!********************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_remove/pseudocodigo.js ***!
+  \********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayRemovePseudocodigoLines: () => (/* binding */ arrayRemovePseudocodigoLines)
+/* harmony export */ });
+const arrayRemovePseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'REMOVER(Vetor, indice)'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    se indice < 0 ou indice >= Vetor.tamanho'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        erro "Índice inválido"'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = Vetor[indice]'
+}, {
+  id: 'INIT_I',
+  text: '    i = indice'
+}, {
+  id: 'WHILE_COND',
+  text: '    enquanto i < Vetor.tamanho - 1'
+}, {
+  id: 'SHIFT_LEFT',
+  text: '        Vetor[i] = Vetor[i+1]'
+}, {
+  id: 'INCREMENT_I',
+  text: '        i = i + 1'
+}, {
+  id: 'CLEAR_LAST',
+  text: '    Vetor[Vetor.tamanho - 1] = vazio'
+}, {
+  id: 'DECREMENT_SIZE',
+  text: '    Vetor.tamanho = Vetor.tamanho - 1'
+}, {
+  id: 'END_FUNC',
+  text: '    retorna valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/array/array_remove/python.js"
+/*!**************************************************************!*\
+  !*** ./frontend/code_view_data/array/array_remove/python.js ***!
+  \**************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   arrayRemovePythonLines: () => (/* binding */ arrayRemovePythonLines)
+/* harmony export */ });
+const arrayRemovePythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def remove(vetor, indice):'
+}, {
+  id: 'CHECK_INDEX',
+  text: '    if indice < 0 or indice >= vetor.tamanho:'
+}, {
+  id: 'INVALID_INDEX',
+  text: '        raise ValueError("Índice inválido")'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = vetor[indice]'
+}, {
+  id: 'INIT_I',
+  text: '    i = indice'
+}, {
+  id: 'WHILE_COND',
+  text: '    while i < vetor.tamanho - 1:'
+}, {
+  id: 'SHIFT_LEFT',
+  text: '        vetor[i] = vetor[i + 1]'
+}, {
+  id: 'INCREMENT_I',
+  text: '        i += 1'
+}, {
+  id: 'CLEAR_LAST',
+  text: '    vetor[vetor.tamanho - 1] = None'
+}, {
+  id: 'DECREMENT_SIZE',
+  text: '    vetor.tamanho -= 1'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor'
+}];
+
+/***/ },
+
 /***/ "./frontend/code_view_data/insertion_sort/java.js"
 /*!********************************************************!*\
   !*** ./frontend/code_view_data/insertion_sort/java.js ***!
@@ -9721,6 +10472,267 @@ const pythonLines = [{
 }, {
   id: 'INSERT',
   text: '        A[i + 1] = chave'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/merge_sort/java.js"
+/*!****************************************************!*\
+  !*** ./frontend/code_view_data/merge_sort/java.js ***!
+  \****************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   mergeSortJavaLines: () => (/* binding */ mergeSortJavaLines)
+/* harmony export */ });
+const mergeSortJavaLines = [{
+  id: 'CALL',
+  text: 'public void mergeSort(int esquerda, int direita) {'
+}, {
+  id: 'CHECK_BASE',
+  text: '    if (esquerda >= direita) {'
+}, {
+  id: 'BASE_CASE',
+  text: '        return;'
+}, {
+  id: 'END_CHECK_BASE',
+  text: '    }'
+}, {
+  id: 'CALC_MID',
+  text: '    int meio = (esquerda + direita) / 2;'
+}, {
+  id: 'RECURSE_LEFT',
+  text: '    mergeSort(esquerda, meio);'
+}, {
+  id: 'RECURSE_RIGHT',
+  text: '    mergeSort(meio + 1, direita);'
+}, {
+  id: 'CALL_MERGE',
+  text: '    merge(esquerda, meio, direita);'
+}, {
+  id: 'END_FUNC_SORT',
+  text: '}'
+}, {
+  id: 'BLANK_1',
+  text: ''
+}, {
+  id: 'MERGE_SIGNATURE',
+  text: 'public void merge(int esquerda, int meio, int direita) {'
+}, {
+  id: 'COPY_LEFT',
+  text: '    int[] L = Arrays.copyOfRange(vetor, esquerda, meio + 1);'
+}, {
+  id: 'COPY_RIGHT',
+  text: '    int[] R = Arrays.copyOfRange(vetor, meio + 1, direita + 1);'
+}, {
+  id: 'INIT_POINTERS',
+  text: '    int i = 0, j = 0, k = esquerda;'
+}, {
+  id: 'WHILE_MAIN',
+  text: '    while (i < L.length && j < R.length) {'
+}, {
+  id: 'COMPARE',
+  text: '        if (L[i] <= R[j]) {'
+}, {
+  id: 'TAKE_LEFT',
+  text: '            vetor[k] = L[i]; i++;'
+}, {
+  id: 'ELSE_COMPARE',
+  text: '        } else {'
+}, {
+  id: 'TAKE_RIGHT',
+  text: '            vetor[k] = R[j]; j++;'
+}, {
+  id: 'END_COMPARE',
+  text: '        }'
+}, {
+  id: 'INCREMENT_K',
+  text: '        k++;'
+}, {
+  id: 'END_WHILE_MAIN',
+  text: '    }'
+}, {
+  id: 'WHILE_LEFT_REMAINING',
+  text: '    while (i < L.length) {'
+}, {
+  id: 'COPY_REMAINING_LEFT',
+  text: '        vetor[k] = L[i]; i++; k++;'
+}, {
+  id: 'END_WHILE_LEFT',
+  text: '    }'
+}, {
+  id: 'WHILE_RIGHT_REMAINING',
+  text: '    while (j < R.length) {'
+}, {
+  id: 'COPY_REMAINING_RIGHT',
+  text: '        vetor[k] = R[j]; j++; k++;'
+}, {
+  id: 'END_WHILE_RIGHT',
+  text: '    }'
+}, {
+  id: 'END_FUNC_MERGE',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/merge_sort/pseudocodigo.js"
+/*!************************************************************!*\
+  !*** ./frontend/code_view_data/merge_sort/pseudocodigo.js ***!
+  \************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   mergeSortPseudocodigoLines: () => (/* binding */ mergeSortPseudocodigoLines)
+/* harmony export */ });
+const mergeSortPseudocodigoLines = [{
+  id: 'CALL',
+  text: 'MERGE_SORT(Vetor, esquerda, direita)'
+}, {
+  id: 'CHECK_BASE',
+  text: '    se esquerda >= direita'
+}, {
+  id: 'BASE_CASE',
+  text: '        retorna'
+}, {
+  id: 'CALC_MID',
+  text: '    meio = (esquerda + direita) / 2'
+}, {
+  id: 'RECURSE_LEFT',
+  text: '    MERGE_SORT(Vetor, esquerda, meio)'
+}, {
+  id: 'RECURSE_RIGHT',
+  text: '    MERGE_SORT(Vetor, meio+1, direita)'
+}, {
+  id: 'CALL_MERGE',
+  text: '    MERGE(Vetor, esquerda, meio, direita)'
+}, {
+  id: 'BLANK_1',
+  text: ''
+}, {
+  id: 'MERGE_SIGNATURE',
+  text: 'MERGE(Vetor, esquerda, meio, direita)'
+}, {
+  id: 'COPY_LEFT',
+  text: '    L = Vetor[esquerda..meio]'
+}, {
+  id: 'COPY_RIGHT',
+  text: '    R = Vetor[meio+1..direita]'
+}, {
+  id: 'INIT_POINTERS',
+  text: '    i = 0, j = 0, k = esquerda'
+}, {
+  id: 'WHILE_MAIN',
+  text: '    enquanto i < tamanho(L) e j < tamanho(R)'
+}, {
+  id: 'COMPARE',
+  text: '        se L[i] <= R[j]'
+}, {
+  id: 'TAKE_LEFT',
+  text: '            Vetor[k] = L[i]; i = i + 1'
+}, {
+  id: 'ELSE_COMPARE',
+  text: '        senão'
+}, {
+  id: 'TAKE_RIGHT',
+  text: '            Vetor[k] = R[j]; j = j + 1'
+}, {
+  id: 'INCREMENT_K',
+  text: '        k = k + 1'
+}, {
+  id: 'WHILE_LEFT_REMAINING',
+  text: '    enquanto i < tamanho(L)'
+}, {
+  id: 'COPY_REMAINING_LEFT',
+  text: '        Vetor[k] = L[i]; i = i + 1; k = k + 1'
+}, {
+  id: 'WHILE_RIGHT_REMAINING',
+  text: '    enquanto j < tamanho(R)'
+}, {
+  id: 'COPY_REMAINING_RIGHT',
+  text: '        Vetor[k] = R[j]; j = j + 1; k = k + 1'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/merge_sort/python.js"
+/*!******************************************************!*\
+  !*** ./frontend/code_view_data/merge_sort/python.js ***!
+  \******************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   mergeSortPythonLines: () => (/* binding */ mergeSortPythonLines)
+/* harmony export */ });
+const mergeSortPythonLines = [{
+  id: 'CALL',
+  text: 'def merge_sort(vetor, esquerda, direita):'
+}, {
+  id: 'CHECK_BASE',
+  text: '    if esquerda >= direita:'
+}, {
+  id: 'BASE_CASE',
+  text: '        return'
+}, {
+  id: 'CALC_MID',
+  text: '    meio = (esquerda + direita) // 2'
+}, {
+  id: 'RECURSE_LEFT',
+  text: '    merge_sort(vetor, esquerda, meio)'
+}, {
+  id: 'RECURSE_RIGHT',
+  text: '    merge_sort(vetor, meio + 1, direita)'
+}, {
+  id: 'CALL_MERGE',
+  text: '    merge(vetor, esquerda, meio, direita)'
+}, {
+  id: 'BLANK_1',
+  text: ''
+}, {
+  id: 'MERGE_SIGNATURE',
+  text: 'def merge(vetor, esquerda, meio, direita):'
+}, {
+  id: 'COPY_LEFT',
+  text: '    L = vetor[esquerda:meio + 1]'
+}, {
+  id: 'COPY_RIGHT',
+  text: '    R = vetor[meio + 1:direita + 1]'
+}, {
+  id: 'INIT_POINTERS',
+  text: '    i = j = 0; k = esquerda'
+}, {
+  id: 'WHILE_MAIN',
+  text: '    while i < len(L) and j < len(R):'
+}, {
+  id: 'COMPARE',
+  text: '        if L[i] <= R[j]:'
+}, {
+  id: 'TAKE_LEFT',
+  text: '            vetor[k] = L[i]; i += 1'
+}, {
+  id: 'ELSE_COMPARE',
+  text: '        else:'
+}, {
+  id: 'TAKE_RIGHT',
+  text: '            vetor[k] = R[j]; j += 1'
+}, {
+  id: 'INCREMENT_K',
+  text: '        k += 1'
+}, {
+  id: 'WHILE_LEFT_REMAINING',
+  text: '    while i < len(L):'
+}, {
+  id: 'COPY_REMAINING_LEFT',
+  text: '        vetor[k] = L[i]; i += 1; k += 1'
+}, {
+  id: 'WHILE_RIGHT_REMAINING',
+  text: '    while j < len(R):'
+}, {
+  id: 'COPY_REMAINING_RIGHT',
+  text: '        vetor[k] = R[j]; j += 1; k += 1'
 }];
 
 /***/ },
@@ -9943,6 +10955,501 @@ const queueEnqueuePythonLines = [{
 }, {
   id: 'UPDATE_TAIL',
   text: '    fila.tail = novo_no'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_first/java.js"
+/*!**************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_first/java.js ***!
+  \**************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertFirstJavaLines: () => (/* binding */ sllInsertFirstJavaLines)
+/* harmony export */ });
+const sllInsertFirstJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public void insertFirst(char valor) {'
+}, {
+  id: 'CREATE_NODE',
+  text: '    No novoNo = new No(valor);'
+}, {
+  id: 'CHECK_HEAD',
+  text: '    if (head != null) {'
+}, {
+  id: 'LINK_NEXT',
+  text: '        novoNo.proximo = head;'
+}, {
+  id: 'END_CHECK_HEAD',
+  text: '    } else {'
+}, {
+  id: 'SET_TAIL',
+  text: '        tail = novoNo;'
+}, {
+  id: 'END_ELSE_HEAD',
+  text: '    }'
+}, {
+  id: 'UPDATE_HEAD',
+  text: '    head = novoNo;'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_first/pseudocodigo.js"
+/*!**********************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_first/pseudocodigo.js ***!
+  \**********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertFirstPseudocodigoLines: () => (/* binding */ sllInsertFirstPseudocodigoLines)
+/* harmony export */ });
+const sllInsertFirstPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'INSERIR_INICIO(Lista, valor)'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novoNo = criarNo(valor)'
+}, {
+  id: 'CHECK_HEAD',
+  text: '    se Lista.head != nulo'
+}, {
+  id: 'LINK_NEXT',
+  text: '        novoNo.proximo = Lista.head'
+}, {
+  id: 'ELSE_HEAD',
+  text: '    senão'
+}, {
+  id: 'SET_TAIL',
+  text: '        Lista.tail = novoNo'
+}, {
+  id: 'UPDATE_HEAD',
+  text: '    Lista.head = novoNo'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_first/python.js"
+/*!****************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_first/python.js ***!
+  \****************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertFirstPythonLines: () => (/* binding */ sllInsertFirstPythonLines)
+/* harmony export */ });
+const sllInsertFirstPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def insert_first(lista, valor):'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novo_no = No(valor)'
+}, {
+  id: 'CHECK_HEAD',
+  text: '    if lista.head is not None:'
+}, {
+  id: 'LINK_NEXT',
+  text: '        novo_no.proximo = lista.head'
+}, {
+  id: 'ELSE_HEAD',
+  text: '    else:'
+}, {
+  id: 'SET_TAIL',
+  text: '        lista.tail = novo_no'
+}, {
+  id: 'UPDATE_HEAD',
+  text: '    lista.head = novo_no'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_last/java.js"
+/*!*************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_last/java.js ***!
+  \*************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertLastJavaLines: () => (/* binding */ sllInsertLastJavaLines)
+/* harmony export */ });
+const sllInsertLastJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public void insertLast(char valor) {'
+}, {
+  id: 'CREATE_NODE',
+  text: '    No novoNo = new No(valor);'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    if (tail != null) {'
+}, {
+  id: 'LINK_NEXT',
+  text: '        tail.proximo = novoNo;'
+}, {
+  id: 'END_CHECK_TAIL',
+  text: '    } else {'
+}, {
+  id: 'SET_HEAD',
+  text: '        head = novoNo;'
+}, {
+  id: 'END_ELSE_TAIL',
+  text: '    }'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    tail = novoNo;'
+}, {
+  id: 'END_FUNC',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_last/pseudocodigo.js"
+/*!*********************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_last/pseudocodigo.js ***!
+  \*********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertLastPseudocodigoLines: () => (/* binding */ sllInsertLastPseudocodigoLines)
+/* harmony export */ });
+const sllInsertLastPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'INSERIR_FIM(Lista, valor)'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novoNo = criarNo(valor)'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    se Lista.tail != nulo'
+}, {
+  id: 'LINK_NEXT',
+  text: '        Lista.tail.proximo = novoNo'
+}, {
+  id: 'ELSE_TAIL',
+  text: '    senão'
+}, {
+  id: 'SET_HEAD',
+  text: '        Lista.head = novoNo'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    Lista.tail = novoNo'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_insert_last/python.js"
+/*!***************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_insert_last/python.js ***!
+  \***************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllInsertLastPythonLines: () => (/* binding */ sllInsertLastPythonLines)
+/* harmony export */ });
+const sllInsertLastPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def insert_last(lista, valor):'
+}, {
+  id: 'CREATE_NODE',
+  text: '    novo_no = No(valor)'
+}, {
+  id: 'CHECK_TAIL',
+  text: '    if lista.tail is not None:'
+}, {
+  id: 'LINK_NEXT',
+  text: '        lista.tail.proximo = novo_no'
+}, {
+  id: 'ELSE_TAIL',
+  text: '    else:'
+}, {
+  id: 'SET_HEAD',
+  text: '        lista.head = novo_no'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '    lista.tail = novo_no'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_first/java.js"
+/*!**************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_first/java.js ***!
+  \**************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveFirstJavaLines: () => (/* binding */ sllRemoveFirstJavaLines)
+/* harmony export */ });
+const sllRemoveFirstJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public char removeFirst() {'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if (head == null) {'
+}, {
+  id: 'EMPTY',
+  text: '        throw new RuntimeException("Lista vazia");'
+}, {
+  id: 'END_CHECK_EMPTY',
+  text: '    }'
+}, {
+  id: 'READ_VALUE',
+  text: '    char valor = head.valor;'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    head = head.proximo;'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    if (head == null) tail = null;'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor;'
+}, {
+  id: 'END_FUNC_BRACE',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_first/pseudocodigo.js"
+/*!**********************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_first/pseudocodigo.js ***!
+  \**********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveFirstPseudocodigoLines: () => (/* binding */ sllRemoveFirstPseudocodigoLines)
+/* harmony export */ });
+const sllRemoveFirstPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'REMOVER_INICIO(Lista)'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    se Lista.head == nulo'
+}, {
+  id: 'EMPTY',
+  text: '        erro "Lista vazia"'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = Lista.head.valor'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    Lista.head = Lista.head.proximo'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    se Lista.head == nulo, Lista.tail = nulo'
+}, {
+  id: 'END_FUNC',
+  text: '    retorna valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_first/python.js"
+/*!****************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_first/python.js ***!
+  \****************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveFirstPythonLines: () => (/* binding */ sllRemoveFirstPythonLines)
+/* harmony export */ });
+const sllRemoveFirstPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def remove_first(lista):'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if lista.head is None:'
+}, {
+  id: 'EMPTY',
+  text: '        raise ValueError("Lista vazia")'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = lista.head.valor'
+}, {
+  id: 'ADVANCE_HEAD',
+  text: '    lista.head = lista.head.proximo'
+}, {
+  id: 'REMOVE_NODE',
+  text: '    if lista.head is None: lista.tail = None'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_last/java.js"
+/*!*************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_last/java.js ***!
+  \*************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveLastJavaLines: () => (/* binding */ sllRemoveLastJavaLines)
+/* harmony export */ });
+const sllRemoveLastJavaLines = [{
+  id: 'SIGNATURE',
+  text: 'public char removeLast() {'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if (tail == null) {'
+}, {
+  id: 'EMPTY',
+  text: '        throw new RuntimeException("Lista vazia");'
+}, {
+  id: 'END_CHECK_EMPTY',
+  text: '    }'
+}, {
+  id: 'READ_VALUE',
+  text: '    char valor = tail.valor;'
+}, {
+  id: 'CHECK_SINGLE',
+  text: '    if (head == tail) {'
+}, {
+  id: 'CLEAR_LIST',
+  text: '        head = tail = null;'
+}, {
+  id: 'ELSE_SINGLE',
+  text: '    } else {'
+}, {
+  id: 'INIT_PREV',
+  text: '        No anterior = head;'
+}, {
+  id: 'WHILE_COND',
+  text: '        while (anterior.proximo != tail) {'
+}, {
+  id: 'ADVANCE_PREV',
+  text: '            anterior = anterior.proximo;'
+}, {
+  id: 'END_WHILE',
+  text: '        }'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '        anterior.proximo = null; tail = anterior;'
+}, {
+  id: 'END_ELSE_SINGLE',
+  text: '    }'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor;'
+}, {
+  id: 'END_FUNC_BRACE',
+  text: '}'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_last/pseudocodigo.js"
+/*!*********************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_last/pseudocodigo.js ***!
+  \*********************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveLastPseudocodigoLines: () => (/* binding */ sllRemoveLastPseudocodigoLines)
+/* harmony export */ });
+const sllRemoveLastPseudocodigoLines = [{
+  id: 'SIGNATURE',
+  text: 'REMOVER_FIM(Lista)'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    se Lista.tail == nulo'
+}, {
+  id: 'EMPTY',
+  text: '        erro "Lista vazia"'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = Lista.tail.valor'
+}, {
+  id: 'CHECK_SINGLE',
+  text: '    se Lista.head == Lista.tail'
+}, {
+  id: 'CLEAR_LIST',
+  text: '        Lista.head = Lista.tail = nulo'
+}, {
+  id: 'ELSE_SINGLE',
+  text: '    senão'
+}, {
+  id: 'INIT_PREV',
+  text: '        anterior = Lista.head'
+}, {
+  id: 'WHILE_COND',
+  text: '        enquanto anterior.proximo != Lista.tail'
+}, {
+  id: 'ADVANCE_PREV',
+  text: '            anterior = anterior.proximo'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '        anterior.proximo = nulo; Lista.tail = anterior'
+}, {
+  id: 'END_FUNC',
+  text: '    retorna valor'
+}];
+
+/***/ },
+
+/***/ "./frontend/code_view_data/sll/sll_remove_last/python.js"
+/*!***************************************************************!*\
+  !*** ./frontend/code_view_data/sll/sll_remove_last/python.js ***!
+  \***************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sllRemoveLastPythonLines: () => (/* binding */ sllRemoveLastPythonLines)
+/* harmony export */ });
+const sllRemoveLastPythonLines = [{
+  id: 'SIGNATURE',
+  text: 'def remove_last(lista):'
+}, {
+  id: 'CHECK_EMPTY',
+  text: '    if lista.tail is None:'
+}, {
+  id: 'EMPTY',
+  text: '        raise ValueError("Lista vazia")'
+}, {
+  id: 'READ_VALUE',
+  text: '    valor = lista.tail.valor'
+}, {
+  id: 'CHECK_SINGLE',
+  text: '    if lista.head == lista.tail:'
+}, {
+  id: 'CLEAR_LIST',
+  text: '        lista.head = lista.tail = None'
+}, {
+  id: 'ELSE_SINGLE',
+  text: '    else:'
+}, {
+  id: 'INIT_PREV',
+  text: '        anterior = lista.head'
+}, {
+  id: 'WHILE_COND',
+  text: '        while anterior.proximo != lista.tail:'
+}, {
+  id: 'ADVANCE_PREV',
+  text: '            anterior = anterior.proximo'
+}, {
+  id: 'UPDATE_TAIL',
+  text: '        anterior.proximo = None; lista.tail = anterior'
+}, {
+  id: 'END_FUNC',
+  text: '    return valor'
 }];
 
 /***/ },
@@ -10351,11 +11858,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../components/controls/SLLControls */ "./frontend/components/controls/SLLControls.js");
 /* harmony import */ var _components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../components/controls/VectorControls */ "./frontend/components/controls/VectorControls.js");
-/* harmony import */ var _components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../components/controls/StackControls */ "./frontend/components/controls/StackControls.js");
-/* harmony import */ var _components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../components/controls/QueueControls */ "./frontend/components/controls/QueueControls.js");
-/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
-/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
-/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+/* harmony import */ var _components_controls_ArrayVectorControls__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../components/controls/ArrayVectorControls */ "./frontend/components/controls/ArrayVectorControls.js");
+/* harmony import */ var _components_controls_MergeSortControls__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../components/controls/MergeSortControls */ "./frontend/components/controls/MergeSortControls.js");
+/* harmony import */ var _components_controls_StackControls__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../components/controls/StackControls */ "./frontend/components/controls/StackControls.js");
+/* harmony import */ var _components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../components/controls/QueueControls */ "./frontend/components/controls/QueueControls.js");
+/* harmony import */ var _css_sideBar_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../css/sideBar.css */ "./frontend/css/sideBar.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _HelpWidget__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./HelpWidget */ "./frontend/components/HelpWidget.jsx");
+
+
 
 
 
@@ -10395,8 +11906,8 @@ function SidePanel({
 
   // Texto de ajuda exibido no HelpWidget, escolhido de acordo com o tipo
   // de estrutura de dados atualmente exibida (sll, queue, stack ou vector)
-  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nInsira um valor de caractere único e escolha onde inserir: "Adicionar no Fim" (após o tail) ou "Adicionar no Início" (antes do head).\n\nUse "Remover do Início" ou "Remover do Fim" para tirar o nó correspondente. O nó atual do head e do tail é sempre indicado por cor.` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e clique em "Enfileirar" ou "Desenfileirar" para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : `O Vetor é uma estrutura de dados linear que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nPara utilizar o Vetor, determine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de sort nele, tanto no modo automático quanto no passo a passo.`;
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_6__.motion.div, {
+  const helpText = props.type === 'sll' ? `A Lista Simplesmente Ligada é uma estrutura de dados linear onde cada elemento aponta para o próximo elemento na sequência.\n\nComo Utilizar? \n\nInsira um valor de caractere único e clique em "Inserir no Fim" (após o tail), "Inserir no Início" (antes do head), "Remover do Início" ou "Remover do Fim" para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python. O nó atual do head e do tail é sempre indicado por cor.` : props.type === 'queue' ? `A Fila é uma estrutura de dados linear que segue a regra FIFO, onde o primeiro valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nInsira um valor e clique em "Enfileirar" ou "Desenfileirar" para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : props.type === 'stack' ? `A Pilha é uma estrutura de dados linear que segue a regra LIFO, onde o último valor a entrar é o primeiro a sair.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para a pilha e clique em "Criar Pilha". \n\nDigite um valor e clique em "Empilhar" (push) ou "Remover do Topo" (pop) para iniciar a simulação passo a passo daquele método. \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.` : props.type === 'insertion-sort' ? `O Insertion Sort é um algoritmo de ordenação que constrói o vetor ordenado um elemento de cada vez.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá realizar as simulações de ordenação nele, tanto no modo automático quanto no passo a passo.` : props.type === 'merge-sort' ? `O Merge Sort é um algoritmo de ordenação que divide o vetor recursivamente ao meio até sobrarem elementos únicos, e depois os mescla de volta em ordem.\n\nComo Utilizar? \n\nDetermine um tamanho de até 15 para o vetor e clique no botão "Criar Vetor". \n\nApós isso selecione o índice e o valor que será inserido naquela posição do vetor. \n\nUma vez que o vetor estiver com pelo menos dois elementos você poderá simular a ordenação passo a passo: acompanhe o intervalo [esquerda, direita] de cada chamada recursiva e, durante a mesclagem, os sub-vetores L e R do buffer com os ponteiros i, j e k.` : `O Vetor é uma estrutura de dados linear de capacidade fixa que armazena elementos de forma contígua na memória.\n\nComo Utilizar? \n\nDetermine uma capacidade de até 15 para o vetor e clique em "Criar Vetor". \n\nDigite um índice e um valor e clique em "Inserir no Índice", ou digite apenas um índice e clique em "Remover do Índice", para iniciar a simulação passo a passo daquele método (com o deslocamento real dos elementos). \n\nUse "Voltar" e "Próximo" para acompanhar cada etapa e "Ver Código" para ver o algoritmo destacado em pseudocódigo, Java ou Python.`;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_8__.motion.div, {
     initial: "closed",
     animate: isOpen ? 'open' : 'closed',
     variants: panelVariants,
@@ -10428,34 +11939,567 @@ function SidePanel({
       top: '0px',
       zIndex: 2
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_7__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HelpWidget__WEBPACK_IMPORTED_MODULE_9__["default"], {
     label: helpText,
     inline: true,
     sizeScale: 0.6
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "sideBar"
   }, props.type === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_SLLControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    nodeLabel: props.nodeLabel,
-    setNodeLabel: props.setNodeLabel,
-    handleAddNodeLast: props.sll.handleAddNode,
-    handleAddNodeFirst: props.sll.handleAddNodeFirst,
-    handleRemoveFirst: props.sll.handleRemoveFirst,
-    handleRemoveLast: props.sll.handleRemoveLast,
-    handleClear: props.sll.handleClear,
+    states: props.sharedStates,
+    handlers: props.sll,
     centerView: props.centerView
-  }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_4__["default"], {
+  }), props.type === 'queue' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_QueueControls__WEBPACK_IMPORTED_MODULE_6__["default"], {
     states: props.sharedStates,
     handlers: props.queue,
     centerView: props.centerView
-  }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_StackControls__WEBPACK_IMPORTED_MODULE_3__["default"], {
+  }), props.type === 'stack' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_StackControls__WEBPACK_IMPORTED_MODULE_5__["default"], {
     states: props.sharedStates,
     handlers: props.stack,
     centerView: props.centerView
-  }), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
+  }), props.type === 'insertion-sort' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_VectorControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
     states: props.sharedStates,
     handlers: props.vector,
     centerView: props.centerView
+  }), props.type === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_ArrayVectorControls__WEBPACK_IMPORTED_MODULE_3__["default"], {
+    states: props.sharedStates,
+    handlers: props.array,
+    centerView: props.centerView
+  }), props.type === 'merge-sort' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_controls_MergeSortControls__WEBPACK_IMPORTED_MODULE_4__["default"], {
+    states: props.sharedStates,
+    handlers: props.mergeSort,
+    centerView: props.centerView
   }))));
+}
+
+/***/ },
+
+/***/ "./frontend/components/controls/ArrayVectorControls.js"
+/*!*************************************************************!*\
+  !*** ./frontend/components/controls/ArrayVectorControls.js ***!
+  \*************************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ ArrayVectorControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _css_controls_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../css/controls.css */ "./frontend/css/controls.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+// components/ArrayVectorControls.js
+
+
+
+
+// Controles laterais do Vetor de capacidade fixa: criação do vetor
+// (capacidade e tipo), campos de índice/valor, botões de inserir/remover
+// por índice, e a seção de simulação passo a passo (com deslocamento real
+// dos elementos) exibida enquanto uma operação está em andamento.
+function ArrayVectorControls({
+  states,
+  handlers,
+  centerView
+}) {
+  const {
+    arrayCapacity,
+    setArrayCapacity,
+    arrayIndex,
+    setArrayIndex,
+    arrayValue,
+    setArrayValue,
+    currentStep,
+    steps,
+    arrayOperation
+  } = states;
+  const array = handlers;
+
+  // Indica se há uma simulação passo a passo em andamento
+  const isSimulating = currentStep !== -1;
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    className: "control-button"
+  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: arrayCapacity,
+    onChange: e => setArrayCapacity(e.target.value),
+    type: "text",
+    id: "array-capacity-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "array-capacity-input",
+    className: "label"
+  }, "Capacidade do Vetor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleCreateArray,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: arrayIndex,
+    onChange: e => setArrayIndex(e.target.value),
+    type: "text",
+    id: "array-index-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "array-index-input",
+    className: "label"
+  }, "\xCDndice"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: arrayValue,
+    onChange: e => setArrayValue(e.target.value),
+    type: "text",
+    id: "array-value-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "array-value-input",
+    className: "label"
+  }, "Valor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    className: "control-selector",
+    value: states.arrayType,
+    onChange: e => states.setArrayType(e.target.value),
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "int"
+  }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "string"
+  }, "Texto")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleInsert,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Inserir no \xCDndice")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleRemove,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Remover do \xCDndice")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Limpar"))), isSimulating && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o: ", arrayOperation === 'remove' ? 'Removendo do Índice' : 'Inserindo no Índice'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handlePrevStep,
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: array.handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
+}
+
+/***/ },
+
+/***/ "./frontend/components/controls/MergeSortControls.js"
+/*!***********************************************************!*\
+  !*** ./frontend/components/controls/MergeSortControls.js ***!
+  \***********************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ MergeSortControls)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _css_controls_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../css/controls.css */ "./frontend/css/controls.css");
+/* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
+/* harmony import */ var _api_api_merge_sort__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../api/api_merge_sort */ "./frontend/api/api_merge_sort.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+// components/MergeSortControls.js
+
+
+
+
+
+
+// Controles laterais do Merge Sort: criação do vetor (tamanho e tipo),
+// inserção de valores por índice, e a seção de simulação passo a passo do
+// algoritmo de ordenação (divisão recursiva + mesclagem) exibida enquanto
+// uma operação está em andamento.
+function MergeSortControls({
+  states,
+  handlers,
+  centerView
+}) {
+  const {
+    mergeSortSize,
+    setMergeSortSize,
+    mergeSortId,
+    setMergeSortId,
+    mergeSortValue,
+    setMergeSortValue,
+    currentStep,
+    steps,
+    setIsAnimating,
+    setCurrentStep
+  } = states;
+  const mergeSort = handlers;
+
+  // Assim como no vetor do Insertion Sort, os inputs/botões de gerenciamento
+  // ficam bloqueados enquanto houver uma simulação em andamento.
+  const isSimulating = currentStep !== -1;
+
+  // Finaliza a simulação passo a passo: aplica e persiste o estado final do
+  // vetor no backend e reseta os estados de simulação (local e do Electron)
+  const handleEndSimulation = async () => {
+    try {
+      await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_3__.applyAndPersistFinalState)(states.steps, states.nodes, states.setNodes);
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.success('Simulação encerrada e vetor atualizado para o estado final!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_4__.toast.error('Erro ao salvar estado do vetor: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
+    }
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: () => centerView && centerView(),
+    className: "control-button"
+  }, "Centralizar")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: mergeSortSize,
+    onChange: e => setMergeSortSize(e.target.value),
+    type: "text",
+    id: "mergesort-size-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "mergesort-size-input",
+    className: "label"
+  }, "Tamanho do Vetor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handleCreateVector,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Criar Vetor")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: mergeSortId,
+    onChange: e => setMergeSortId(e.target.value),
+    type: "text",
+    id: "mergesort-id-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "mergesort-id-input",
+    className: "label"
+  }, "\xCDndice"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "input-container"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+    value: mergeSortValue,
+    onChange: e => setMergeSortValue(e.target.value),
+    type: "text",
+    id: "mergesort-value-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "mergesort-value-input",
+    className: "label"
+  }, "Valor"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "underline"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '12px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handleInsertValue,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Inserir Valor no \xCDndice")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    className: "control-selector",
+    value: states.mergeSortType,
+    onChange: e => states.setMergeSortType(e.target.value),
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "int"
+  }, "Inteiros"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+    value: "string"
+  }, "Texto")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      height: '20px'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Limpar"))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, currentStep === -1 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handlePrepareStepByStep,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Simular Passo a Passo")) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handlePrevStep,
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: mergeSort.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },
@@ -10661,23 +12705,43 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// Controles laterais da Lista Simplesmente Ligada: campo de valor do nó e
-// botões para adicionar/remover no início ou no fim, além de limpar a lista.
+// Controles laterais da Lista Simplesmente Ligada: campo de valor do nó,
+// botões para inserir/remover no início ou no fim, e a seção de simulação
+// passo a passo exibida enquanto uma operação está em andamento.
 function SLLControls({
-  nodeLabel,
-  setNodeLabel,
-  handleAddNodeLast,
-  handleAddNodeFirst,
-  handleRemoveFirst,
-  handleRemoveLast,
-  handleClear,
+  states,
+  handlers,
   centerView
 }) {
-  // Permite adicionar o nó no fim da lista pressionando Enter no campo de valor
+  const {
+    nodeLabel,
+    setNodeLabel,
+    currentStep,
+    steps,
+    sllOperation
+  } = states;
+  const sll = handlers;
+
+  // Indica se há uma simulação passo a passo em andamento
+  const isSimulating = currentStep !== -1;
+
+  // Permite disparar a inserção no fim pressionando Enter no campo de valor
   const handleKeyPress = e => {
-    if (e.key === 'Enter') handleAddNodeLast();
+    if (e.key === 'Enter') sll.handleInsertLast();
   };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+  const operationLabels = {
+    insert_last: 'Inserindo no Fim',
+    insert_first: 'Inserindo no Início',
+    remove_first: 'Removendo do Início',
+    remove_last: 'Removendo do Final'
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginBottom: '15px',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
       scale: 0.95
     }
@@ -10695,10 +12759,15 @@ function SLLControls({
     onChange: e => setNodeLabel(e.target.value),
     onKeyPress: handleKeyPress,
     type: "text",
-    id: "input",
-    required: true
+    id: "sll-value-input",
+    required: true,
+    disabled: isSimulating,
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'text'
+    }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    htmlFor: "input",
+    htmlFor: "sll-value-input",
     className: "label"
   }, "Valor do N\xF3"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "underline"
@@ -10711,9 +12780,14 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleAddNodeLast,
-    className: "control-button"
-  }, "Adicionar no Fim")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    onClick: sll.handleInsertLast,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Inserir no Fim")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '12px'
     }
@@ -10722,9 +12796,14 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleAddNodeFirst,
-    className: "control-button"
-  }, "Adicionar no In\xEDcio")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    onClick: sll.handleInsertFirst,
+    disabled: isSimulating,
+    className: "control-button",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Inserir no In\xEDcio")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '20px'
     }
@@ -10733,8 +12812,13 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleRemoveFirst,
-    className: "control-button control-button-danger"
+    onClick: sll.handleRemoveFirst,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
   }, "Remover do In\xEDcio")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       height: '12px'
@@ -10744,20 +12828,80 @@ function SLLControls({
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleRemoveLast,
-    className: "control-button control-button-danger"
+    onClick: sll.handleRemoveLast,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
   }, "Remover do Fim")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
-      height: '20px'
+      height: '12px'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
     whileTap: {
       scale: 0.95
     }
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    onClick: handleClear,
-    className: "control-button control-button-danger"
-  }, "Limpar")));
+    onClick: sll.handleClear,
+    disabled: isSimulating,
+    className: "control-button control-button-danger",
+    style: {
+      opacity: isSimulating ? 0.6 : 1,
+      cursor: isSimulating ? 'not-allowed' : 'pointer'
+    }
+  }, "Limpar"))), isSimulating && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    style: {
+      margin: '0 0 10px 0',
+      fontSize: '14px'
+    }
+  }, "Simula\xE7\xE3o: ", operationLabels[sllOperation] || 'Executando'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      backgroundColor: '#f9f9f9',
+      padding: '15px',
+      borderRadius: '8px',
+      border: '1px solid #ddd'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      fontSize: '12px',
+      textAlign: 'center',
+      marginBottom: '10px'
+    }
+  }, "Passo: ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, currentStep + 1, " / ", steps.length)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '10px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: sll.handlePrevStep,
+    disabled: currentStep === 0,
+    className: "control-button",
+    style: {
+      opacity: currentStep === 0 ? 0.6 : 1,
+      cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
+    }
+  }, "\u25C0 Voltar"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: sll.handleNextStep,
+    disabled: currentStep === steps.length - 1,
+    className: "control-button",
+    style: {
+      opacity: currentStep === steps.length - 1 ? 0.6 : 1,
+      cursor: currentStep === steps.length - 1 ? 'not-allowed' : 'pointer'
+    }
+  }, "Pr\xF3ximo \u25B6")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    whileTap: {
+      scale: 0.95
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    onClick: sll.handleEndSimulation,
+    className: "control-button",
+    style: {
+      marginTop: '5px'
+    }
+  }, "Encerrar Simula\xE7\xE3o")))));
 }
 
 /***/ },
@@ -11271,6 +13415,121 @@ function VectorControls({
 
 /***/ },
 
+/***/ "./frontend/custom_node/arrayNode.js"
+/*!*******************************************!*\
+  !*** ./frontend/custom_node/arrayNode.js ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+
+// Nó customizado que renderiza o vetor de capacidade fixa como uma fileira de
+// caixas, distinguindo posições ocupadas (dentro do tamanho lógico) de
+// posições livres (capacidade reservada), e destacando os índices envolvidos
+// no deslocamento durante a simulação de inserir/remover por índice.
+function ArrayNode({
+  data
+}) {
+  const {
+    values = [],
+    size = 0,
+    highlighted = [],
+    activeValue,
+    codeId
+  } = data;
+  const rawLabels = data.labels || values.map((_, i) => String(i));
+  const labels = rawLabels.map(l => String(l).split(':')[0].trim());
+  const capacity = values.length;
+  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_LAST';
+  const valorDisplay = activeValue !== undefined && activeValue !== null ? activeValue : '—';
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: '11px',
+      lineHeight: 1.6,
+      color: '#00ff88',
+      background: '#1b2530',
+      border: '1px solid #34495e',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      marginBottom: '10px',
+      whiteSpace: 'pre',
+      textAlign: 'left'
+    }
+  }, `capacidade: ${capacity}\ntamanho: ${size}\nvalor: ${valorDisplay}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      marginBottom: '6px',
+      minWidth: `${capacity * 60}px`
+    }
+  }, labels.map((lab, idx) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    key: `label-${idx}`,
+    style: {
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: '#bdc3c7',
+      fontSize: '11px',
+      fontWeight: '600'
+    }
+  }, lab))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      border: '2px solid #34495e',
+      borderRadius: '8px',
+      background: '#2c3e50',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+      overflow: 'hidden',
+      minWidth: `${capacity * 60}px`,
+      height: '60px'
+    }
+  }, values.map((value, index) => {
+    const isHighlighted = highlighted.includes(index);
+    const isWithinSize = index < size;
+    const hasValue = value !== null && value !== undefined && value !== '';
+    let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
+    if (isHighlighted && isMutatingStep) {
+      backgroundColor = '#4CAF50';
+    } else if (isHighlighted) {
+      backgroundColor = '#FF9800';
+    }
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRight: index < capacity - 1 ? isWithinSize ? '1px solid #1b2530' : '1px dashed #7f8c8d' : 'none',
+        background: backgroundColor,
+        color: hasValue ? '#fff' : '#2c3e50',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        opacity: isWithinSize || hasValue ? 1 : 0.5,
+        transition: 'background 0.3s ease'
+      }
+    }, hasValue ? value : '');
+  })));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ArrayNode);
+
+/***/ },
+
 /***/ "./frontend/custom_node/linkedListNode.js"
 /*!************************************************!*\
   !*** ./frontend/custom_node/linkedListNode.js ***!
@@ -11482,6 +13741,185 @@ function ListNode({
   }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ListNode);
+
+/***/ },
+
+/***/ "./frontend/custom_node/mergeSortNode.js"
+/*!***********************************************!*\
+  !*** ./frontend/custom_node/mergeSortNode.js ***!
+  \***********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+
+
+// Nó customizado que renderiza o "split view" do Merge Sort: o vetor
+// completo com o intervalo [left, right] da chamada de recursão/mesclagem
+// atual destacado por uma borda, e — durante uma mesclagem — os dois
+// sub-vetores do buffer (leftArr/rightArr) com os ponteiros i/j, mais o
+// ponteiro k de escrita de volta no vetor principal.
+function MergeSortNode({
+  data
+}) {
+  const {
+    values = [],
+    left,
+    right,
+    mid,
+    leftArr,
+    rightArr,
+    i,
+    j,
+    k,
+    highlighted = [],
+    codeId
+  } = data;
+  const n = values.length;
+  const display = val => val !== undefined && val !== null ? val : '—';
+  const hasRange = typeof left === 'number' && typeof right === 'number';
+  const isMerging = Array.isArray(leftArr) || Array.isArray(rightArr);
+  const boxStyle = (index, {
+    inRange,
+    isMid,
+    isK,
+    isDone
+  } = {}) => {
+    const hasValue = values[index] !== null && values[index] !== undefined && values[index] !== '';
+    let background = hasValue ? '#3498db' : '#ecf0f1';
+    if (isK) background = '#4CAF50';else if (inRange) background = isMid ? '#FF9800' : '#2c3e50';
+    return {
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '50px',
+      minWidth: '46px',
+      borderRight: index < n - 1 ? '1px solid #1b2530' : 'none',
+      borderTop: inRange ? '3px solid #f39c12' : '3px solid transparent',
+      borderBottom: inRange ? '3px solid #f39c12' : '3px solid transparent',
+      background,
+      color: hasValue || isK ? '#fff' : '#2c3e50',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      opacity: hasRange && !inRange ? 0.45 : 1,
+      transition: 'background 0.3s ease'
+    };
+  };
+  const bufferRow = (label, arr, pointer, color) => {
+    if (!Array.isArray(arr)) return null;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        marginTop: '6px'
+      }
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      style: {
+        fontSize: '11px',
+        fontWeight: 'bold',
+        color,
+        width: '14px'
+      }
+    }, label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      style: {
+        display: 'flex',
+        border: `2px solid ${color}`,
+        borderRadius: '6px',
+        background: '#1b2530',
+        overflow: 'hidden'
+      }
+    }, arr.map((val, idx) => {
+      const isPointed = pointer === idx;
+      const hasValue = val !== null && val !== undefined && val !== '';
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+        key: idx,
+        style: {
+          width: '38px',
+          height: '38px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderRight: idx < arr.length - 1 ? '1px solid #34495e' : 'none',
+          background: isPointed ? color : hasValue ? '#34495e' : '#22303e',
+          color: '#fff',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }
+      }, display(val));
+    })));
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: '11px',
+      lineHeight: 1.6,
+      color: '#00ff88',
+      background: '#1b2530',
+      border: '1px solid #34495e',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      marginBottom: '10px',
+      whiteSpace: 'pre',
+      textAlign: 'left'
+    }
+  }, `n: ${n}\nleft: ${display(left)}  mid: ${display(mid)}  right: ${display(right)}`, isMerging ? `\ni: ${display(i)}  j: ${display(j)}  k: ${display(k)}` : ''), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      marginBottom: '4px',
+      width: '100%'
+    }
+  }, values.map((_, index) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    key: `label-${index}`,
+    style: {
+      flex: 1,
+      minWidth: '46px',
+      textAlign: 'center',
+      color: '#bdc3c7',
+      fontSize: '10px',
+      fontWeight: 600
+    }
+  }, index))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'row',
+      border: '2px solid #34495e',
+      borderRadius: '8px',
+      background: '#2c3e50',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+      overflow: 'hidden'
+    }
+  }, values.map((value, index) => {
+    const inRange = hasRange && index >= left && index <= right;
+    const isMidIdx = typeof mid === 'number' && index === mid;
+    const isK = highlighted.includes(index) || typeof k === 'number' && index === k && codeId !== 'WHILE_MAIN';
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: boxStyle(index, {
+        inRange,
+        isMid: isMidIdx,
+        isK
+      })
+    }, display(value));
+  })), isMerging && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      marginTop: '4px'
+    }
+  }, bufferRow('L', leftArr, i, '#3498db'), bufferRow('R', rightArr, j, '#e67e22')));
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (MergeSortNode);
 
 /***/ },
 
@@ -11717,6 +14155,343 @@ function VectorNode({
 
 /***/ },
 
+/***/ "./frontend/handlers/array_vector_handle.js"
+/*!**************************************************!*\
+  !*** ./frontend/handlers/array_vector_handle.js ***!
+  \**************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   useArrayVectorHandlers: () => (/* binding */ useArrayVectorHandlers)
+/* harmony export */ });
+/* harmony import */ var _api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../api/api_array_vector */ "./frontend/api/api_array_vector.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+
+
+const useArrayVectorHandlers = states => {
+  const {
+    arrayCapacity,
+    setArrayCapacity,
+    arrayIndex,
+    setArrayIndex,
+    arrayValue,
+    setArrayValue,
+    arrayType,
+    setArrayType,
+    setNodes,
+    setEdges,
+    setNodeCount,
+    nodes,
+    setIsAnimating,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep,
+    setArrayOperation
+  } = states;
+
+  // Cria o vetor no backend com a capacidade informada pelo usuário
+  const handleCreateArray = () => {
+    (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.createArray)(arrayCapacity, setArrayCapacity, setNodes, setEdges, setNodeCount, () => (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.fetchArrayData)(setNodes, setEdges, setNodeCount));
+  };
+
+  // Valida o valor a inserir conforme o tipo do vetor (inteiro ou texto)
+  const validateArrayValue = () => {
+    if (arrayType === 'int') {
+      if (!/^-?\d+$/.test(arrayValue)) {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Apenas números inteiros são permitidos neste vetor.');
+        return null;
+      }
+      return Number(arrayValue);
+    }
+    if (/\d/.test(arrayValue)) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Números não são permitidos em vetores de texto.');
+      return null;
+    }
+    if (!arrayValue.trim()) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Digite um valor para inserir.');
+      return null;
+    }
+    return arrayValue.toUpperCase();
+  };
+
+  // Valida o índice digitado (inteiro não-negativo)
+  const validateArrayIndex = () => {
+    if (!/^\d+$/.test(String(arrayIndex).trim())) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Digite um índice válido (inteiro não-negativo).');
+      return null;
+    }
+    return Number(arrayIndex);
+  };
+
+  // Dispara a simulação passo a passo do método insert_at()
+  const handleInsert = async () => {
+    const index = validateArrayIndex();
+    if (index === null) return;
+    const value = validateArrayValue();
+    if (value === null) return;
+    try {
+      const result = await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.fetchInsertSteps)(index, value);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setArrayOperation('insert');
+      setArrayIndex('');
+      setArrayValue('');
+      (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(result.steps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao inserir no vetor: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método remove_at()
+  const handleRemove = async () => {
+    const index = validateArrayIndex();
+    if (index === null) return;
+    try {
+      const result = await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.fetchRemoveSteps)(index);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setArrayOperation('remove');
+      setArrayIndex('');
+      (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(result.steps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao remover do vetor: ' + err.message);
+    }
+  };
+
+  // Avança para o próximo passo da simulação; ao atingir o último passo, persiste o vetor
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[nextIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(nextIndex);
+      }
+      if (nextIndex === steps.length - 1) {
+        setTimeout(async () => {
+          try {
+            await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.persistArrayState)(nodes);
+          } catch (err) {
+            console.error('Erro ao persistir vetor no último passo:', err);
+          }
+        }, 500);
+      }
+    }
+  };
+
+  // Volta para o passo anterior da simulação atual
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[prevIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(prevIndex);
+      }
+    }
+  };
+
+  // Encerra a simulação: aplica e persiste o estado final do vetor e fecha o painel
+  const handleEndSimulation = async () => {
+    try {
+      await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.applyAndPersistFinalState)(steps, nodes, setNodes);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Simulação encerrada e vetor atualizado para o estado final!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao salvar estado do vetor: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setArrayOperation(null);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(-1);
+      }
+    }
+  };
+
+  // Limpa o vetor por completo, como se ele nunca tivesse sido criado
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.clearArray)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setArrayCapacity('');
+      setArrayIndex('');
+      setArrayValue('');
+      setArrayType('int');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setArrayOperation(null);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Vetor limpo com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar vetor: ' + err.message);
+    }
+  };
+  return {
+    handleCreateArray,
+    handleInsert,
+    handleRemove,
+    handleNextStep,
+    handlePrevStep,
+    handleEndSimulation,
+    handleClear,
+    fetchData: () => (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_0__.fetchArrayData)(setNodes, setEdges, setNodeCount, nodes)
+  };
+};
+
+/***/ },
+
+/***/ "./frontend/handlers/merge_sort_handle.js"
+/*!************************************************!*\
+  !*** ./frontend/handlers/merge_sort_handle.js ***!
+  \************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   useMergeSortHandlers: () => (/* binding */ useMergeSortHandlers)
+/* harmony export */ });
+/* harmony import */ var _api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../api/api_merge_sort */ "./frontend/api/api_merge_sort.js");
+/* harmony import */ var sonner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! sonner */ "./node_modules/sonner/dist/index.mjs");
+
+
+const useMergeSortHandlers = states => {
+  const {
+    mergeSortSize,
+    setMergeSortSize,
+    mergeSortId,
+    setMergeSortId,
+    mergeSortValue,
+    setMergeSortValue,
+    setNodes,
+    setEdges,
+    setNodeCount,
+    nodes,
+    setIsAnimating,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep,
+    mergeSortType,
+    setMergeSortType
+  } = states;
+
+  // Cria o vetor no backend com o tamanho informado pelo usuário
+  const handleCreateVector = () => {
+    (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.createMergeSortVector)(mergeSortSize, setMergeSortSize, setNodes, setEdges, setNodeCount, () => (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.fetchMergeSortData)(setNodes, setEdges, setNodeCount));
+  };
+
+  // Valida (conforme o tipo do vetor) e insere o valor digitado na posição informada
+  const handleInsertValue = () => {
+    let finalValue = mergeSortValue;
+    if (mergeSortType === 'int') {
+      if (!/^-?\d+$/.test(mergeSortValue)) {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Apenas números inteiros são permitidos neste vetor.');
+        return;
+      }
+      finalValue = Number(mergeSortValue);
+    } else if (mergeSortType === 'string') {
+      if (/\d/.test(mergeSortValue)) {
+        sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Números não são permitidos em vetores de string.');
+        return;
+      }
+      finalValue = mergeSortValue.toUpperCase();
+    }
+    (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.insertMergeSortValue)(mergeSortId, finalValue, setMergeSortId, setMergeSortValue, () => (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.fetchMergeSortData)(setNodes, setEdges, setNodeCount));
+  };
+
+  // Inicia o modo de simulação passo a passo buscando os passos do merge sort
+  const handlePrepareStepByStep = async () => {
+    try {
+      const allSteps = await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.fetchMergeSortSteps)();
+      setSteps(allSteps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(allSteps[0], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(0);
+      }
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error(err.message);
+    }
+  };
+
+  // Avança para o próximo passo
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[nextIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(nextIndex);
+      }
+      if (nextIndex === steps.length - 1) {
+        setTimeout(async () => {
+          try {
+            await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.persistMergeSortState)(nodes);
+          } catch (err) {
+            console.error('Erro ao persistir vetor no último passo:', err);
+          }
+        }, 500);
+      }
+    }
+  };
+
+  // Volta para o passo anterior da simulação atual
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.applyStepToNodes)(steps[prevIndex], nodes, setNodes);
+      if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+        window.electronAPI.updateChildStep(prevIndex);
+      }
+    }
+  };
+
+  // Limpa o vetor por completo, como se ele nunca tivesse sido criado
+  const handleClear = async () => {
+    try {
+      await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.clearMergeSortVector)();
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      setMergeSortSize('');
+      setMergeSortId('');
+      setMergeSortValue('');
+      setMergeSortType('int');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Vetor limpo com sucesso!');
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar vetor: ' + err.message);
+    }
+  };
+  return {
+    handleCreateVector,
+    handleInsertValue,
+    handlePrepareStepByStep,
+    handleNextStep,
+    handlePrevStep,
+    handleClear,
+    fetchData: () => (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_0__.fetchMergeSortData)(setNodes, setEdges, setNodeCount, nodes)
+  };
+};
+
+/***/ },
+
 /***/ "./frontend/handlers/queue_handle.js"
 /*!*******************************************!*\
   !*** ./frontend/handlers/queue_handle.js ***!
@@ -11879,12 +14654,24 @@ const useSLLHandlers = states => {
   const {
     nodeLabel,
     setNodeLabel,
-    nodeCount,
-    setNodeCount,
+    nodes,
     setNodes,
     setEdges,
-    nodes // ← Adiciona nodes do estado
+    setNodeCount,
+    setIsAnimating,
+    steps,
+    setSteps,
+    currentStep,
+    setCurrentStep,
+    setSllOperation
   } = states;
+
+  // Repassa o índice do passo atual para a janela filha (CodeView), se estiver aberta
+  const notifyChildStep = step => {
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(step);
+    }
+  };
 
   // Valida o rótulo digitado: não pode ser vazio e deve ter um único caractere.
   const validateLabel = () => {
@@ -11898,40 +14685,111 @@ const useSLLHandlers = states => {
     return true;
   };
 
-  // Insere no final da lista (comportamento já existente)
-  const handleAddNode = () => {
+  // Dispara a simulação passo a passo do método insert_last()
+  const handleInsertLast = async () => {
     if (!validateLabel()) return;
-    (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNode)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes // ← Passa os nós atuais
-    );
-  };
-
-  // Insere no início da lista (head), distinto da inserção no final acima
-  const handleAddNodeFirst = () => {
-    if (!validateLabel()) return;
-    (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.addNodeFirst)(nodeLabel, setNodeLabel, nodeCount, setNodeCount, setNodes, setEdges, currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes), nodes);
-  };
-
-  // Remove o nó do início da lista e atualiza a contagem
-  const handleRemoveFirst = async () => {
     try {
-      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.removeFirstNode)();
-      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, nodes);
-      setNodeCount(Math.max(0, nodeCount - 1));
-      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Nó removido do início!');
+      const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchInsertLastSteps)(nodeLabel, nodes);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('insert_last');
+      setNodeLabel('');
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao inserir no fim: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método insert_first()
+  const handleInsertFirst = async () => {
+    if (!validateLabel()) return;
+    try {
+      const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchInsertFirstSteps)(nodeLabel, nodes);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('insert_first');
+      setNodeLabel('');
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao inserir no início: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método remove_first()
+  const handleRemoveFirst = async () => {
+    if (!nodes.some(n => n.data?.type !== 'list')) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('A lista já está vazia');
+      return;
+    }
+    try {
+      const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchRemoveFirstSteps)();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('remove_first');
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
     } catch (err) {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao remover do início: ' + err.message);
     }
   };
 
-  // Remove o nó do final da lista e atualiza a contagem
+  // Dispara a simulação passo a passo do método remove_last()
   const handleRemoveLast = async () => {
+    if (!nodes.some(n => n.data?.type !== 'list')) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('A lista já está vazia');
+      return;
+    }
     try {
-      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.removeLastNode)();
-      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, nodes);
-      setNodeCount(Math.max(0, nodeCount - 1));
-      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Nó removido do final!');
+      const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchRemoveLastSteps)();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('remove_last');
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
     } catch (err) {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao remover do final: ' + err.message);
+    }
+  };
+
+  // Avança para o próximo passo da simulação atual
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(steps[nextIndex], nodes, setNodes, setEdges);
+      notifyChildStep(nextIndex);
+    }
+  };
+
+  // Volta para o passo anterior da simulação atual
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.applySLLStep)(steps[prevIndex], nodes, setNodes, setEdges);
+      notifyChildStep(prevIndex);
+    }
+  };
+
+  // O backend já efetiva a operação no momento em que os passos são gerados
+  // (a simulação roda sobre uma cópia). Encerrar a simulação só precisa
+  // re-buscar o estado real (limpando highlighted/activeValue) e fechar o painel.
+  const handleEndSimulation = async () => {
+    try {
+      await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, nodes);
+    } catch (err) {
+      sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao atualizar lista: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setSllOperation(null);
+      notifyChildStep(-1);
     }
   };
 
@@ -11943,16 +14801,23 @@ const useSLLHandlers = states => {
       setEdges([]);
       setNodeCount(0);
       setNodeLabel('');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setSllOperation(null);
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.success('Lista limpa com sucesso!');
     } catch (err) {
       sonner__WEBPACK_IMPORTED_MODULE_1__.toast.error('Erro ao limpar lista: ' + err.message);
     }
   };
   return {
-    handleAddNode,
-    handleAddNodeFirst,
+    handleInsertLast,
+    handleInsertFirst,
     handleRemoveFirst,
     handleRemoveLast,
+    handleNextStep,
+    handlePrevStep,
+    handleEndSimulation,
     handleClear,
     fetchData: currentNodes => (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_0__.fetchSLLData)(setNodes, setEdges, setNodeCount, currentNodes)
   };
@@ -12306,22 +15171,49 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _api_api_vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../api/api_vector */ "./frontend/api/api_vector.js");
 /* harmony import */ var _api_api_stack__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../api/api_stack */ "./frontend/api/api_stack.js");
 /* harmony import */ var _api_api_queue__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../api/api_queue */ "./frontend/api/api_queue.js");
-/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
-/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
-/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
-/* harmony import */ var _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/pseudocodigo */ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js");
-/* harmony import */ var _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/java */ "./frontend/code_view_data/stack/stack_push/java.js");
-/* harmony import */ var _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/python */ "./frontend/code_view_data/stack/stack_push/python.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/pseudocodigo */ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/java */ "./frontend/code_view_data/stack/stack_pop/java.js");
-/* harmony import */ var _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/python */ "./frontend/code_view_data/stack/stack_pop/python.js");
-/* harmony import */ var _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/pseudocodigo */ "./frontend/code_view_data/queue/queue_enqueue/pseudocodigo.js");
-/* harmony import */ var _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/java */ "./frontend/code_view_data/queue/queue_enqueue/java.js");
-/* harmony import */ var _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/python */ "./frontend/code_view_data/queue/queue_enqueue/python.js");
-/* harmony import */ var _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/pseudocodigo */ "./frontend/code_view_data/queue/queue_dequeue/pseudocodigo.js");
-/* harmony import */ var _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/java */ "./frontend/code_view_data/queue/queue_dequeue/java.js");
-/* harmony import */ var _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/python */ "./frontend/code_view_data/queue/queue_dequeue/python.js");
-/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+/* harmony import */ var _api_api_sll__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../api/api_sll */ "./frontend/api/api_sll.js");
+/* harmony import */ var _api_api_array_vector__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../api/api_array_vector */ "./frontend/api/api_array_vector.js");
+/* harmony import */ var _api_api_merge_sort__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../api/api_merge_sort */ "./frontend/api/api_merge_sort.js");
+/* harmony import */ var _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../code_view_data/insertion_sort/pseudocodigo */ "./frontend/code_view_data/insertion_sort/pseudocodigo.js");
+/* harmony import */ var _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../code_view_data/insertion_sort/java */ "./frontend/code_view_data/insertion_sort/java.js");
+/* harmony import */ var _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../code_view_data/insertion_sort/python */ "./frontend/code_view_data/insertion_sort/python.js");
+/* harmony import */ var _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/pseudocodigo */ "./frontend/code_view_data/stack/stack_push/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/java */ "./frontend/code_view_data/stack/stack_push/java.js");
+/* harmony import */ var _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../code_view_data/stack/stack_push/python */ "./frontend/code_view_data/stack/stack_push/python.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/pseudocodigo */ "./frontend/code_view_data/stack/stack_pop/pseudocodigo.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/java */ "./frontend/code_view_data/stack/stack_pop/java.js");
+/* harmony import */ var _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../code_view_data/stack/stack_pop/python */ "./frontend/code_view_data/stack/stack_pop/python.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/pseudocodigo */ "./frontend/code_view_data/queue/queue_enqueue/pseudocodigo.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/java */ "./frontend/code_view_data/queue/queue_enqueue/java.js");
+/* harmony import */ var _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ../code_view_data/queue/queue_enqueue/python */ "./frontend/code_view_data/queue/queue_enqueue/python.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/pseudocodigo */ "./frontend/code_view_data/queue/queue_dequeue/pseudocodigo.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/java */ "./frontend/code_view_data/queue/queue_dequeue/java.js");
+/* harmony import */ var _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ../code_view_data/queue/queue_dequeue/python */ "./frontend/code_view_data/queue/queue_dequeue/python.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_last_pseudocodigo__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_last/pseudocodigo */ "./frontend/code_view_data/sll/sll_insert_last/pseudocodigo.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_last_java__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_last/java */ "./frontend/code_view_data/sll/sll_insert_last/java.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_last_python__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_last/python */ "./frontend/code_view_data/sll/sll_insert_last/python.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_first_pseudocodigo__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_first/pseudocodigo */ "./frontend/code_view_data/sll/sll_insert_first/pseudocodigo.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_first_java__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_first/java */ "./frontend/code_view_data/sll/sll_insert_first/java.js");
+/* harmony import */ var _code_view_data_sll_sll_insert_first_python__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(/*! ../code_view_data/sll/sll_insert_first/python */ "./frontend/code_view_data/sll/sll_insert_first/python.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_first_pseudocodigo__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_first/pseudocodigo */ "./frontend/code_view_data/sll/sll_remove_first/pseudocodigo.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_first_java__WEBPACK_IMPORTED_MODULE_30__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_first/java */ "./frontend/code_view_data/sll/sll_remove_first/java.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_first_python__WEBPACK_IMPORTED_MODULE_31__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_first/python */ "./frontend/code_view_data/sll/sll_remove_first/python.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_last_pseudocodigo__WEBPACK_IMPORTED_MODULE_32__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_last/pseudocodigo */ "./frontend/code_view_data/sll/sll_remove_last/pseudocodigo.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_last_java__WEBPACK_IMPORTED_MODULE_33__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_last/java */ "./frontend/code_view_data/sll/sll_remove_last/java.js");
+/* harmony import */ var _code_view_data_sll_sll_remove_last_python__WEBPACK_IMPORTED_MODULE_34__ = __webpack_require__(/*! ../code_view_data/sll/sll_remove_last/python */ "./frontend/code_view_data/sll/sll_remove_last/python.js");
+/* harmony import */ var _code_view_data_array_array_insert_pseudocodigo__WEBPACK_IMPORTED_MODULE_35__ = __webpack_require__(/*! ../code_view_data/array/array_insert/pseudocodigo */ "./frontend/code_view_data/array/array_insert/pseudocodigo.js");
+/* harmony import */ var _code_view_data_array_array_insert_java__WEBPACK_IMPORTED_MODULE_36__ = __webpack_require__(/*! ../code_view_data/array/array_insert/java */ "./frontend/code_view_data/array/array_insert/java.js");
+/* harmony import */ var _code_view_data_array_array_insert_python__WEBPACK_IMPORTED_MODULE_37__ = __webpack_require__(/*! ../code_view_data/array/array_insert/python */ "./frontend/code_view_data/array/array_insert/python.js");
+/* harmony import */ var _code_view_data_array_array_remove_pseudocodigo__WEBPACK_IMPORTED_MODULE_38__ = __webpack_require__(/*! ../code_view_data/array/array_remove/pseudocodigo */ "./frontend/code_view_data/array/array_remove/pseudocodigo.js");
+/* harmony import */ var _code_view_data_array_array_remove_java__WEBPACK_IMPORTED_MODULE_39__ = __webpack_require__(/*! ../code_view_data/array/array_remove/java */ "./frontend/code_view_data/array/array_remove/java.js");
+/* harmony import */ var _code_view_data_array_array_remove_python__WEBPACK_IMPORTED_MODULE_40__ = __webpack_require__(/*! ../code_view_data/array/array_remove/python */ "./frontend/code_view_data/array/array_remove/python.js");
+/* harmony import */ var _code_view_data_merge_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_41__ = __webpack_require__(/*! ../code_view_data/merge_sort/pseudocodigo */ "./frontend/code_view_data/merge_sort/pseudocodigo.js");
+/* harmony import */ var _code_view_data_merge_sort_java__WEBPACK_IMPORTED_MODULE_42__ = __webpack_require__(/*! ../code_view_data/merge_sort/java */ "./frontend/code_view_data/merge_sort/java.js");
+/* harmony import */ var _code_view_data_merge_sort_python__WEBPACK_IMPORTED_MODULE_43__ = __webpack_require__(/*! ../code_view_data/merge_sort/python */ "./frontend/code_view_data/merge_sort/python.js");
+/* harmony import */ var _css_codeView_css__WEBPACK_IMPORTED_MODULE_44__ = __webpack_require__(/*! ../css/codeView.css */ "./frontend/css/codeView.css");
+
+
+
 
 
 
@@ -12346,39 +15238,117 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Objeto de mapeamento para extrair dinamicamente a linguagem escolhida (insertion sort / vetor)
 const codeSnippets = {
-  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_5__.pseudocodigoLines,
-  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_6__.javaLines,
-  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_7__.pythonLines
+  pseudocódigo: _code_view_data_insertion_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__.pseudocodigoLines,
+  java: _code_view_data_insertion_sort_java__WEBPACK_IMPORTED_MODULE_9__.javaLines,
+  python: _code_view_data_insertion_sort_python__WEBPACK_IMPORTED_MODULE_10__.pythonLines
 };
 
 // Snippets do método push() da pilha, por linguagem.
 const stackPushSnippets = {
-  pseudocódigo: _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_8__.stackPushPseudocodigoLines,
-  java: _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_9__.stackPushJavaLines,
-  python: _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_10__.stackPushPythonLines
+  pseudocódigo: _code_view_data_stack_stack_push_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__.stackPushPseudocodigoLines,
+  java: _code_view_data_stack_stack_push_java__WEBPACK_IMPORTED_MODULE_12__.stackPushJavaLines,
+  python: _code_view_data_stack_stack_push_python__WEBPACK_IMPORTED_MODULE_13__.stackPushPythonLines
 };
 
 // Snippets do método pop() da pilha, por linguagem.
 const stackPopSnippets = {
-  pseudocódigo: _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_11__.stackPopPseudocodigoLines,
-  java: _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_12__.stackPopJavaLines,
-  python: _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_13__.stackPopPythonLines
+  pseudocódigo: _code_view_data_stack_stack_pop_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__.stackPopPseudocodigoLines,
+  java: _code_view_data_stack_stack_pop_java__WEBPACK_IMPORTED_MODULE_15__.stackPopJavaLines,
+  python: _code_view_data_stack_stack_pop_python__WEBPACK_IMPORTED_MODULE_16__.stackPopPythonLines
 };
 
 // Snippets do método enqueue() da fila, por linguagem.
 const queueEnqueueSnippets = {
-  pseudocódigo: _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_14__.queueEnqueuePseudocodigoLines,
-  java: _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_15__.queueEnqueueJavaLines,
-  python: _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_16__.queueEnqueuePythonLines
+  pseudocódigo: _code_view_data_queue_queue_enqueue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__.queueEnqueuePseudocodigoLines,
+  java: _code_view_data_queue_queue_enqueue_java__WEBPACK_IMPORTED_MODULE_18__.queueEnqueueJavaLines,
+  python: _code_view_data_queue_queue_enqueue_python__WEBPACK_IMPORTED_MODULE_19__.queueEnqueuePythonLines
 };
 
 // Snippets do método dequeue() da fila, por linguagem.
 const queueDequeueSnippets = {
-  pseudocódigo: _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_17__.queueDequeuePseudocodigoLines,
-  java: _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_18__.queueDequeueJavaLines,
-  python: _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_19__.queueDequeuePythonLines
+  pseudocódigo: _code_view_data_queue_queue_dequeue_pseudocodigo__WEBPACK_IMPORTED_MODULE_20__.queueDequeuePseudocodigoLines,
+  java: _code_view_data_queue_queue_dequeue_java__WEBPACK_IMPORTED_MODULE_21__.queueDequeueJavaLines,
+  python: _code_view_data_queue_queue_dequeue_python__WEBPACK_IMPORTED_MODULE_22__.queueDequeuePythonLines
+};
+
+// Snippets do método insert_last() da lista ligada, por linguagem.
+const sllInsertLastSnippets = {
+  pseudocódigo: _code_view_data_sll_sll_insert_last_pseudocodigo__WEBPACK_IMPORTED_MODULE_23__.sllInsertLastPseudocodigoLines,
+  java: _code_view_data_sll_sll_insert_last_java__WEBPACK_IMPORTED_MODULE_24__.sllInsertLastJavaLines,
+  python: _code_view_data_sll_sll_insert_last_python__WEBPACK_IMPORTED_MODULE_25__.sllInsertLastPythonLines
+};
+
+// Snippets do método insert_first() da lista ligada, por linguagem.
+const sllInsertFirstSnippets = {
+  pseudocódigo: _code_view_data_sll_sll_insert_first_pseudocodigo__WEBPACK_IMPORTED_MODULE_26__.sllInsertFirstPseudocodigoLines,
+  java: _code_view_data_sll_sll_insert_first_java__WEBPACK_IMPORTED_MODULE_27__.sllInsertFirstJavaLines,
+  python: _code_view_data_sll_sll_insert_first_python__WEBPACK_IMPORTED_MODULE_28__.sllInsertFirstPythonLines
+};
+
+// Snippets do método remove_first() da lista ligada, por linguagem.
+const sllRemoveFirstSnippets = {
+  pseudocódigo: _code_view_data_sll_sll_remove_first_pseudocodigo__WEBPACK_IMPORTED_MODULE_29__.sllRemoveFirstPseudocodigoLines,
+  java: _code_view_data_sll_sll_remove_first_java__WEBPACK_IMPORTED_MODULE_30__.sllRemoveFirstJavaLines,
+  python: _code_view_data_sll_sll_remove_first_python__WEBPACK_IMPORTED_MODULE_31__.sllRemoveFirstPythonLines
+};
+
+// Snippets do método remove_last() da lista ligada, por linguagem.
+const sllRemoveLastSnippets = {
+  pseudocódigo: _code_view_data_sll_sll_remove_last_pseudocodigo__WEBPACK_IMPORTED_MODULE_32__.sllRemoveLastPseudocodigoLines,
+  java: _code_view_data_sll_sll_remove_last_java__WEBPACK_IMPORTED_MODULE_33__.sllRemoveLastJavaLines,
+  python: _code_view_data_sll_sll_remove_last_python__WEBPACK_IMPORTED_MODULE_34__.sllRemoveLastPythonLines
+};
+
+// Mapeia a operação atual da SLL para o conjunto de snippets correspondente.
+const sllSnippetsByOp = {
+  insert_last: sllInsertLastSnippets,
+  insert_first: sllInsertFirstSnippets,
+  remove_first: sllRemoveFirstSnippets,
+  remove_last: sllRemoveLastSnippets
+};
+
+// Snippets do método insert() do vetor de capacidade fixa, por linguagem.
+const arrayInsertSnippets = {
+  pseudocódigo: _code_view_data_array_array_insert_pseudocodigo__WEBPACK_IMPORTED_MODULE_35__.arrayInsertPseudocodigoLines,
+  java: _code_view_data_array_array_insert_java__WEBPACK_IMPORTED_MODULE_36__.arrayInsertJavaLines,
+  python: _code_view_data_array_array_insert_python__WEBPACK_IMPORTED_MODULE_37__.arrayInsertPythonLines
+};
+
+// Snippets do método remove() do vetor de capacidade fixa, por linguagem.
+const arrayRemoveSnippets = {
+  pseudocódigo: _code_view_data_array_array_remove_pseudocodigo__WEBPACK_IMPORTED_MODULE_38__.arrayRemovePseudocodigoLines,
+  java: _code_view_data_array_array_remove_java__WEBPACK_IMPORTED_MODULE_39__.arrayRemoveJavaLines,
+  python: _code_view_data_array_array_remove_python__WEBPACK_IMPORTED_MODULE_40__.arrayRemovePythonLines
+};
+
+// Snippets do Merge Sort (mergeSort + merge), por linguagem.
+const mergeSortSnippets = {
+  pseudocódigo: _code_view_data_merge_sort_pseudocodigo__WEBPACK_IMPORTED_MODULE_41__.mergeSortPseudocodigoLines,
+  java: _code_view_data_merge_sort_java__WEBPACK_IMPORTED_MODULE_42__.mergeSortJavaLines,
+  python: _code_view_data_merge_sort_python__WEBPACK_IMPORTED_MODULE_43__.mergeSortPythonLines
 };
 
 // CodeView exibe o código do algoritmo/método (pseudocódigo, Java ou Python) com destaque
@@ -12397,9 +15367,11 @@ function CodeView({
   const [lang, setLang] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('pseudocódigo');
   const [stackOp, setStackOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const [queueOp, setQueueOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [sllOp, setSllOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [arrayOp, setArrayOp] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
 
   // Seleciona o array de código correto conforme o tipo de estrutura visualizada
-  const codeLines = viewType === 'vector' ? codeSnippets[lang] : viewType === 'stack' ? stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang] : viewType === 'queue' ? queueOp === 'dequeue' ? queueDequeueSnippets[lang] : queueEnqueueSnippets[lang] : [];
+  const codeLines = viewType === 'insertion-sort' ? codeSnippets[lang] : viewType === 'stack' ? stackOp === 'pop' ? stackPopSnippets[lang] : stackPushSnippets[lang] : viewType === 'queue' ? queueOp === 'dequeue' ? queueDequeueSnippets[lang] : queueEnqueueSnippets[lang] : viewType === 'sll' ? (sllSnippetsByOp[sllOp] || sllInsertLastSnippets)[lang] : viewType === 'vector' ? arrayOp === 'remove' ? arrayRemoveSnippets[lang] : arrayInsertSnippets[lang] : viewType === 'merge-sort' ? mergeSortSnippets[lang] : [];
 
   // Mapeia um objeto de passo vindo do backend para o id de uma linha de código,
   // usando heurísticas; prefere o `code_id` explícito quando o backend o fornece
@@ -12420,7 +15392,7 @@ function CodeView({
     // Carrega todos os passos quando a visão é de vetor, para permitir o
     // mapeamento dos passos em linhas de código posteriormente.
     const loadSteps = async () => {
-      if (viewType !== 'vector') return;
+      if (viewType !== 'insertion-sort') return;
       try {
         const all = await (0,_api_api_vector__WEBPACK_IMPORTED_MODULE_2__.fetchSortSteps)();
         setSteps(all);
@@ -12442,7 +15414,7 @@ function CodeView({
   // Registra atualizações ao vivo vindas da janela principal (quando o usuário
   // avança/volta passos em View.jsx) para manter o destaque do vetor sincronizado.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (viewType !== 'vector') return;
+    if (viewType !== 'insertion-sort') return;
     if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
     const handler = async payload => {
       const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
@@ -12463,6 +15435,62 @@ function CodeView({
           const prev = all[idx - 1] || null;
           const current = all[idx] || null;
           setActiveStep(mapStepToCodeId(current, prev));
+        } catch (e) {
+          // Ignora falhas de busca em atualizações ao vivo
+        }
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType, steps]);
+
+  // Carrega todos os passos quando a visão é do Merge Sort. Assim como a
+  // pilha e a fila, cada passo já traz `code_id` explícito (não precisa de
+  // heurística de mapeamento como o Insertion Sort).
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const loadMergeSortSteps = async () => {
+      if (viewType !== 'merge-sort') return;
+      try {
+        const all = await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_7__.fetchMergeSortSteps)();
+        setSteps(all);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = all[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(propActiveStep);
+      }
+    };
+    loadMergeSortSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (quando o usuário
+  // avança/volta passos em View.jsx) para manter o destaque do Merge Sort sincronizado.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'merge-sort') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      setStepIndex(idx);
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+      if (steps && steps.length > 0) {
+        const current = steps[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } else {
+        try {
+          const all = await (0,_api_api_merge_sort__WEBPACK_IMPORTED_MODULE_7__.fetchMergeSortSteps)();
+          setSteps(all);
+          const current = all[idx] || null;
+          setActiveStep(current ? current.code_id : null);
         } catch (e) {
           // Ignora falhas de busca em atualizações ao vivo
         }
@@ -12585,6 +15613,116 @@ function CodeView({
     };
   }, [viewType]);
 
+  // Carrega os últimos passos de insert/remove gerados pelo backend para a
+  // lista ligada. Assim como a pilha e a fila, cada passo já traz `code_id`
+  // explícito, mas aqui há 4 operações possíveis em vez de 2.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const loadSllSteps = async () => {
+      if (viewType !== 'sll') return;
+      try {
+        const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_5__.fetchSLLSteps)();
+        setSteps(result.steps || []);
+        setSllOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadSllSteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Inserir/Remover
+  // e Voltar/Próximo). Reconsulta /sll_steps a cada evento para não
+  // dessincronizar o `sllOp` caso o usuário troque de operação.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'sll') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      setStepIndex(idx);
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+      try {
+        const result = await (0,_api_api_sll__WEBPACK_IMPORTED_MODULE_5__.fetchSLLSteps)();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setSllOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
+  // Carrega os últimos passos de insert/remove gerados pelo backend para o
+  // vetor de capacidade fixa. Assim como a pilha, cada passo já traz
+  // `code_id` explícito.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const loadArraySteps = async () => {
+      if (viewType !== 'vector') return;
+      try {
+        const result = await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_6__.fetchArraySteps)();
+        setSteps(result.steps || []);
+        setArrayOp(result.op || null);
+        if (stepParam !== null) {
+          const idx = Number(stepParam);
+          setStepIndex(idx);
+          const current = (result.steps || [])[idx] || null;
+          setActiveStep(current ? current.code_id : null);
+        }
+      } catch (e) {
+        setActiveStep(null);
+      }
+    };
+    loadArraySteps();
+  }, [stepParam, viewType]);
+
+  // Registra atualizações ao vivo vindas da janela principal (Inserir/Remover
+  // e Voltar/Próximo). Reconsulta /array_steps a cada evento para não
+  // dessincronizar o `arrayOp` caso o usuário troque de operação.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (viewType !== 'vector') return;
+    if (!window || !window.electronAPI || typeof window.electronAPI.onChildStep !== 'function') return;
+    const handler = async payload => {
+      const idx = payload && typeof payload.step !== 'undefined' ? Number(payload.step) : -1;
+      setStepIndex(idx);
+      if (idx < 0) {
+        setActiveStep(null);
+        return;
+      }
+      try {
+        const result = await (0,_api_api_array_vector__WEBPACK_IMPORTED_MODULE_6__.fetchArraySteps)();
+        const stepsList = result.steps || [];
+        setSteps(stepsList);
+        setArrayOp(result.op || null);
+        const current = stepsList[idx] || null;
+        setActiveStep(current ? current.code_id : null);
+      } catch (e) {
+        // Ignora falhas de busca em atualizações ao vivo
+      }
+    };
+    window.electronAPI.onChildStep(handler);
+    return () => {
+      if (window && window.electronAPI && typeof window.electronAPI.removeChildStep === 'function') {
+        window.electronAPI.removeChildStep(handler);
+      }
+    };
+  }, [viewType]);
+
   // Gera o estilo do botão de seleção de linguagem, destacando o idioma ativo.
   const buttonStyle = active => ({
     background: active ? '#0f766e' : '#111',
@@ -12624,7 +15762,7 @@ function CodeView({
       overflow: 'auto',
       boxSizing: 'border-box'
     }
-  }, viewType === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, viewType === 'insertion-sort' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -12709,6 +15847,130 @@ function CodeView({
       color: '#9aa0a6'
     }
   }, queueOp === 'dequeue' ? 'Simulando: dequeue() — Desenfileirar' : 'Simulando: enqueue() — Enfileirar'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      padding: '0 12px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
+  }))), viewType === 'sll' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      margin: '0 0 8px',
+      padding: '0 12px',
+      fontSize: 12,
+      color: '#9aa0a6'
+    }
+  }, {
+    insert_last: 'Simulando: insert_last() — Inserir no Fim',
+    insert_first: 'Simulando: insert_first() — Inserir no Início',
+    remove_first: 'Simulando: remove_first() — Remover do Início',
+    remove_last: 'Simulando: remove_last() — Remover do Fim'
+  }[sllOp] || 'Simulando: insert_last() — Inserir no Fim'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      padding: '0 12px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
+  }))), viewType === 'vector' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    style: {
+      margin: '0 0 8px',
+      padding: '0 12px',
+      fontSize: 12,
+      color: '#9aa0a6'
+    }
+  }, arrayOp === 'remove' ? 'Simulando: remove() — Remover do Índice' : 'Simulando: insert() — Inserir no Índice'), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      padding: '0 12px'
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'pseudocódigo'),
+    onClick: () => setLang('pseudocódigo')
+  }, "pseudoc\xF3digo"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'java'),
+    onClick: () => setLang('java')
+  }, "Java"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    style: buttonStyle(lang === 'python'),
+    onClick: () => setLang('python')
+  }, "Python")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    style: {
+      margin: 0,
+      whiteSpace: 'pre',
+      fontSize: 14,
+      lineHeight: 1.6
+    }
+  }, codeLines.map((line, index) => {
+    const isHighlighted = activeStep === line.id;
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      key: index,
+      style: {
+        padding: '0 12px',
+        backgroundColor: isHighlighted ? 'rgba(0, 255, 136, 0.2)' : 'transparent',
+        borderLeft: isHighlighted ? '3px solid #00ff88' : '3px solid transparent',
+        color: isHighlighted ? '#ffffff' : '#00ff88',
+        transition: 'all 0.2s ease'
+      }
+    }, line.text);
+  }))), viewType === 'merge-sort' && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -12831,8 +16093,20 @@ function Selector() {
       icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
       label: 'Pilha'
     }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    props: {
+      path: '/view/insertion-sort',
+      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      label: 'Insertion Sort'
+    }
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    props: {
+      path: '/view/merge-sort',
+      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      label: 'Merge Sort'
+    }
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
-    label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas e Pilhas com planos de incluir outras estruturas de dados como listas duplamente ligadas, árvores binárias, etc.`,
+    label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas, Pilhas, Insertion Sort e Merge Sort, com planos de incluir outras estruturas e algoritmos como listas duplamente ligadas, árvores binárias, etc.`,
     sizeScale: 0.6
   }));
 }
@@ -12860,13 +16134,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _css_view_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../css/view.css */ "./frontend/css/view.css");
 /* harmony import */ var _handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../handlers/sll_handle */ "./frontend/handlers/sll_handle.js");
 /* harmony import */ var _handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../handlers/vector_handle */ "./frontend/handlers/vector_handle.js");
-/* harmony import */ var _handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../handlers/stack_handle */ "./frontend/handlers/stack_handle.js");
-/* harmony import */ var _handlers_queue_handle__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../handlers/queue_handle */ "./frontend/handlers/queue_handle.js");
-/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
-/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
-/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
-/* harmony import */ var _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../custom_node/stackNode */ "./frontend/custom_node/stackNode.js");
-/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
+/* harmony import */ var _handlers_array_vector_handle__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../handlers/array_vector_handle */ "./frontend/handlers/array_vector_handle.js");
+/* harmony import */ var _handlers_merge_sort_handle__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../handlers/merge_sort_handle */ "./frontend/handlers/merge_sort_handle.js");
+/* harmony import */ var _handlers_stack_handle__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../handlers/stack_handle */ "./frontend/handlers/stack_handle.js");
+/* harmony import */ var _handlers_queue_handle__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../handlers/queue_handle */ "./frontend/handlers/queue_handle.js");
+/* harmony import */ var _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../custom_node/linkedListNode */ "./frontend/custom_node/linkedListNode.js");
+/* harmony import */ var _custom_node_listNode__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../custom_node/listNode */ "./frontend/custom_node/listNode.js");
+/* harmony import */ var _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../custom_node/vectorNode */ "./frontend/custom_node/vectorNode.js");
+/* harmony import */ var _custom_node_arrayNode__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ../custom_node/arrayNode */ "./frontend/custom_node/arrayNode.js");
+/* harmony import */ var _custom_node_mergeSortNode__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ../custom_node/mergeSortNode */ "./frontend/custom_node/mergeSortNode.js");
+/* harmony import */ var _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ../custom_node/stackNode */ "./frontend/custom_node/stackNode.js");
+/* harmony import */ var _components_SidePanel__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ../components/SidePanel */ "./frontend/components/SidePanel.jsx");
+
+
+
+
 
 
 
@@ -12886,10 +16168,12 @@ __webpack_require__.r(__webpack_exports__);
 
 // Mapeia o tipo de nó do React Flow para o componente customizado que o renderiza.
 const NODE_TYPES = {
-  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_12__["default"],
-  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_13__["default"],
-  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_14__["default"],
-  stack: _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_15__["default"]
+  SLL: _custom_node_linkedListNode__WEBPACK_IMPORTED_MODULE_14__["default"],
+  list: _custom_node_listNode__WEBPACK_IMPORTED_MODULE_15__["default"],
+  vector: _custom_node_vectorNode__WEBPACK_IMPORTED_MODULE_16__["default"],
+  array: _custom_node_arrayNode__WEBPACK_IMPORTED_MODULE_17__["default"],
+  'merge-sort': _custom_node_mergeSortNode__WEBPACK_IMPORTED_MODULE_18__["default"],
+  stack: _custom_node_stackNode__WEBPACK_IMPORTED_MODULE_19__["default"]
 };
 // Estilo padrão aplicado a todas as arestas do grafo (seta preta com espessura fixa).
 const DEFAULT_EDGE_OPTIONS = {
@@ -12933,6 +16217,16 @@ function View() {
   const [stackType, setStackType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
   const [stackOperation, setStackOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const [queueOperation, setQueueOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [sllOperation, setSllOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [arrayCapacity, setArrayCapacity] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [arrayIndex, setArrayIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [arrayValue, setArrayValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [arrayType, setArrayType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
+  const [arrayOperation, setArrayOperation] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [mergeSortSize, setMergeSortSize] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [mergeSortId, setMergeSortId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [mergeSortValue, setMergeSortValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+  const [mergeSortType, setMergeSortType] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('int');
   const sharedStates = {
     nodes,
     setNodes,
@@ -12967,13 +16261,35 @@ function View() {
     stackOperation,
     setStackOperation,
     queueOperation,
-    setQueueOperation
+    setQueueOperation,
+    sllOperation,
+    setSllOperation,
+    arrayCapacity,
+    setArrayCapacity,
+    arrayIndex,
+    setArrayIndex,
+    arrayValue,
+    setArrayValue,
+    arrayType,
+    setArrayType,
+    arrayOperation,
+    setArrayOperation,
+    mergeSortSize,
+    setMergeSortSize,
+    mergeSortId,
+    setMergeSortId,
+    mergeSortValue,
+    setMergeSortValue,
+    mergeSortType,
+    setMergeSortType
   };
   const sll = (0,_handlers_sll_handle__WEBPACK_IMPORTED_MODULE_8__.useSLLHandlers)(sharedStates);
   const vector = (0,_handlers_vector_handle__WEBPACK_IMPORTED_MODULE_9__.useVectorHandlers)(sharedStates);
-  const queue = (0,_handlers_queue_handle__WEBPACK_IMPORTED_MODULE_11__.useQueueHandlers)(sharedStates);
-  const stack = (0,_handlers_stack_handle__WEBPACK_IMPORTED_MODULE_10__.useStackHandlers)(sharedStates);
-  const handlers = type === 'sll' ? sll : type === 'vector' ? vector : type === 'stack' ? stack : type === 'queue' ? queue : {
+  const array = (0,_handlers_array_vector_handle__WEBPACK_IMPORTED_MODULE_10__.useArrayVectorHandlers)(sharedStates);
+  const mergeSort = (0,_handlers_merge_sort_handle__WEBPACK_IMPORTED_MODULE_11__.useMergeSortHandlers)(sharedStates);
+  const queue = (0,_handlers_queue_handle__WEBPACK_IMPORTED_MODULE_13__.useQueueHandlers)(sharedStates);
+  const stack = (0,_handlers_stack_handle__WEBPACK_IMPORTED_MODULE_12__.useStackHandlers)(sharedStates);
+  const handlers = type === 'sll' ? sll : type === 'insertion-sort' ? vector : type === 'vector' ? array : type === 'merge-sort' ? mergeSort : type === 'stack' ? stack : type === 'queue' ? queue : {
     fetchData: () => {}
   };
 
@@ -12987,7 +16303,21 @@ function View() {
       handlers.fetchData([]);
       return;
     }
+    if (type === 'insertion-sort') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      handlers.fetchData([]);
+      return;
+    }
     if (type === 'vector') {
+      setNodes([]);
+      setEdges([]);
+      setNodeCount(0);
+      handlers.fetchData([]);
+      return;
+    }
+    if (type === 'merge-sort') {
       setNodes([]);
       setEdges([]);
       setNodeCount(0);
@@ -13091,8 +16421,8 @@ function View() {
     const x = width / 2 - centerWorldX * currentZoom;
     let y = height / 2 - centerWorldY * currentZoom;
 
-    // Ao visualizar o vetor, desloca levemente para cima para que apareça acima do centro
-    if (type === 'vector') {
+    // Ao visualizar o insertion sort ou o merge sort, desloca levemente para cima para que apareça acima do centro
+    if (type === 'insertion-sort' || type === 'merge-sort') {
       const shiftPx = 80; // ajuste este valor para mover mais ou menos
       y -= shiftPx;
     }
@@ -13163,13 +16493,15 @@ function View() {
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_xyflow_react__WEBPACK_IMPORTED_MODULE_2__.Panel, {
     position: "center-right",
     className: "app-side-panel"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_16__["default"], {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SidePanel__WEBPACK_IMPORTED_MODULE_20__["default"], {
     props: {
       type,
       nodeLabel,
       setNodeLabel,
       sll,
       vector,
+      array,
+      mergeSort,
       queue,
       stack,
       sharedStates,

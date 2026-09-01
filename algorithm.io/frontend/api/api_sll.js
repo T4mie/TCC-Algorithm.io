@@ -1,35 +1,52 @@
-import { toast } from 'sonner';
+// ===== API para operações da Lista Simplesmente Ligada (inserir/remover no início ou fim) e simulação passo a passo =====
+
 import { MarkerType } from '@xyflow/react';
 import { fetchJson, postJson } from './api_client';
 
-// Transforma os dados retornados pelo backend em nós e arestas para o React Flow.
-export const transformBackendData = (data, currentNodes = []) => {
-  // Criar mapa das posições atuais
-  const positionMap = new Map(
-    currentNodes.map(node => [node.id, node.position])
-  );
+// Transforma os dados retornados pelo backend (estado completo ou um passo
+// da simulação) em nós e arestas para o React Flow, preservando posições.
+export const transformSLLData = (data, currentNodes = []) => {
+  const positionMap = new Map(currentNodes.map(node => [node.id, node.position]));
 
   const listNodeData = data.nodes.find(node => node.type === 'list');
   const headId = listNodeData?.metadata?.head ?? null;
   const tailId = listNodeData?.metadata?.tail ?? null;
 
-  // Converter nós do backend, mas preservar posições
-  const reactFlowNodes = data.nodes.map(node => ({
-    id: node.id,
-    type: node.type,
-    position: positionMap.get(node.id) || node.position,
-    data: {
-      label: node.label,
-      type: node.type,
-      state: null,
-      metadata: node.metadata,
-      isHead: node.id === headId,
-      isTail: node.id === tailId
-    }
-  }));
+  const reactFlowNodes = data.nodes
+    .filter(node => node.type !== 'list')
+    .map((node, index) => ({
+      id: node.id,
+      type: 'SLL',
+      position: positionMap.get(node.id) || node.position || { x: 100 + index * 120, y: 140 },
+      data: {
+        label: node.label,
+        type: node.type,
+        state: null,
+        metadata: node.metadata,
+        isHead: node.id === headId,
+        isTail: node.id === tailId,
+        highlighted: (data.highlighted || []).includes(node.id),
+        activeValue: data.activeValue,
+        codeId: data.code_id
+      }
+    }));
 
-  // Converter edges: ligações "next" fluem esquerda->direita, ligações
-  // "head"/"tail" saem do objeto Lista já identificadas por cor.
+  if (listNodeData) {
+    reactFlowNodes.unshift({
+      id: 'list',
+      type: 'list',
+      position: positionMap.get('list') || listNodeData.position,
+      data: {
+        label: listNodeData.label,
+        type: 'list',
+        state: null,
+        metadata: listNodeData.metadata,
+        activeValue: data.activeValue,
+        codeId: data.code_id
+      }
+    });
+  }
+
   const reactFlowEdges = data.edges.map(edge => {
     const baseEdge = {
       id: `${edge.source}-${edge.target}-${edge.type}`,
@@ -56,19 +73,16 @@ export const transformBackendData = (data, currentNodes = []) => {
 };
 
 // Busca o estado atual da lista ligada no backend e atualiza nós/arestas/contador.
-export const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes) => {
+export const fetchSLLData = async (setNodes, setEdges, setNodeCount, currentNodes = []) => {
   try {
     const data = await fetchJson('/SLL_data');
-    const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformBackendData(
-      data,
-      currentNodes
-    );
+    const { reactFlowNodes, reactFlowEdges, dataNodesCount } = transformSLLData(data, currentNodes);
 
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
     setNodeCount(dataNodesCount);
   } catch (err) {
-    console.error('Erro ao carregar dados de SLL_data:', err);
+    console.error('Erro ao carregar dados da lista:', err);
   }
 };
 
@@ -77,100 +91,48 @@ export const clearSLL = async () => {
   return postJson('/clear_sll', {});
 };
 
-// Insere um nó no final da lista (tail), calculando sua posição no grid visual.
-export const addNode = async (
-  nodeLabel,
-  setNodeLabel,
-  nodeCount,
-  setNodeCount,
-  setNodes,
-  setEdges,
-  fetchDataCallback,
-  currentNodes // ← Novo parâmetro
-) => {
-  if (!nodeLabel.trim()) {
-    console.error('Digite um rótulo para o nó');
-    return;
-  }
+// Executa insert_last no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+export const fetchInsertLastSteps = async (value, currentNodes = []) => {
+  const dataNodes = currentNodes.filter(n => n.data?.type !== 'list');
+  const maxX = dataNodes.length
+    ? Math.max(...dataNodes.map(n => n.position.x))
+    : (100 - 120);
+  const position = { x: maxX + 120, y: 140 };
 
-  const basePosition = { x: 100, y: 139 };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
-
-  const newPosition = {
-    x: basePosition.x + (nodeCount % nodesPerRow) * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-  };
-
-  const newNodeData = {
-    value: nodeLabel,
-    label: nodeLabel,
-    position: newPosition,
-    type: 'SLL'
-  };
-
-  try {
-    await postJson('/nodes_last', newNodeData);
-    setNodeLabel('');
-    setNodeCount(nodeCount + 1);
-
-    // Passa os nós atuais para preservar posições
-    fetchDataCallback(currentNodes);
-  } catch (err) {
-    toast.error('Erro ao criar nó: ' + err.message);
-  }
+  return postJson('/sll_insert_last_steps', { value, position });
 };
 
-// Insere um nó no início da lista (head), distinto da inserção no final acima.
-export const addNodeFirst = async (
-  nodeLabel,
-  setNodeLabel,
-  nodeCount,
-  setNodeCount,
-  setNodes,
-  setEdges,
-  fetchDataCallback,
-  currentNodes
-) => {
-  if (!nodeLabel.trim()) {
-    console.error('Digite um rótulo para o nó');
-    return;
-  }
+// Executa insert_first no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+export const fetchInsertFirstSteps = async (value, currentNodes = []) => {
+  const dataNodes = currentNodes.filter(n => n.data?.type !== 'list');
+  const minX = dataNodes.length
+    ? Math.min(...dataNodes.map(n => n.position.x))
+    : (100 + 120);
+  const position = { x: minX - 120, y: 140 };
 
-  const basePosition = { x: 100, y: 139 };
-  const horizontalSpacing = 200;
-  const verticalSpacing = 90;
-  const nodesPerRow = 5;
-
-  const newPosition = {
-    x: basePosition.x + (nodeCount % nodesPerRow) * horizontalSpacing,
-    y: basePosition.y + Math.floor(nodeCount / nodesPerRow) * verticalSpacing
-  };
-
-  const newNodeData = {
-    value: nodeLabel,
-    label: nodeLabel,
-    position: newPosition,
-    type: 'SLL'
-  };
-
-  try {
-    await postJson('/nodes_first', newNodeData);
-    setNodeLabel('');
-    setNodeCount(nodeCount + 1);
-    fetchDataCallback(currentNodes);
-  } catch (err) {
-    toast.error('Erro ao criar nó: ' + err.message);
-  }
+  return postJson('/sll_insert_first_steps', { value, position });
 };
 
-// Remove o nó do início (head) da lista
-export const removeFirstNode = async () => {
-  return postJson('/nodes_remove_first', {});
+// Executa remove_first no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+export const fetchRemoveFirstSteps = async () => {
+  return postJson('/sll_remove_first_steps', {});
 };
 
-// Remove o nó do final (tail) da lista
-export const removeLastNode = async () => {
-  return postJson('/nodes_remove_last', {});
+// Executa remove_last no servidor (gera a simulação passo a passo) e retorna { success, steps, data }
+export const fetchRemoveLastSteps = async () => {
+  return postJson('/sll_remove_last_steps', {});
+};
+
+// Busca os últimos passos gerados (insert/remove), usado pela janela do CodeView
+export const fetchSLLSteps = async () => {
+  return fetchJson('/sll_steps');
+};
+
+// Aplica um passo da simulação (insert/remove) ao estado visual da lista.
+// Reaproveita o mesmo transform usado pelo fetch completo, já que o passo
+// carrega o mesmo formato de nós/edges do backend.
+export const applySLLStep = (step, currentNodes, setNodes, setEdges) => {
+  const { reactFlowNodes, reactFlowEdges } = transformSLLData(step, currentNodes);
+  setNodes(reactFlowNodes);
+  setEdges(reactFlowEdges);
 };

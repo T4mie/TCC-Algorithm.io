@@ -1,11 +1,23 @@
-import { fetchSLLData, addNode, addNodeFirst, removeFirstNode, removeLastNode, clearSLL } from '../api/api_sll';
+import {
+  fetchSLLData, fetchInsertLastSteps, fetchInsertFirstSteps,
+  fetchRemoveFirstSteps, fetchRemoveLastSteps, applySLLStep, clearSLL
+} from '../api/api_sll';
 import { toast } from 'sonner';
 
 export const useSLLHandlers = (states) => {
   const {
-    nodeLabel, setNodeLabel, nodeCount, setNodeCount,
-    setNodes, setEdges, nodes // ← Adiciona nodes do estado
+    nodeLabel, setNodeLabel,
+    nodes, setNodes, setEdges, setNodeCount,
+    setIsAnimating, steps, setSteps, currentStep, setCurrentStep,
+    setSllOperation
   } = states;
+
+  // Repassa o índice do passo atual para a janela filha (CodeView), se estiver aberta
+  const notifyChildStep = (step) => {
+    if (window && window.electronAPI && typeof window.electronAPI.updateChildStep === 'function') {
+      window.electronAPI.updateChildStep(step);
+    }
+  };
 
   // Valida o rótulo digitado: não pode ser vazio e deve ter um único caractere.
   const validateLabel = () => {
@@ -19,57 +31,115 @@ export const useSLLHandlers = (states) => {
     return true;
   };
 
-  // Insere no final da lista (comportamento já existente)
-  const handleAddNode = () => {
+  // Dispara a simulação passo a passo do método insert_last()
+  const handleInsertLast = async () => {
     if (!validateLabel()) return;
-    addNode(
-      nodeLabel,
-      setNodeLabel,
-      nodeCount,
-      setNodeCount,
-      setNodes,
-      setEdges,
-      (currentNodes) => fetchSLLData(setNodes, setEdges, setNodeCount, currentNodes),
-      nodes // ← Passa os nós atuais
-    );
-  };
 
-  // Insere no início da lista (head), distinto da inserção no final acima
-  const handleAddNodeFirst = () => {
-    if (!validateLabel()) return;
-    addNodeFirst(
-      nodeLabel,
-      setNodeLabel,
-      nodeCount,
-      setNodeCount,
-      setNodes,
-      setEdges,
-      (currentNodes) => fetchSLLData(setNodes, setEdges, setNodeCount, currentNodes),
-      nodes
-    );
-  };
-
-  // Remove o nó do início da lista e atualiza a contagem
-  const handleRemoveFirst = async () => {
     try {
-      await removeFirstNode();
-      await fetchSLLData(setNodes, setEdges, setNodeCount, nodes);
-      setNodeCount(Math.max(0, nodeCount - 1));
-      toast.success('Nó removido do início!');
+      const result = await fetchInsertLastSteps(nodeLabel, nodes);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('insert_last');
+      setNodeLabel('');
+      applySLLStep(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      toast.error('Erro ao inserir no fim: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método insert_first()
+  const handleInsertFirst = async () => {
+    if (!validateLabel()) return;
+
+    try {
+      const result = await fetchInsertFirstSteps(nodeLabel, nodes);
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('insert_first');
+      setNodeLabel('');
+      applySLLStep(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
+    } catch (err) {
+      toast.error('Erro ao inserir no início: ' + err.message);
+    }
+  };
+
+  // Dispara a simulação passo a passo do método remove_first()
+  const handleRemoveFirst = async () => {
+    if (!nodes.some(n => n.data?.type !== 'list')) {
+      toast.error('A lista já está vazia');
+      return;
+    }
+
+    try {
+      const result = await fetchRemoveFirstSteps();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('remove_first');
+      applySLLStep(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
     } catch (err) {
       toast.error('Erro ao remover do início: ' + err.message);
     }
   };
 
-  // Remove o nó do final da lista e atualiza a contagem
+  // Dispara a simulação passo a passo do método remove_last()
   const handleRemoveLast = async () => {
+    if (!nodes.some(n => n.data?.type !== 'list')) {
+      toast.error('A lista já está vazia');
+      return;
+    }
+
     try {
-      await removeLastNode();
-      await fetchSLLData(setNodes, setEdges, setNodeCount, nodes);
-      setNodeCount(Math.max(0, nodeCount - 1));
-      toast.success('Nó removido do final!');
+      const result = await fetchRemoveLastSteps();
+      setSteps(result.steps);
+      setCurrentStep(0);
+      setIsAnimating(true);
+      setSllOperation('remove_last');
+      applySLLStep(result.steps[0], nodes, setNodes, setEdges);
+      notifyChildStep(0);
     } catch (err) {
       toast.error('Erro ao remover do final: ' + err.message);
+    }
+  };
+
+  // Avança para o próximo passo da simulação atual
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      applySLLStep(steps[nextIndex], nodes, setNodes, setEdges);
+      notifyChildStep(nextIndex);
+    }
+  };
+
+  // Volta para o passo anterior da simulação atual
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevIndex = currentStep - 1;
+      setCurrentStep(prevIndex);
+      applySLLStep(steps[prevIndex], nodes, setNodes, setEdges);
+      notifyChildStep(prevIndex);
+    }
+  };
+
+  // O backend já efetiva a operação no momento em que os passos são gerados
+  // (a simulação roda sobre uma cópia). Encerrar a simulação só precisa
+  // re-buscar o estado real (limpando highlighted/activeValue) e fechar o painel.
+  const handleEndSimulation = async () => {
+    try {
+      await fetchSLLData(setNodes, setEdges, setNodeCount, nodes);
+    } catch (err) {
+      toast.error('Erro ao atualizar lista: ' + err.message);
+    } finally {
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setSllOperation(null);
+      notifyChildStep(-1);
     }
   };
 
@@ -81,6 +151,10 @@ export const useSLLHandlers = (states) => {
       setEdges([]);
       setNodeCount(0);
       setNodeLabel('');
+      setSteps([]);
+      setCurrentStep(-1);
+      setIsAnimating(false);
+      setSllOperation(null);
       toast.success('Lista limpa com sucesso!');
     } catch (err) {
       toast.error('Erro ao limpar lista: ' + err.message);
@@ -88,10 +162,13 @@ export const useSLLHandlers = (states) => {
   };
 
   return {
-    handleAddNode,
-    handleAddNodeFirst,
+    handleInsertLast,
+    handleInsertFirst,
     handleRemoveFirst,
     handleRemoveLast,
+    handleNextStep,
+    handlePrevStep,
+    handleEndSimulation,
     handleClear,
     fetchData: (currentNodes) => fetchSLLData(setNodes, setEdges, setNodeCount, currentNodes)
   };
