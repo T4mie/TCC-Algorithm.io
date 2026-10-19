@@ -1,7 +1,7 @@
 .exitBtn{
     width: 6vw;
     height: 3vw;
-    border-radius: 30em;
+    border-radius: 12px;
     background-color: #1e427C;
     display: flex;
     align-items: center;
@@ -19,7 +19,7 @@
     height:6vw;
     border-radius: 12px;
     background-color: #0b0b0b;
-    color: #00ff88;
+    color: #2563EB;
     font-size: 0.8rem;
     display: flex;
     align-items: center;

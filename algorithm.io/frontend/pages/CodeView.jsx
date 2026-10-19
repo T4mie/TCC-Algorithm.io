@@ -308,7 +308,7 @@ export default function CodeView({ activeStep: propActiveStep = 'INIT_LOOP' }) {
       <div  className="codeView__container" style={{
         marginTop: 8,
         backgroundColor: '#0b0b0b',
-        color: '#00ff88',
+        color: '#2563EB',
         borderRadius: 6,
         padding: '12px',
         width: '95%',
