@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const appIcon = path.join(__dirname, 'icons', 'algorithm-io.png');
 
 let win;
 let childWindow;
@@ -9,6 +10,8 @@ const createWindow = () => {
   win = new BrowserWindow({
     width: 1200,
     height: 600,
+    icon: appIcon,
+
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -39,6 +42,8 @@ function createChildWindow(type, currentStep = -1) {
     width: 600,
     height: 400,
     parent: win, // define como filha
+    icon: appIcon,
+
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

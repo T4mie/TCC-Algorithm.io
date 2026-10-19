@@ -16080,7 +16080,7 @@ function Selector() {
     className: "selectorSection"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h3", {
     className: "sectionTitle"
-  }, "Estruturas"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", {
+  }, "Estruturas de Dados"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", {
     className: "sectionDivider"
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "sectionCards"
@@ -49272,7 +49272,7 @@ if (false) // removed by dead control flow
   \******************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "faa5304ec40be869c68d.svg";
+module.exports = __webpack_require__.p + "93296ce21dfa9be4e7c6.svg";
 
 /***/ },
 
@@ -49282,7 +49282,7 @@ module.exports = __webpack_require__.p + "faa5304ec40be869c68d.svg";
   \********************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "105fe827e04d670944ff.svg";
+module.exports = __webpack_require__.p + "0f190bd9e32d9d2a1216.svg";
 
 /***/ },
 
@@ -49292,7 +49292,7 @@ module.exports = __webpack_require__.p + "105fe827e04d670944ff.svg";
   \**************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "130e470a4fc99150dce5.svg";
+module.exports = __webpack_require__.p + "6216d9e008d172971ee4.svg";
 
 /***/ },
 
@@ -49302,7 +49302,7 @@ module.exports = __webpack_require__.p + "130e470a4fc99150dce5.svg";
   \********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "b77fb40e3c23d446f45e.svg";
+module.exports = __webpack_require__.p + "53f64139a7341cd217f9.svg";
 
 /***/ },
 
@@ -49312,7 +49312,7 @@ module.exports = __webpack_require__.p + "b77fb40e3c23d446f45e.svg";
   \**********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "848fedc70f3e898deb92.svg";
+module.exports = __webpack_require__.p + "7b5feab4ca27b6a6446b.svg";
 
 /***/ },
 
@@ -49322,7 +49322,7 @@ module.exports = __webpack_require__.p + "848fedc70f3e898deb92.svg";
   \***********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "b7bcd187df457f5fb327.svg";
+module.exports = __webpack_require__.p + "c406d289276c79ebb681.svg";
 
 /***/ },
 

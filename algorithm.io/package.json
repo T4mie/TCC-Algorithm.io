@@ -47,13 +47,15 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "name": "algorith.io"
+        "name": "algorith.io",
+        "icon": "./frontend/icons/algorithm-io"
       },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "algorith.io"
+            "name": "algorith.io",
+            "setupIcon": "./frontend/icons/algorithm-io.ico"
           }
         },
         {

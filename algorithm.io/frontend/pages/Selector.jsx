@@ -19,7 +19,7 @@ export default function Selector() {
         <img className="selectorLogo" src={LogoIcon} alt="Algorithm.io" />
         <div className="selectorContainer">
            <div className="selectorSection">
-              <h3 className="sectionTitle">Estruturas</h3>
+              <h3 className="sectionTitle">Estruturas de Dados</h3>
               <hr className="sectionDivider" />
               <div className="sectionCards">
                   <SelectorBox props={{ path: '/view/sll', icon: SLLIcon, label: 'Lista Simplesmente Ligada' }} />

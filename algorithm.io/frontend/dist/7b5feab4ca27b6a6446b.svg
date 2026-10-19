@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 74 218">
+  <defs>
+    <style>
+      .cls-1{fill:#add0ff;stroke:#1e427c;stroke-width:2;stroke-miterlimit:10}
+    </style>
+  </defs>
+  <title>Untitled-1</title>
+  <g id="Selection">
+    <path d="M1 202 L1 145 L73 145 L73 202 C73 210.284 66.284 217 58 217 L16 217 C7.716 217 1 210.284 1 202 Z" class="cls-1"/>
+    <path d="M1 145 L1 73 L73 73 L73 145 Z" class="cls-1"/>
+    <path d="M1 73 L1 16 C1 7.716 7.716 1 16 1 L58 1 C66.284 1 73 7.716 73 16 L73 73 Z" class="cls-1"/>
+  </g>
+</svg>
