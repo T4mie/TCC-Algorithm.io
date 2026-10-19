@@ -16025,9 +16025,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../components/SelectorBox */ "./frontend/components/SelectorBox.jsx");
 /* harmony import */ var framer_motion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! framer-motion */ "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs");
 /* harmony import */ var _css_selector_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../css/selector.css */ "./frontend/css/selector.css");
-/* harmony import */ var _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../icons/SLL.png */ "./frontend/icons/SLL.png");
-/* harmony import */ var _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../icons/Vector.png */ "./frontend/icons/Vector.png");
-/* harmony import */ var _components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../components/HelpWidget */ "./frontend/components/HelpWidget.jsx");
+/* harmony import */ var _icons_SLL_svg__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../icons/SLL.svg */ "./frontend/icons/SLL.svg");
+/* harmony import */ var _icons_Vector_svg__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../icons/Vector.svg */ "./frontend/icons/Vector.svg");
+/* harmony import */ var _icons_Stack_svg__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../icons/Stack.svg */ "./frontend/icons/Stack.svg");
+/* harmony import */ var _icons_LogoAlgorithmio_svg__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../icons/LogoAlgorithmio.svg */ "./frontend/icons/LogoAlgorithmio.svg");
+/* harmony import */ var _icons_MergeSort_svg__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../icons/MergeSort.svg */ "./frontend/icons/MergeSort.svg");
+/* harmony import */ var _icons_InsertionSort_svg__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../icons/InsertionSort.svg */ "./frontend/icons/InsertionSort.svg");
+/* harmony import */ var _components_HelpWidget__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../components/HelpWidget */ "./frontend/components/HelpWidget.jsx");
+
+
+
+
 
 
 
@@ -16040,6 +16048,7 @@ __webpack_require__.r(__webpack_exports__);
 // (lista ligada, vetor, fila, pilha) e o widget de ajuda geral do projeto.
 function Selector() {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(framer_motion__WEBPACK_IMPORTED_MODULE_2__.motion.div, {
+    className: "selectorPage",
     initial: {
       opacity: 0
     },
@@ -16050,8 +16059,6 @@ function Selector() {
       duration: 0.75
     },
     style: {
-      width: '100%',
-      height: '100%',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center'
@@ -16063,49 +16070,65 @@ function Selector() {
       alignItems: 'center',
       gap: '24px'
     }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h1", {
-    style: {
-      fontSize: '2.5rem'
-    }
-  }, "Algorithm.io"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
+    className: "selectorLogo",
+    src: _icons_LogoAlgorithmio_svg__WEBPACK_IMPORTED_MODULE_7__,
+    alt: "Algorithm.io"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "selectorContainer"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "selectorSection"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h3", {
+    className: "sectionTitle"
+  }, "Estruturas"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", {
+    className: "sectionDivider"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "sectionCards"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/sll',
-      icon: _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__,
+      icon: _icons_SLL_svg__WEBPACK_IMPORTED_MODULE_4__,
       label: 'Lista Simplesmente Ligada'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/vector',
-      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      icon: _icons_Vector_svg__WEBPACK_IMPORTED_MODULE_5__,
       label: 'Vetor'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/queue',
-      icon: _icons_SLL_png__WEBPACK_IMPORTED_MODULE_4__,
+      icon: _icons_SLL_svg__WEBPACK_IMPORTED_MODULE_4__,
       label: 'Fila'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/stack',
-      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      icon: _icons_Stack_svg__WEBPACK_IMPORTED_MODULE_6__,
       label: 'Pilha'
     }
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "selectorSection"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h3", {
+    className: "sectionTitle"
+  }, "Algoritmos"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", {
+    className: "sectionDivider"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "sectionCards"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/insertion-sort',
-      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      icon: _icons_InsertionSort_svg__WEBPACK_IMPORTED_MODULE_9__,
       label: 'Insertion Sort'
     }
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_SelectorBox__WEBPACK_IMPORTED_MODULE_1__["default"], {
     props: {
       path: '/view/merge-sort',
-      icon: _icons_Vector_png__WEBPACK_IMPORTED_MODULE_5__,
+      icon: _icons_MergeSort_svg__WEBPACK_IMPORTED_MODULE_8__,
       label: 'Merge Sort'
     }
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_6__["default"], {
+  }))))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_HelpWidget__WEBPACK_IMPORTED_MODULE_10__["default"], {
     label: `O Algorithm.io é um projeto de ensino que visa facilitar o aprendizado de algoritmos e estruturas de dados trazendo elementos conceituais para elementos visuais.\n\nO que são estruturas de dados? \n\nEstruturas de dados são formas organizadas de armazenar e manipular dados em um programa. Estruturas como vetores e listas são exemplos comuns, as estruturas que inserimos no projeto. \n\nNo momento, oferece conteúdos sobre Listas Simplesmente Ligadas, Vetores, Filas, Pilhas, Insertion Sort e Merge Sort, com planos de incluir outras estruturas e algoritmos como listas duplamente ligadas, árvores binárias, etc.`,
     sizeScale: 0.6
   }));
@@ -16707,7 +16730,17 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
+___CSS_LOADER_EXPORT___.push([module.id, `.selectorPage {
+    --dot-color: #c7c7c7;
+    --dot-gap: 20px;
+    min-height: 100vh;
+    background-color: #fff;
+    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.5px);
+    background-size: var(--dot-gap) var(--dot-gap);
+}
+
+/* --- ESTILOS ORIGINAIS DO SELECTORBOX (PRESERVADOS) --- */
+.selectorBox {
     border-radius: 0.5rem;
     width: 6rem;
     height: 6rem;
@@ -16716,10 +16749,14 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
     overflow: hidden; 
     position: relative;
     box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;
+    flex-shrink: 0; /* Garante que a caixa mantenha sempre 6rem x 6rem */
 }
-.selectorBox Link{
+
+/* Corrigido: <Link> gera a tag <a> no HTML */
+.selectorBox a {
     width: 100%;
     height: 100%;
+    display: block;
 }
 
 .content-wrapper {
@@ -16731,8 +16768,8 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
 
 .box-section {
     width: 100%;
-    height: 100%; /* Cada seção ocupa o tamanho total da caixa */
-    flex-shrink: 0; /* Impede que o flexbox "esmague" as div */
+    height: 100%; /* Cada seção ocupa o tamanho total da caixa (6rem) */
+    flex-shrink: 0; /* Impede que o flexbox esmague as divs no deslize */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -16743,35 +16780,69 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorBox {
 .icon-section img {
     max-width: 100%;
     max-height: 100%;
-    object-fit:fill;
+    object-fit: fill;
 }
 
 .text-section {
     font-size: 0.8rem;
     font-weight: bold;
-    color:white;
+    color: white;
     text-align: center;
-    background-color: #2563eb; /* Opcional: cor diferente no hover */
+    background-color: #2563eb;
 }
 
-.selectorContainer{
+.selectorLogo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: fill;
+    transform: scale(0.75);
+}
+
+/* --- NOVO CONTAINER E SEÇÕES --- */
+.selectorContainer {
     max-width: 70vw;
-    max-height: 70vh;
-    height: 50vh;
     width: 50vw;
     display: flex;
+    flex-direction: column;
     border-radius: 30px;
     background: white;
-    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset, rgba(0, 0, 0, 0.3) 0px -22px 10px -18px inset;
-    flex-direction: row;
-    row-gap: 1rem;
-    gap: 2rem;
-    flex-wrap:wrap ;
-    justify-content: last baseline;
-    z-index: 1;
-    padding: 24px;
+    box-shadow:
+        inset 0 0 25px rgba(50, 50, 93, 0.25),
+        inset 0 0 10px rgba(0, 0, 0, 0.15);    z-index: 1;
+    padding: 32px;
+    gap: 1.5rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
 
-}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;AACzI;AACA;IACI,WAAW;IACX,YAAY;AAChB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,8CAA8C;IAC5D,cAAc,EAAE,0CAA0C;IAC1D,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,eAAe;AACnB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,WAAW;IACX,kBAAkB;IAClB,yBAAyB,EAAE,qCAAqC;AACpE;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,YAAY;IACZ,WAAW;IACX,aAAa;IACb,mBAAmB;IACnB,iBAAiB;IACjB,yJAAyJ;IACzJ,mBAAmB;IACnB,aAAa;IACb,SAAS;IACT,eAAe;IACf,8BAA8B;IAC9B,UAAU;IACV,aAAa;;AAEjB","sourcesContent":[".selectorBox {\r\n    border-radius: 0.5rem;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    overflow: hidden; \r\n    position: relative;\r\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\r\n}\r\n.selectorBox Link{\r\n    width: 100%;\r\n    height: 100%;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa */\r\n    flex-shrink: 0; /* Impede que o flexbox \"esmague\" as div */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit:fill;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color:white;\r\n    text-align: center;\r\n    background-color: #2563eb; /* Opcional: cor diferente no hover */\r\n}\r\n\r\n.selectorContainer{\r\n    max-width: 70vw;\r\n    max-height: 70vh;\r\n    height: 50vh;\r\n    width: 50vw;\r\n    display: flex;\r\n    border-radius: 30px;\r\n    background: white;\r\n    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset, rgba(0, 0, 0, 0.3) 0px -22px 10px -18px inset;\r\n    flex-direction: row;\r\n    row-gap: 1rem;\r\n    gap: 2rem;\r\n    flex-wrap:wrap ;\r\n    justify-content: last baseline;\r\n    z-index: 1;\r\n    padding: 24px;\r\n\r\n}"],"sourceRoot":""}]);
+.selectorSection {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.sectionTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e3a8a;
+    margin: 0 0 4px 0;
+}
+
+.sectionDivider {
+    width: 100%;
+    height: 2px;
+    background-color: #1e3a8a;
+    border: none;
+    margin: 0 0 16px 0;
+}
+
+.sectionCards {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: center;
+}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,oBAAoB;IACpB,eAAe;IACf,iBAAiB;IACjB,sBAAsB;IACtB,kFAAkF;IAClF,8CAA8C;AAClD;;AAEA,2DAA2D;AAC3D;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;IACrI,cAAc,EAAE,oDAAoD;AACxE;;AAEA,6CAA6C;AAC7C;IACI,WAAW;IACX,YAAY;IACZ,cAAc;AAClB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,qDAAqD;IACnE,cAAc,EAAE,oDAAoD;IACpE,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,YAAY;IACZ,kBAAkB;IAClB,yBAAyB;AAC7B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;IAChB,sBAAsB;AAC1B;;AAEA,oCAAoC;AACpC;IACI,eAAe;IACf,WAAW;IACX,aAAa;IACb,sBAAsB;IACtB,mBAAmB;IACnB,iBAAiB;IACjB;;0CAEsC,KAAK,UAAU;IACrD,aAAa;IACb,WAAW;IACX,sBAAsB;IACtB,gBAAgB;AACpB;;AAEA;IACI,WAAW;IACX,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;IAChB,cAAc;IACd,iBAAiB;AACrB;;AAEA;IACI,WAAW;IACX,WAAW;IACX,yBAAyB;IACzB,YAAY;IACZ,kBAAkB;AACtB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,SAAS;IACT,eAAe;IACf,mBAAmB;AACvB","sourcesContent":[".selectorPage {\r\n    --dot-color: #c7c7c7;\r\n    --dot-gap: 20px;\r\n    min-height: 100vh;\r\n    background-color: #fff;\r\n    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.5px);\r\n    background-size: var(--dot-gap) var(--dot-gap);\r\n}\r\n\r\n/* --- ESTILOS ORIGINAIS DO SELECTORBOX (PRESERVADOS) --- */\r\n.selectorBox {\r\n    border-radius: 0.5rem;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    overflow: hidden; \r\n    position: relative;\r\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\r\n    flex-shrink: 0; /* Garante que a caixa mantenha sempre 6rem x 6rem */\r\n}\r\n\r\n/* Corrigido: <Link> gera a tag <a> no HTML */\r\n.selectorBox a {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa (6rem) */\r\n    flex-shrink: 0; /* Impede que o flexbox esmague as divs no deslize */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit: fill;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color: white;\r\n    text-align: center;\r\n    background-color: #2563eb;\r\n}\r\n\r\n.selectorLogo {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit: fill;\r\n    transform: scale(0.75);\r\n}\r\n\r\n/* --- NOVO CONTAINER E SEÇÕES --- */\r\n.selectorContainer {\r\n    max-width: 70vw;\r\n    width: 50vw;\r\n    display: flex;\r\n    flex-direction: column;\r\n    border-radius: 30px;\r\n    background: white;\r\n    box-shadow:\r\n        inset 0 0 25px rgba(50, 50, 93, 0.25),\r\n        inset 0 0 10px rgba(0, 0, 0, 0.15);    z-index: 1;\r\n    padding: 32px;\r\n    gap: 1.5rem;\r\n    box-sizing: border-box;\r\n    overflow-y: auto;\r\n}\r\n\r\n.selectorSection {\r\n    width: 100%;\r\n    display: flex;\r\n    flex-direction: column;\r\n}\r\n\r\n.sectionTitle {\r\n    font-size: 1.1rem;\r\n    font-weight: 600;\r\n    color: #1e3a8a;\r\n    margin: 0 0 4px 0;\r\n}\r\n\r\n.sectionDivider {\r\n    width: 100%;\r\n    height: 2px;\r\n    background-color: #1e3a8a;\r\n    border: none;\r\n    margin: 0 0 16px 0;\r\n}\r\n\r\n.sectionCards {\r\n    display: flex;\r\n    flex-direction: row;\r\n    gap: 2rem;\r\n    flex-wrap: wrap;\r\n    align-items: center;\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -49195,23 +49266,63 @@ if (false) // removed by dead control flow
 
 /***/ },
 
-/***/ "./frontend/icons/SLL.png"
-/*!********************************!*\
-  !*** ./frontend/icons/SLL.png ***!
-  \********************************/
+/***/ "./frontend/icons/InsertionSort.svg"
+/*!******************************************!*\
+  !*** ./frontend/icons/InsertionSort.svg ***!
+  \******************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "1b88c81f4b93c257251c.png";
+module.exports = __webpack_require__.p + "faa5304ec40be869c68d.svg";
 
 /***/ },
 
-/***/ "./frontend/icons/Vector.png"
+/***/ "./frontend/icons/LogoAlgorithmio.svg"
+/*!********************************************!*\
+  !*** ./frontend/icons/LogoAlgorithmio.svg ***!
+  \********************************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "105fe827e04d670944ff.svg";
+
+/***/ },
+
+/***/ "./frontend/icons/MergeSort.svg"
+/*!**************************************!*\
+  !*** ./frontend/icons/MergeSort.svg ***!
+  \**************************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "130e470a4fc99150dce5.svg";
+
+/***/ },
+
+/***/ "./frontend/icons/SLL.svg"
+/*!********************************!*\
+  !*** ./frontend/icons/SLL.svg ***!
+  \********************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "b77fb40e3c23d446f45e.svg";
+
+/***/ },
+
+/***/ "./frontend/icons/Stack.svg"
+/*!**********************************!*\
+  !*** ./frontend/icons/Stack.svg ***!
+  \**********************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "848fedc70f3e898deb92.svg";
+
+/***/ },
+
+/***/ "./frontend/icons/Vector.svg"
 /*!***********************************!*\
-  !*** ./frontend/icons/Vector.png ***!
+  !*** ./frontend/icons/Vector.svg ***!
   \***********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "76d4ede4c8ce040a0f4d.png";
+module.exports = __webpack_require__.p + "b7bcd187df457f5fb327.svg";
 
 /***/ },
 
