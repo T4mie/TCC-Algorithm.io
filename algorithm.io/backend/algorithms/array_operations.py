@@ -38,77 +38,68 @@ class ArrayOperations:
         self.nodes[index].label = f"{index}: {value}" if value is not None else str(index)
 
     def insert_at(self, index, value):
-        """Insere `value` na posição `index`, deslocando os elementos de
-        `index..size-1` uma posição à direita. Registra um passo por etapa
-        (checagem de índice, checagem de overflow, cada deslocamento,
-        escrita do valor, incremento do tamanho). Levanta `ValueError` se o
-        índice for inválido ou o vetor estiver cheio."""
+        """Insere `value` no índice informado.
+
+        O vetor aceita qualquer índice válido dentro da capacidade. Se o slot
+        já estiver ocupado, ele é substituído; se estiver vazio, o valor é
+        inserido sem exigir contiguidade. Overflow só acontece quando todos os
+        slots estão preenchidos e o índice informado está vazio, o que não é
+        possível ao substituir um valor repetido no mesmo slot.
+        """
         capacity = len(self.nodes)
 
         self.steps.append(self.capture_state(code_id='SIGNATURE'))
 
         self.steps.append(self.capture_state(code_id='CHECK_INDEX'))
-        if index < 0 or index > self.size:
+        if index < 0 or index >= capacity:
             self.steps.append(self.capture_state(code_id='INVALID_INDEX'))
             raise ValueError("Índice inválido")
 
         self.steps.append(self.capture_state(
             highlighted=[capacity - 1] if capacity > 0 else [], code_id='CHECK_FULL'
         ))
-        if self.size == capacity:
+
+        if self.nodes[index].value is not None:
+            self.steps.append(self.capture_state(highlighted=[index], active_value=value, code_id='REPLACE_VALUE'))
+            self._write_slot(index, value)
+            self.steps.append(self.capture_state(highlighted=[index], active_value=value, code_id='SET_VALUE'))
+            self.size = sum(1 for node in self.nodes if node.value is not None)
+            self.steps.append(self.capture_state(active_value=value, code_id='END_FUNC'))
+            return self.steps
+
+        if all(node.value is not None for node in self.nodes):
             self.steps.append(self.capture_state(code_id='OVERFLOW'))
             raise ValueError("Vetor cheio (Overflow)")
 
-        i = self.size
-        self.steps.append(self.capture_state(highlighted=[i] if i < capacity else [], code_id='INIT_I'))
-
-        while i > index:
-            self.steps.append(self.capture_state(highlighted=[i - 1, i], code_id='WHILE_COND'))
-            self._write_slot(i, self.nodes[i - 1].value)
-            self.steps.append(self.capture_state(highlighted=[i - 1, i], code_id='SHIFT_RIGHT'))
-            i -= 1
-            self.steps.append(self.capture_state(highlighted=[i], code_id='DECREMENT_I'))
-        self.steps.append(self.capture_state(highlighted=[i], code_id='WHILE_COND'))
-
-        self._write_slot(index, value)
         self.steps.append(self.capture_state(highlighted=[index], active_value=value, code_id='SET_VALUE'))
-
-        self.size += 1
+        self._write_slot(index, value)
+        self.size = sum(1 for node in self.nodes if node.value is not None)
         self.steps.append(self.capture_state(active_value=value, code_id='INCREMENT_SIZE'))
         self.steps.append(self.capture_state(active_value=value, code_id='END_FUNC'))
         return self.steps
 
     def remove_at(self, index):
-        """Remove o valor na posição `index`, deslocando os elementos de
-        `index+1..size-1` uma posição à esquerda. Registra um passo por
-        etapa (checagem de índice, leitura do valor, cada deslocamento,
-        limpeza do último slot, decremento do tamanho). Levanta `ValueError`
-        se o índice for inválido."""
+        """Remove o valor da posição `index`.
+
+        Como o vetor admite lacunas, a remoção é feita diretamente no slot
+        indicado, sem deslocar o restante dos elementos. Se o índice estiver
+        fora do alcance ou o slot estiver vazio, ele é inválido.
+        """
+        capacity = len(self.nodes)
         self.steps.append(self.capture_state(code_id='SIGNATURE'))
 
         self.steps.append(self.capture_state(code_id='CHECK_INDEX'))
-        if index < 0 or index >= self.size:
+        if index < 0 or index >= capacity or self.nodes[index].value is None:
             self.steps.append(self.capture_state(code_id='INVALID_INDEX'))
             raise ValueError("Índice inválido")
 
         value = self.nodes[index].value
         self.steps.append(self.capture_state(highlighted=[index], active_value=value, code_id='READ_VALUE'))
 
-        i = index
-        self.steps.append(self.capture_state(highlighted=[i], active_value=value, code_id='INIT_I'))
+        self._write_slot(index, None)
+        self.steps.append(self.capture_state(highlighted=[index], active_value=value, code_id='CLEAR_LAST'))
 
-        while i < self.size - 1:
-            self.steps.append(self.capture_state(highlighted=[i, i + 1], active_value=value, code_id='WHILE_COND'))
-            self._write_slot(i, self.nodes[i + 1].value)
-            self.steps.append(self.capture_state(highlighted=[i, i + 1], active_value=value, code_id='SHIFT_LEFT'))
-            i += 1
-            self.steps.append(self.capture_state(highlighted=[i], active_value=value, code_id='INCREMENT_I'))
-        self.steps.append(self.capture_state(highlighted=[i], active_value=value, code_id='WHILE_COND'))
-
-        self._write_slot(self.size - 1, None)
-        self.steps.append(self.capture_state(highlighted=[self.size - 1], active_value=value, code_id='CLEAR_LAST'))
-
-        self.size -= 1
+        self.size = sum(1 for node in self.nodes if node.value is not None)
         self.steps.append(self.capture_state(active_value=value, code_id='DECREMENT_SIZE'))
         self.steps.append(self.capture_state(active_value=value, code_id='END_FUNC'))
         return self.steps

@@ -42,8 +42,13 @@ class ArrayVector:
         return self.nodes
 
     def get_array_data_type(self):
-        """Retorna o tipo de dados do vetor: 'int', 'string', ou None se vazio"""
-        for node in self.nodes[:self.size]:
+        """Retorna o tipo de dados do vetor: 'int', 'string', ou None se vazio.
+
+        Como o vetor pode ter lacunas, a verificação deve percorrer todos os
+        slots, e não apenas os `self.size` primeiros, que podem não refletir a
+        ocupação real quando o usuário insere em índices arbitrários.
+        """
+        for node in self.nodes:
             if node.value is not None:
                 if isinstance(node.value, int):
                     return 'int'

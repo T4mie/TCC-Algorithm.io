@@ -1,17 +1,13 @@
 export const arrayInsertJavaLines = [
   { id: 'SIGNATURE', text: 'public void insert(int indice, int valor) {' },
-  { id: 'CHECK_INDEX', text: '    if (indice < 0 || indice > tamanho) {' },
+  { id: 'CHECK_INDEX', text: '    if (indice < 0 || indice >= capacidade) {' },
   { id: 'INVALID_INDEX', text: '        throw new RuntimeException("Índice inválido");' },
   { id: 'END_CHECK_INDEX', text: '    }' },
-  { id: 'CHECK_FULL', text: '    if (tamanho == capacidade) {' },
+  { id: 'CHECK_FULL', text: '    if (todosOsSlotsEstaoPreenchidos() && vetor[indice] == null) {' },
   { id: 'OVERFLOW', text: '        throw new RuntimeException("Vetor cheio (Overflow)");' },
   { id: 'END_CHECK_FULL', text: '    }' },
-  { id: 'INIT_I', text: '    int i = tamanho;' },
-  { id: 'WHILE_COND', text: '    while (i > indice) {' },
-  { id: 'SHIFT_RIGHT', text: '        vetor[i] = vetor[i - 1];' },
-  { id: 'DECREMENT_I', text: '        i--;' },
-  { id: 'END_WHILE', text: '    }' },
+  { id: 'REPLACE_VALUE', text: '    vetor[indice] = valor;' },
   { id: 'SET_VALUE', text: '    vetor[indice] = valor;' },
-  { id: 'INCREMENT_SIZE', text: '    tamanho++;' },
+  { id: 'INCREMENT_SIZE', text: '    tamanho = contarSlotsPreenchidos();' },
   { id: 'END_FUNC', text: '}' }
 ];

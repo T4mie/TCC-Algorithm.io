@@ -69,7 +69,7 @@ function VectorNode({ data }) {
           const isSwapped = swapped?.includes(index);
 
           const hasValue = value !== null && value !== undefined && value !== '';
-          let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
+          let backgroundColor = hasValue ? '#3498db' : '#1c2732';
 
           if (isSwapped) {
             backgroundColor = '#4CAF50';
@@ -87,7 +87,7 @@ function VectorNode({ data }) {
                 alignItems: 'center',
                 borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
                 background: backgroundColor,
-                color: hasValue ? '#fff' : '#2c3e50',
+                color: hasValue ? '#fff' : '#dfeaf5',
                 fontSize: '14px',
                 fontWeight: 'bold',
                 transition: 'background 0.3s ease',

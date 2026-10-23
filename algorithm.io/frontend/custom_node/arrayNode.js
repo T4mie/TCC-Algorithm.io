@@ -9,15 +9,17 @@ function ArrayNode({ data }) {
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const capacity = values.length;
+  const currentIndex = highlighted.length > 0 ? highlighted[0] : null;
 
-  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_LAST';
+  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_LAST' || codeId === 'REPLACE_VALUE';
 
   const valorDisplay = activeValue !== undefined && activeValue !== null ? activeValue : '—';
+  const indiceDisplay = currentIndex !== null && currentIndex !== undefined ? currentIndex : '—';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-      {/* Painel com as variáveis importantes do método (capacidade, tamanho, valor) */}
+      {/* Painel com as variáveis importantes do método (capacidade, tamanho, valor, índice) */}
       <div style={{
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         fontSize: '11px',
@@ -31,7 +33,7 @@ function ArrayNode({ data }) {
         whiteSpace: 'pre',
         textAlign: 'left'
       }}>
-        {`capacidade: ${capacity}\ntamanho: ${size}\nvalor: ${valorDisplay}`}
+        {`capacidade: ${capacity}\ntamanho: ${size}\nvalor: ${valorDisplay}\nindice: ${indiceDisplay}`}
       </div>
 
       {/* Row de índices (labels) */}
@@ -73,7 +75,7 @@ function ArrayNode({ data }) {
           const isWithinSize = index < size;
           const hasValue = value !== null && value !== undefined && value !== '';
 
-          let backgroundColor = hasValue ? '#3498db' : '#ecf0f1';
+          let backgroundColor = hasValue ? '#3498db' : '#1c2732';
           if (isHighlighted && isMutatingStep) {
             backgroundColor = '#4CAF50';
           } else if (isHighlighted) {
@@ -90,10 +92,10 @@ function ArrayNode({ data }) {
                 alignItems: 'center',
                 borderRight: index < capacity - 1 ? (isWithinSize ? '1px solid #1b2530' : '1px dashed #7f8c8d') : 'none',
                 background: backgroundColor,
-                color: hasValue ? '#fff' : '#2c3e50',
+                color: hasValue ? '#fff' : '#dfeaf5',
                 fontSize: '14px',
                 fontWeight: 'bold',
-                opacity: isWithinSize || hasValue ? 1 : 0.5,
+                opacity: isWithinSize || hasValue ? 1 : 0.7,
                 transition: 'background 0.3s ease',
               }}
             >

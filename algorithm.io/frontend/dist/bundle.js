@@ -10056,7 +10056,7 @@ const arrayInsertJavaLines = [{
   text: 'public void insert(int indice, int valor) {'
 }, {
   id: 'CHECK_INDEX',
-  text: '    if (indice < 0 || indice > tamanho) {'
+  text: '    if (indice < 0 || indice >= capacidade) {'
 }, {
   id: 'INVALID_INDEX',
   text: '        throw new RuntimeException("Índice inválido");'
@@ -10065,7 +10065,7 @@ const arrayInsertJavaLines = [{
   text: '    }'
 }, {
   id: 'CHECK_FULL',
-  text: '    if (tamanho == capacidade) {'
+  text: '    if (todosOsSlotsEstaoPreenchidos() && vetor[indice] == null) {'
 }, {
   id: 'OVERFLOW',
   text: '        throw new RuntimeException("Vetor cheio (Overflow)");'
@@ -10073,26 +10073,14 @@ const arrayInsertJavaLines = [{
   id: 'END_CHECK_FULL',
   text: '    }'
 }, {
-  id: 'INIT_I',
-  text: '    int i = tamanho;'
-}, {
-  id: 'WHILE_COND',
-  text: '    while (i > indice) {'
-}, {
-  id: 'SHIFT_RIGHT',
-  text: '        vetor[i] = vetor[i - 1];'
-}, {
-  id: 'DECREMENT_I',
-  text: '        i--;'
-}, {
-  id: 'END_WHILE',
-  text: '    }'
+  id: 'REPLACE_VALUE',
+  text: '    vetor[indice] = valor;'
 }, {
   id: 'SET_VALUE',
   text: '    vetor[indice] = valor;'
 }, {
   id: 'INCREMENT_SIZE',
-  text: '    tamanho++;'
+  text: '    tamanho = contarSlotsPreenchidos();'
 }, {
   id: 'END_FUNC',
   text: '}'
@@ -10115,34 +10103,25 @@ const arrayInsertPseudocodigoLines = [{
   text: 'INSERIR(Vetor, indice, valor)'
 }, {
   id: 'CHECK_INDEX',
-  text: '    se indice < 0 ou indice > Vetor.tamanho'
+  text: '    se indice < 0 ou indice >= tamanho(Vetor)'
 }, {
   id: 'INVALID_INDEX',
   text: '        erro "Índice inválido"'
 }, {
   id: 'CHECK_FULL',
-  text: '    se Vetor.tamanho == Vetor.capacidade'
+  text: '    se todos os slots estao preenchidos e Vetor[indice] == vazio'
 }, {
   id: 'OVERFLOW',
   text: '        erro "Vetor cheio (Overflow)"'
 }, {
-  id: 'INIT_I',
-  text: '    i = Vetor.tamanho'
-}, {
-  id: 'WHILE_COND',
-  text: '    enquanto i > indice'
-}, {
-  id: 'SHIFT_RIGHT',
-  text: '        Vetor[i] = Vetor[i-1]'
-}, {
-  id: 'DECREMENT_I',
-  text: '        i = i - 1'
+  id: 'REPLACE_VALUE',
+  text: '    Vetor[indice] = valor'
 }, {
   id: 'SET_VALUE',
   text: '    Vetor[indice] = valor'
 }, {
   id: 'INCREMENT_SIZE',
-  text: '    Vetor.tamanho = Vetor.tamanho + 1'
+  text: '    tamanho = quantidade de slots preenchidos'
 }];
 
 /***/ },
@@ -10162,34 +10141,25 @@ const arrayInsertPythonLines = [{
   text: 'def insert(vetor, indice, valor):'
 }, {
   id: 'CHECK_INDEX',
-  text: '    if indice < 0 or indice > vetor.tamanho:'
+  text: '    if indice < 0 or indice >= len(vetor):'
 }, {
   id: 'INVALID_INDEX',
   text: '        raise ValueError("Índice inválido")'
 }, {
   id: 'CHECK_FULL',
-  text: '    if vetor.tamanho == vetor.capacidade:'
+  text: '    if all(slot is not None for slot in vetor):'
 }, {
   id: 'OVERFLOW',
   text: '        raise ValueError("Vetor cheio (Overflow)")'
 }, {
-  id: 'INIT_I',
-  text: '    i = vetor.tamanho'
-}, {
-  id: 'WHILE_COND',
-  text: '    while i > indice:'
-}, {
-  id: 'SHIFT_RIGHT',
-  text: '        vetor[i] = vetor[i - 1]'
-}, {
-  id: 'DECREMENT_I',
-  text: '        i -= 1'
+  id: 'REPLACE_VALUE',
+  text: '    vetor[indice] = valor'
 }, {
   id: 'SET_VALUE',
   text: '    vetor[indice] = valor'
 }, {
   id: 'INCREMENT_SIZE',
-  text: '    vetor.tamanho += 1'
+  text: '    tamanho = sum(1 for slot in vetor if slot is not None)'
 }];
 
 /***/ },
@@ -10312,7 +10282,7 @@ const arrayRemovePythonLines = [{
   text: 'def remove(vetor, indice):'
 }, {
   id: 'CHECK_INDEX',
-  text: '    if indice < 0 or indice >= vetor.tamanho:'
+  text: '    if indice < 0 or indice >= len(vetor) or vetor[indice] is None:'
 }, {
   id: 'INVALID_INDEX',
   text: '        raise ValueError("Índice inválido")'
@@ -10320,23 +10290,11 @@ const arrayRemovePythonLines = [{
   id: 'READ_VALUE',
   text: '    valor = vetor[indice]'
 }, {
-  id: 'INIT_I',
-  text: '    i = indice'
-}, {
-  id: 'WHILE_COND',
-  text: '    while i < vetor.tamanho - 1:'
-}, {
-  id: 'SHIFT_LEFT',
-  text: '        vetor[i] = vetor[i + 1]'
-}, {
-  id: 'INCREMENT_I',
-  text: '        i += 1'
-}, {
   id: 'CLEAR_LAST',
-  text: '    vetor[vetor.tamanho - 1] = None'
+  text: '    vetor[indice] = None'
 }, {
   id: 'DECREMENT_SIZE',
-  text: '    vetor.tamanho -= 1'
+  text: '    tamanho = sum(1 for slot in vetor if slot is not None)'
 }, {
   id: 'END_FUNC',
   text: '    return valor'
@@ -13446,8 +13404,10 @@ function ArrayNode({
   const rawLabels = data.labels || values.map((_, i) => String(i));
   const labels = rawLabels.map(l => String(l).split(':')[0].trim());
   const capacity = values.length;
-  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_LAST';
+  const currentIndex = highlighted.length > 0 ? highlighted[0] : null;
+  const isMutatingStep = codeId === 'SET_VALUE' || codeId === 'CLEAR_LAST' || codeId === 'REPLACE_VALUE';
   const valorDisplay = activeValue !== undefined && activeValue !== null ? activeValue : '—';
+  const indiceDisplay = currentIndex !== null && currentIndex !== undefined ? currentIndex : '—';
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
@@ -13468,7 +13428,7 @@ function ArrayNode({
       whiteSpace: 'pre',
       textAlign: 'left'
     }
-  }, `capacidade: ${capacity}\ntamanho: ${size}\nvalor: ${valorDisplay}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, `capacidade: ${capacity}\ntamanho: ${size}\nvalor: ${valorDisplay}\nindice: ${indiceDisplay}`), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'row',
@@ -13517,10 +13477,10 @@ function ArrayNode({
         alignItems: 'center',
         borderRight: index < capacity - 1 ? isWithinSize ? '1px solid #1b2530' : '1px dashed #7f8c8d' : 'none',
         background: backgroundColor,
-        color: hasValue ? '#fff' : '#2c3e50',
+        color: hasValue ? '#fff' : '#dfeaf5',
         fontSize: '14px',
         fontWeight: 'bold',
-        opacity: isWithinSize || hasValue ? 1 : 0.5,
+        opacity: isWithinSize || hasValue ? 1 : 0.7,
         transition: 'background 0.3s ease'
       }
     }, hasValue ? value : '');
@@ -14143,7 +14103,7 @@ function VectorNode({
         alignItems: 'center',
         borderRight: index < size - 1 ? '1px solid #34495e' : 'none',
         background: backgroundColor,
-        color: hasValue ? '#fff' : '#2c3e50',
+        color: hasValue ? '#fff' : '#dfeaf5',
         fontSize: '14px',
         fontWeight: 'bold',
         transition: 'background 0.3s ease'
@@ -16565,7 +16525,7 @@ background-color: #0b0b0b;
 ::-webkit-scrollbar-thumb {
 background-color: #0b0b0b;
 border-radius: 30px;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/codeView.css"],"names":[],"mappings":"AAAA;AACA,UAAU;AACV,yBAAyB;AACzB;AACA;AACA,uDAAuD;AACvD,yBAAyB;AACzB;AACA;AACA,yBAAyB;AACzB,mBAAmB;AACnB","sourcesContent":["::-webkit-scrollbar {\r\nwidth: 6px;\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-track {\r\n-webkit-box-shadow: inset 0 0 6px rgba(30, 30, 30, 0.3);\r\nbackground-color: #0b0b0b;\r\n}\r\n::-webkit-scrollbar-thumb {\r\nbackground-color: #0b0b0b;\r\nborder-radius: 30px;\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/codeView.css"],"names":[],"mappings":"AAAA;AACA,UAAU;AACV,yBAAyB;AACzB;AACA;AACA,uDAAuD;AACvD,yBAAyB;AACzB;AACA;AACA,yBAAyB;AACzB,mBAAmB;AACnB","sourcesContent":["::-webkit-scrollbar {\nwidth: 6px;\nbackground-color: #0b0b0b;\n}\n::-webkit-scrollbar-track {\n-webkit-box-shadow: inset 0 0 6px rgba(30, 30, 30, 0.3);\nbackground-color: #0b0b0b;\n}\n::-webkit-scrollbar-thumb {\nbackground-color: #0b0b0b;\nborder-radius: 30px;\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -16704,7 +16664,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.input-container {
 }
 
 .control-selector option{
-}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,cAAc;EAChB;;AAEF;EACE,kBAAkB;EAClB,SAAS;EACT,OAAO;EACP,WAAW;EACX,WAAW;EACX,yBAAyB;EACzB,oBAAoB;EACpB,yBAAyB;AAC3B;;AAEA;;EAEE,oBAAoB,CAAC;;AAEvB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ;;AAEA;EACE,cAAc;AAChB;;AAEA;EACE,kFAAkF;AACpF;;AAEA;EACE,WAAW;EACX,oBAAoB;EACpB,mBAAmB;EACnB,eAAe;AACjB;;AAEA;AACA","sourcesContent":[".input-container {\r\n    position: relative;\r\n    width: 100%;\r\n  }\r\n\r\n  .input-container input[type=\"text\"] {\r\n    font-size: 12px;\r\n    font-family: inherit;\r\n    width: 100%;\r\n    border: none;\r\n    border-bottom: 2px solid #ccc;\r\n    padding: 5px 0;\r\n    background-color: transparent;\r\n    outline: none;\r\n  }\r\n\r\n  .input-container .label {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    color: #ccc;\r\n    transition: all 0.3s ease;\r\n    pointer-events: none;\r\n  }\r\n\r\n  .input-container input[type=\"text\"]:focus ~ .label,\r\n  .input-container input[type=\"text\"]:valid ~ .label {\r\n    top: -10px;\r\n    font-size: 12px;\r\n    color: #1e427C;\r\n  }\r\n\r\n.input-container .underline {\r\n  position: absolute;\r\n  bottom: 0;\r\n  left: 0;\r\n  height: 2px;\r\n  width: 100%;\r\n  background-color: #1e427C;\r\n  transform: scaleX(0);\r\n  transition: all 0.3s ease;\r\n}\r\n\r\n.input-container input[type=\"text\"]:focus ~ .underline,\r\n.input-container input[type=\"text\"]:valid ~ .underline {\r\n  transform: scaleX(1);}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n}\r\n\r\n.control-button {\r\n width: 100%;\r\n height: 2em;\r\n border-radius: 15em;\r\n font-size: 12px;\r\n font-family: inherit;\r\n border: none;\r\n position: relative;\r\n overflow: hidden;\r\n z-index: 1;\r\n color: #1e427C;\r\n transition: color .3s ease;\r\n}\r\n\r\n.control-button::before {\r\n content: '';\r\n width: 100%;\r\n height: 100%;\r\n border-radius: 15em;\r\n position: absolute;\r\n top: 0;\r\n left: 0;\r\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\r\n transform: scaleX(0);\r\n transform-origin: center;\r\n transition: transform .5s ease;\r\n display: block;\r\n z-index: -1;\r\n}\r\n\r\n.control-button:hover::before {\r\n transform: scaleX(1);\r\n}\r\n\r\n.control-button:hover {\r\n color: #fff;\r\n}\r\n\r\n.control-button-danger {\r\n  color: #c0392b;\r\n}\r\n\r\n.control-button-danger::before {\r\n  background-image: linear-gradient(to right, #c0392b 0%, #e74c3c 50%, #c0392b 100%);\r\n}\r\n\r\n.control-selector{\r\n  width: 100%;\r\n  font-family: inherit;\r\n  border-radius: 15em;\r\n  font-size: 12px;\r\n}\r\n\r\n.control-selector option{\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/controls.css"],"names":[],"mappings":"AAAA;IACI,kBAAkB;IAClB,WAAW;EACb;;EAEA;IACE,eAAe;IACf,oBAAoB;IACpB,WAAW;IACX,YAAY;IACZ,6BAA6B;IAC7B,cAAc;IACd,6BAA6B;IAC7B,aAAa;EACf;;EAEA;IACE,kBAAkB;IAClB,MAAM;IACN,OAAO;IACP,WAAW;IACX,yBAAyB;IACzB,oBAAoB;EACtB;;EAEA;;IAEE,UAAU;IACV,eAAe;IACf,cAAc;EAChB;;AAEF;EACE,kBAAkB;EAClB,SAAS;EACT,OAAO;EACP,WAAW;EACX,WAAW;EACX,yBAAyB;EACzB,oBAAoB;EACpB,yBAAyB;AAC3B;;AAEA;;EAEE,oBAAoB,CAAC;;AAEvB;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;AACX;;AAEA;CACC,WAAW;CACX,WAAW;CACX,mBAAmB;CACnB,eAAe;CACf,oBAAoB;CACpB,YAAY;CACZ,kBAAkB;CAClB,gBAAgB;CAChB,UAAU;CACV,cAAc;CACd,0BAA0B;AAC3B;;AAEA;CACC,WAAW;CACX,WAAW;CACX,YAAY;CACZ,mBAAmB;CACnB,kBAAkB;CAClB,MAAM;CACN,OAAO;CACP,iFAAiF;CACjF,oBAAoB;CACpB,wBAAwB;CACxB,8BAA8B;CAC9B,cAAc;CACd,WAAW;AACZ;;AAEA;CACC,oBAAoB;AACrB;;AAEA;CACC,WAAW;AACZ;;AAEA;EACE,cAAc;AAChB;;AAEA;EACE,kFAAkF;AACpF;;AAEA;EACE,WAAW;EACX,oBAAoB;EACpB,mBAAmB;EACnB,eAAe;AACjB;;AAEA;AACA","sourcesContent":[".input-container {\n    position: relative;\n    width: 100%;\n  }\n\n  .input-container input[type=\"text\"] {\n    font-size: 12px;\n    font-family: inherit;\n    width: 100%;\n    border: none;\n    border-bottom: 2px solid #ccc;\n    padding: 5px 0;\n    background-color: transparent;\n    outline: none;\n  }\n\n  .input-container .label {\n    position: absolute;\n    top: 0;\n    left: 0;\n    color: #ccc;\n    transition: all 0.3s ease;\n    pointer-events: none;\n  }\n\n  .input-container input[type=\"text\"]:focus ~ .label,\n  .input-container input[type=\"text\"]:valid ~ .label {\n    top: -10px;\n    font-size: 12px;\n    color: #1e427C;\n  }\n\n.input-container .underline {\n  position: absolute;\n  bottom: 0;\n  left: 0;\n  height: 2px;\n  width: 100%;\n  background-color: #1e427C;\n  transform: scaleX(0);\n  transition: all 0.3s ease;\n}\n\n.input-container input[type=\"text\"]:focus ~ .underline,\n.input-container input[type=\"text\"]:valid ~ .underline {\n  transform: scaleX(1);}\n\n.control-button {\n width: 100%;\n height: 2em;\n border-radius: 15em;\n font-size: 12px;\n font-family: inherit;\n border: none;\n position: relative;\n overflow: hidden;\n z-index: 1;\n}\n\n.control-button {\n width: 100%;\n height: 2em;\n border-radius: 15em;\n font-size: 12px;\n font-family: inherit;\n border: none;\n position: relative;\n overflow: hidden;\n z-index: 1;\n color: #1e427C;\n transition: color .3s ease;\n}\n\n.control-button::before {\n content: '';\n width: 100%;\n height: 100%;\n border-radius: 15em;\n position: absolute;\n top: 0;\n left: 0;\n background-image: linear-gradient(to right, #1e427C 0%, #2563eb 50%,#1e427C 100%);\n transform: scaleX(0);\n transform-origin: center;\n transition: transform .5s ease;\n display: block;\n z-index: -1;\n}\n\n.control-button:hover::before {\n transform: scaleX(1);\n}\n\n.control-button:hover {\n color: #fff;\n}\n\n.control-button-danger {\n  color: #c0392b;\n}\n\n.control-button-danger::before {\n  background-image: linear-gradient(to right, #c0392b 0%, #e74c3c 50%, #c0392b 100%);\n}\n\n.control-selector{\n  width: 100%;\n  font-family: inherit;\n  border-radius: 15em;\n  font-size: 12px;\n}\n\n.control-selector option{\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -16842,7 +16802,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.selectorPage {
     gap: 2rem;
     flex-wrap: wrap;
     align-items: center;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,oBAAoB;IACpB,eAAe;IACf,iBAAiB;IACjB,sBAAsB;IACtB,kFAAkF;IAClF,8CAA8C;AAClD;;AAEA,2DAA2D;AAC3D;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;IACrI,cAAc,EAAE,oDAAoD;AACxE;;AAEA,6CAA6C;AAC7C;IACI,WAAW;IACX,YAAY;IACZ,cAAc;AAClB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,qDAAqD;IACnE,cAAc,EAAE,oDAAoD;IACpE,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,YAAY;IACZ,kBAAkB;IAClB,yBAAyB;AAC7B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;IAChB,sBAAsB;AAC1B;;AAEA,oCAAoC;AACpC;IACI,eAAe;IACf,WAAW;IACX,aAAa;IACb,sBAAsB;IACtB,mBAAmB;IACnB,iBAAiB;IACjB;;0CAEsC,KAAK,UAAU;IACrD,aAAa;IACb,WAAW;IACX,sBAAsB;IACtB,gBAAgB;AACpB;;AAEA;IACI,WAAW;IACX,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;IAChB,cAAc;IACd,iBAAiB;AACrB;;AAEA;IACI,WAAW;IACX,WAAW;IACX,yBAAyB;IACzB,YAAY;IACZ,kBAAkB;AACtB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,SAAS;IACT,eAAe;IACf,mBAAmB;AACvB","sourcesContent":[".selectorPage {\r\n    --dot-color: #c7c7c7;\r\n    --dot-gap: 20px;\r\n    min-height: 100vh;\r\n    background-color: #fff;\r\n    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.5px);\r\n    background-size: var(--dot-gap) var(--dot-gap);\r\n}\r\n\r\n/* --- ESTILOS ORIGINAIS DO SELECTORBOX (PRESERVADOS) --- */\r\n.selectorBox {\r\n    border-radius: 0.5rem;\r\n    width: 6rem;\r\n    height: 6rem;\r\n    background-color: #fff;\r\n    cursor: pointer;\r\n    overflow: hidden; \r\n    position: relative;\r\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\r\n    flex-shrink: 0; /* Garante que a caixa mantenha sempre 6rem x 6rem */\r\n}\r\n\r\n/* Corrigido: <Link> gera a tag <a> no HTML */\r\n.selectorBox a {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n}\r\n\r\n.content-wrapper {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\r\n}\r\n\r\n.box-section {\r\n    width: 100%;\r\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa (6rem) */\r\n    flex-shrink: 0; /* Impede que o flexbox esmague as divs no deslize */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 10px;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.icon-section img {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit: fill;\r\n}\r\n\r\n.text-section {\r\n    font-size: 0.8rem;\r\n    font-weight: bold;\r\n    color: white;\r\n    text-align: center;\r\n    background-color: #2563eb;\r\n}\r\n\r\n.selectorLogo {\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    object-fit: fill;\r\n    transform: scale(0.75);\r\n}\r\n\r\n/* --- NOVO CONTAINER E SEÇÕES --- */\r\n.selectorContainer {\r\n    max-width: 70vw;\r\n    width: 50vw;\r\n    display: flex;\r\n    flex-direction: column;\r\n    border-radius: 30px;\r\n    background: white;\r\n    box-shadow:\r\n        inset 0 0 25px rgba(50, 50, 93, 0.25),\r\n        inset 0 0 10px rgba(0, 0, 0, 0.15);    z-index: 1;\r\n    padding: 32px;\r\n    gap: 1.5rem;\r\n    box-sizing: border-box;\r\n    overflow-y: auto;\r\n}\r\n\r\n.selectorSection {\r\n    width: 100%;\r\n    display: flex;\r\n    flex-direction: column;\r\n}\r\n\r\n.sectionTitle {\r\n    font-size: 1.1rem;\r\n    font-weight: 600;\r\n    color: #1e3a8a;\r\n    margin: 0 0 4px 0;\r\n}\r\n\r\n.sectionDivider {\r\n    width: 100%;\r\n    height: 2px;\r\n    background-color: #1e3a8a;\r\n    border: none;\r\n    margin: 0 0 16px 0;\r\n}\r\n\r\n.sectionCards {\r\n    display: flex;\r\n    flex-direction: row;\r\n    gap: 2rem;\r\n    flex-wrap: wrap;\r\n    align-items: center;\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/selector.css"],"names":[],"mappings":"AAAA;IACI,oBAAoB;IACpB,eAAe;IACf,iBAAiB;IACjB,sBAAsB;IACtB,kFAAkF;IAClF,8CAA8C;AAClD;;AAEA,2DAA2D;AAC3D;IACI,qBAAqB;IACrB,WAAW;IACX,YAAY;IACZ,sBAAsB;IACtB,eAAe;IACf,gBAAgB;IAChB,kBAAkB;IAClB,qIAAqI;IACrI,cAAc,EAAE,oDAAoD;AACxE;;AAEA,6CAA6C;AAC7C;IACI,WAAW;IACX,YAAY;IACZ,cAAc;AAClB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,aAAa;IACb,sBAAsB,EAAE,wCAAwC;AACpE;;AAEA;IACI,WAAW;IACX,YAAY,EAAE,qDAAqD;IACnE,cAAc,EAAE,oDAAoD;IACpE,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,iBAAiB;IACjB,YAAY;IACZ,kBAAkB;IAClB,yBAAyB;AAC7B;;AAEA;IACI,eAAe;IACf,gBAAgB;IAChB,gBAAgB;IAChB,sBAAsB;AAC1B;;AAEA,oCAAoC;AACpC;IACI,eAAe;IACf,WAAW;IACX,aAAa;IACb,sBAAsB;IACtB,mBAAmB;IACnB,iBAAiB;IACjB;;0CAEsC,KAAK,UAAU;IACrD,aAAa;IACb,WAAW;IACX,sBAAsB;IACtB,gBAAgB;AACpB;;AAEA;IACI,WAAW;IACX,aAAa;IACb,sBAAsB;AAC1B;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;IAChB,cAAc;IACd,iBAAiB;AACrB;;AAEA;IACI,WAAW;IACX,WAAW;IACX,yBAAyB;IACzB,YAAY;IACZ,kBAAkB;AACtB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,SAAS;IACT,eAAe;IACf,mBAAmB;AACvB","sourcesContent":[".selectorPage {\n    --dot-color: #c7c7c7;\n    --dot-gap: 20px;\n    min-height: 100vh;\n    background-color: #fff;\n    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.5px);\n    background-size: var(--dot-gap) var(--dot-gap);\n}\n\n/* --- ESTILOS ORIGINAIS DO SELECTORBOX (PRESERVADOS) --- */\n.selectorBox {\n    border-radius: 0.5rem;\n    width: 6rem;\n    height: 6rem;\n    background-color: #fff;\n    cursor: pointer;\n    overflow: hidden; \n    position: relative;\n    box-shadow: rgba(6, 24, 44, 0.4) 0px 0px 0px 1px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;\n    flex-shrink: 0; /* Garante que a caixa mantenha sempre 6rem x 6rem */\n}\n\n/* Corrigido: <Link> gera a tag <a> no HTML */\n.selectorBox a {\n    width: 100%;\n    height: 100%;\n    display: block;\n}\n\n.content-wrapper {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    flex-direction: column; /* Empilha ícone e texto verticalmente */\n}\n\n.box-section {\n    width: 100%;\n    height: 100%; /* Cada seção ocupa o tamanho total da caixa (6rem) */\n    flex-shrink: 0; /* Impede que o flexbox esmague as divs no deslize */\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 10px;\n    box-sizing: border-box;\n}\n\n.icon-section img {\n    max-width: 100%;\n    max-height: 100%;\n    object-fit: fill;\n}\n\n.text-section {\n    font-size: 0.8rem;\n    font-weight: bold;\n    color: white;\n    text-align: center;\n    background-color: #2563eb;\n}\n\n.selectorLogo {\n    max-width: 100%;\n    max-height: 100%;\n    object-fit: fill;\n    transform: scale(0.75);\n}\n\n/* --- NOVO CONTAINER E SEÇÕES --- */\n.selectorContainer {\n    max-width: 70vw;\n    width: 50vw;\n    display: flex;\n    flex-direction: column;\n    border-radius: 30px;\n    background: white;\n    box-shadow:\n        inset 0 0 25px rgba(50, 50, 93, 0.25),\n        inset 0 0 10px rgba(0, 0, 0, 0.15);    z-index: 1;\n    padding: 32px;\n    gap: 1.5rem;\n    box-sizing: border-box;\n    overflow-y: auto;\n}\n\n.selectorSection {\n    width: 100%;\n    display: flex;\n    flex-direction: column;\n}\n\n.sectionTitle {\n    font-size: 1.1rem;\n    font-weight: 600;\n    color: #1e3a8a;\n    margin: 0 0 4px 0;\n}\n\n.sectionDivider {\n    width: 100%;\n    height: 2px;\n    background-color: #1e3a8a;\n    border: none;\n    margin: 0 0 16px 0;\n}\n\n.sectionCards {\n    display: flex;\n    flex-direction: row;\n    gap: 2rem;\n    flex-wrap: wrap;\n    align-items: center;\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -16877,7 +16837,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.sideBar{
     height:95vh;
     width: 25vw;
     overflow-y: auto;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/sideBar.css"],"names":[],"mappings":"AAAA;IACI,aAAa;IACb,iBAAiB;IACjB,sBAAsB;IACtB,mBAAmB;IACnB,oCAAoC;IACpC,WAAW;IACX,WAAW;IACX,gBAAgB;AACpB","sourcesContent":[".sideBar{\r\n    padding: 10px; \r\n    padding-top: 12px;\r\n    background-color: #fff; \r\n    border-radius: 12px; \r\n    box-shadow: 0 0 10px rgba(0,0,0,0.2); \r\n    height:95vh;\r\n    width: 25vw;\r\n    overflow-y: auto;\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/sideBar.css"],"names":[],"mappings":"AAAA;IACI,aAAa;IACb,iBAAiB;IACjB,sBAAsB;IACtB,mBAAmB;IACnB,oCAAoC;IACpC,WAAW;IACX,WAAW;IACX,gBAAgB;AACpB","sourcesContent":[".sideBar{\n    padding: 10px; \n    padding-top: 12px;\n    background-color: #fff; \n    border-radius: 12px; \n    box-shadow: 0 0 10px rgba(0,0,0,0.2); \n    height:95vh;\n    width: 25vw;\n    overflow-y: auto;\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -16948,7 +16908,7 @@ ___CSS_LOADER_EXPORT___.push([module.id, `.exitBtn{
 /* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */
 .react-flow__handle {
   z-index: 0;
-}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,yBAAyB;IACzB,cAAc;IACd,iBAAiB;IACjB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;;AAE3B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,UAAU;AACZ;;AAEA,kCAAkC;AAClC;EACE,UAAU;AACZ;;AAEA,2EAA2E;AAC3E;EACE,UAAU;AACZ","sourcesContent":[".exitBtn{\r\n    width: 6vw;\r\n    height: 3vw;\r\n    border-radius: 30em;\r\n    background-color: #1e427C;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    text-decoration: none;\r\n}\r\n\r\n.sign{\r\n    color: white;\r\n    font-size:small;\r\n}\r\n\r\n.codeBtn{\r\n    width:10vw;\r\n    height:6vw;\r\n    border-radius: 12px;\r\n    background-color: #0b0b0b;\r\n    color: #00ff88;\r\n    font-size: 0.8rem;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    \r\n}\r\n.codeBtn:hover{\r\n    cursor: pointer;;\r\n}\r\n\r\n/* Coloca as arestas acima dos nós */\r\n.react-flow__edges {\r\n  z-index: 5;\r\n}\r\n\r\n/* Mantém nós abaixo das arestas */\r\n.react-flow__nodes {\r\n  z-index: 1;\r\n}\r\n\r\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\r\n.react-flow__handle {\r\n  z-index: 0;\r\n}"],"sourceRoot":""}]);
+}`, "",{"version":3,"sources":["webpack://./frontend/css/view.css"],"names":[],"mappings":"AAAA;IACI,UAAU;IACV,WAAW;IACX,mBAAmB;IACnB,yBAAyB;IACzB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;IACvB,qBAAqB;AACzB;;AAEA;IACI,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,UAAU;IACV,UAAU;IACV,mBAAmB;IACnB,yBAAyB;IACzB,cAAc;IACd,iBAAiB;IACjB,aAAa;IACb,mBAAmB;IACnB,uBAAuB;;AAE3B;AACA;IACI,eAAe;AACnB;;AAEA,oCAAoC;AACpC;EACE,UAAU;AACZ;;AAEA,kCAAkC;AAClC;EACE,UAAU;AACZ;;AAEA,2EAA2E;AAC3E;EACE,UAAU;AACZ","sourcesContent":[".exitBtn{\n    width: 6vw;\n    height: 3vw;\n    border-radius: 30em;\n    background-color: #1e427C;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    text-decoration: none;\n}\n\n.sign{\n    color: white;\n    font-size:small;\n}\n\n.codeBtn{\n    width:10vw;\n    height:6vw;\n    border-radius: 12px;\n    background-color: #0b0b0b;\n    color: #00ff88;\n    font-size: 0.8rem;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    \n}\n.codeBtn:hover{\n    cursor: pointer;;\n}\n\n/* Coloca as arestas acima dos nós */\n.react-flow__edges {\n  z-index: 5;\n}\n\n/* Mantém nós abaixo das arestas */\n.react-flow__nodes {\n  z-index: 1;\n}\n\n/* Se os handles estiverem cobrindo as setas, coloque-os abaixo das edges */\n.react-flow__handle {\n  z-index: 0;\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -49272,7 +49232,7 @@ if (false) // removed by dead control flow
   \******************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "93296ce21dfa9be4e7c6.svg";
+module.exports = __webpack_require__.p + "faa5304ec40be869c68d.svg";
 
 /***/ },
 
@@ -49282,7 +49242,7 @@ module.exports = __webpack_require__.p + "93296ce21dfa9be4e7c6.svg";
   \********************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "0f190bd9e32d9d2a1216.svg";
+module.exports = __webpack_require__.p + "105fe827e04d670944ff.svg";
 
 /***/ },
 
@@ -49292,7 +49252,7 @@ module.exports = __webpack_require__.p + "0f190bd9e32d9d2a1216.svg";
   \**************************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "6216d9e008d172971ee4.svg";
+module.exports = __webpack_require__.p + "130e470a4fc99150dce5.svg";
 
 /***/ },
 
@@ -49302,7 +49262,7 @@ module.exports = __webpack_require__.p + "6216d9e008d172971ee4.svg";
   \********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "53f64139a7341cd217f9.svg";
+module.exports = __webpack_require__.p + "b77fb40e3c23d446f45e.svg";
 
 /***/ },
 
@@ -49312,7 +49272,7 @@ module.exports = __webpack_require__.p + "53f64139a7341cd217f9.svg";
   \**********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "7b5feab4ca27b6a6446b.svg";
+module.exports = __webpack_require__.p + "848fedc70f3e898deb92.svg";
 
 /***/ },
 
@@ -49322,7 +49282,7 @@ module.exports = __webpack_require__.p + "7b5feab4ca27b6a6446b.svg";
   \***********************************/
 (module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__.p + "c406d289276c79ebb681.svg";
+module.exports = __webpack_require__.p + "b7bcd187df457f5fb327.svg";
 
 /***/ },
 
